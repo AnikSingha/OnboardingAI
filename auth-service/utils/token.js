@@ -5,8 +5,8 @@ const secretKey = process.env.secret_key
 const algorithm = process.env.algorithm
 const expiresIn = '1h'
 
-function createToken(email) {
-    const payload = { email }
+function createToken(email, business, role) {
+    const payload = { email, business, role }
     return jwt.sign(payload, secretKey, {algorithm, expiresIn})
 }
 

@@ -1,7 +1,25 @@
-const connectToDatabase = require('./db.js')
-const { hashPassword, checkPassword } = require('./utils/hashing.js')
+const connectToDatabase = require('../db.js')
+const { hashPassword, checkPassword } = require('./hashing.js')
 
 class AccountManager {
+
+    // returns true if user exists
+    async userExists(email) {
+        try {
+            let client = await connectToDatabase()
+            let userCollection = client.db('auth').collection('users')
+
+            let res = await userCollection.findOne(
+                { email }, 
+                { projection: { _id: 1 } }
+            )
+
+            return res !== null
+        } catch (err) {
+            return false
+        }
+    }
+
     // returns true if successful
     async addUser(email, password, business, role) {
         try {

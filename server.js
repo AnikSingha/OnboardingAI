@@ -98,6 +98,148 @@ app.post('/api/call', async (req, res) => {
   }
 });
 
+
+app.post('/api/calls/voice', async (req, res) => {
+  const VoiceResponse = twilio.twiml.VoiceResponse;
+  const twiml = new VoiceResponse();
+  const businessId = req.query.businessId;
+  const isReturning = req.query.isReturning === 'true';
+
+  try {
+    const business = await Business.findById(businessId);
+    if (!business) {
+      twiml.say('Sorry, the business is not available at the moment.');
+      res.type('text/xml');
+      return res.send(twiml.toString());
+    }
+
+    if (!isReturning) {
+      twiml.say('Hello, this is your AI assistant. How can I help you today?');
+    }
+
+    const gather = twiml.gather({
+      input: 'speech',
+      timeout: 5,
+      language: 'en-US',
+      action: `${process.env.NGROK_URL}/api/calls/process?businessId=${businessId}`,
+      method: 'POST',
+    });
+
+    if (isReturning) {
+      gather.say('What else can I help you with?');
+    } else {
+      gather.say('Please tell me how I can assist you.');
+    }
+
+    // Handle the case where no input is received
+    twiml.redirect(`${process.env.NGROK_URL}/api/calls/no-input?businessId=${businessId}&isReturning=${isReturning}`);
+
+    res.type('text/xml');
+    res.send(twiml.toString());
+  } catch (error) {
+    console.error('Error handling voice webhook:', error);
+    twiml.say('An error occurred. Please try again later.');
+    res.type('text/xml');
+    res.send(twiml.toString());
+  }
+});
+
+
+app.post('/api/calls/no-input', (req, res) => {
+  const VoiceResponse = twilio.twiml.VoiceResponse;
+  const twiml = new VoiceResponse();
+  const businessId = req.query.businessId;
+  const isReturning = req.query.isReturning === 'true';
+  twiml.say('We did not receive any input.');
+
+  if (isReturning) {
+    twiml.say('Please let me know if there is anything else I can assist you with.');
+    twiml.redirect(`${process.env.NGROK_URL}/api/calls/voice?businessId=${businessId}&isReturning=true`);
+  } else {
+    twiml.say('Goodbye.');
+    twiml.hangup();
+  }
+
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
+
+
+app.post('/api/calls/process', async (req, res) => {
+  const VoiceResponse = twilio.twiml.VoiceResponse;
+  const twiml = new VoiceResponse();
+  const businessId = req.query.businessId;
+  const speechResult = req.body.SpeechResult;
+  const digits = req.body.Digits;
+
+  console.log('Request Body:', req.body);
+
+  try {
+    const business = await Business.findById(businessId);
+    if (!business) {
+      twiml.say('Sorry, the business is not available at the moment.');
+      res.type('text/xml');
+      return res.send(twiml.toString());
+    }
+
+    let userInput = speechResult || digits;
+    if (!userInput) {
+      twiml.say('Sorry, I did not receive any input.');
+      twiml.redirect(`${process.env.NGROK_URL}/api/calls/voice?businessId=${businessId}`);
+      res.type('text/xml');
+      return res.send(twiml.toString());
+    }
+
+    if (digits) {
+      switch (digits) {
+        case '1':
+          userInput = 'I would like to schedule an appointment.';
+          break;
+        case '2':
+          userInput = 'I need support.';
+          break;
+        default:
+          userInput = 'I need assistance.';
+      }
+    }
+
+    const openaiResponse = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: userInput }],
+        max_tokens: 150,
+        temperature: 0.7,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+      }
+    );
+
+    const aiText = openaiResponse.data.choices[0].message.content.trim();
+
+
+    twiml.say(aiText);
+    twiml.say('Is there anything else I can help you with?');
+    twiml.redirect(`${process.env.NGROK_URL}/api/calls/voice?businessId=${businessId}&isReturning=true`);
+
+    res.type('text/xml');
+    res.send(twiml.toString());
+  } catch (error) {
+    console.error('Error processing input:', error);
+    if (error.response && error.response.data) {
+      console.error('OpenAI API Error Response:', error.response.data);
+    }
+    twiml.say('I encountered an error while processing your request.');
+    twiml.redirect(`${process.env.NGROK_URL}/api/calls/voice?businessId=${businessId}`);
+    res.type('text/xml');
+    res.send(twiml.toString());
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });

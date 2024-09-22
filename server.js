@@ -206,7 +206,7 @@ app.post('/api/calls/process', async (req, res) => {
     const openaiResponse = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-40-mini',
         messages: [{ role: 'user', content: userInput }],
         max_tokens: 150,
         temperature: 0.7,

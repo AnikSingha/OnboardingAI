@@ -161,6 +161,28 @@ class AccountManager {
             return false
         }
     }
+
+    // returns the corresponding business_name and role of the user
+    async getUserInfo(email) {
+        try {
+            let client = await connectToDatabase()
+            let userCollection = client.db('auth').collection('users')
+    
+            let result = await userCollection.findOne(
+                { email },
+                { projection: { business_name: 1, role: 1, _id: 0 } }
+            )
+    
+            if (result && result.business_name && result.role) {
+                return result
+            } else {
+                return ''
+            }
+            
+        } catch (err) {
+            return ''
+        }
+    }    
 }
 
 module.exports = new AccountManager()

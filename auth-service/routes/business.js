@@ -64,6 +64,33 @@ router.put('/update-employee-role', async (req, res) => {
     }
 })
 
+// In prod add a check to see if the role in the token is Owner
+router.put('/terminate-employee', async (req, res) => {
+    try {
+        const { email, business_name: business } = req.body
+
+        if (!email || !business) {
+            return res.status(400).json({success: false, message: 'email or business_name missing from request body'})
+        }
+
+        const user = await accountManager.getUserInfo(email)
+        if (user.business_name != business ) {
+            return res.status(403).json({ 
+                success: false,
+                message: 'Unauthorized: You do not have permission to terminate employees for this business.' }
+            )
+        }
+
+        const success = await accountManager.updateRole(email, 'terminated')
+        if (success) {
+            return res.status(200).json({ success: true, message: 'Employee successfully terminated' })
+        } else {
+            return res.status(400).json({ success: false, message: 'Failed to terminate employee' })
+        }
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
 
 
 module.exports = router

@@ -106,7 +106,7 @@ class AccountManager {
 
             return employees.map(employee => employee.email)
         } catch (err) {
-            return false
+            return []
         }
     }
 

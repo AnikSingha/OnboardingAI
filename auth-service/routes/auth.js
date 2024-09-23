@@ -8,6 +8,13 @@ router.post('/sign-up', async (req, res) => {
     try {
         const { email, password, business_name, role } = req.body
 
+        if (!email || !password || !business_name || !role) {
+            return res.status(400).json({
+                success: false,
+                message: 'email, password, business_name, or role were missing from request body'
+            })
+        }
+
         const exists = await accountManager.userExists(email)
         if (exists) {
             return res.status(409).json({ success: false, message: 'User already exists' })
@@ -29,6 +36,13 @@ router.post('/sign-up', async (req, res) => {
 router.get('/login', async (req, res) => {
     try {
         const { email, password } = req.body
+        
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'email or password were missing from request body'
+            })
+        }
 
         const exists = await accountManager.userExists(email)
         if (!exists) {

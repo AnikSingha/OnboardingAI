@@ -1,6 +1,7 @@
 const express = require('express')
 const accountManager = require('../utils/accounts.js')
 const { createToken, verifyToken } = require('../utils/token.js')
+const { verifyOTP, genQRCode } = require('../utils/otp.js')
 
 const router = express.Router()
 
@@ -77,6 +78,59 @@ router.get('/decode-token', async (req, res) => {
         } else {
             return res.status(403).json({ success: false, message: 'Invalid token' })
         }
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
+
+// change later so that it checks the email from the token not the req.body
+
+router.post('/otp/qr-code', async (req, res) => {
+    try {
+        let { email } = req.body
+        
+        if (!email) {
+            return res.status(400).json({success: false, message: 'email missing from request body'})
+        }
+
+        const exists = await accountManager.userExists(email)
+        if (!exists) {
+            return res.status(404).json({ success: false, message: 'User does not exist' })
+        }
+
+        const OTPSecret = await accountManager.getOTPSecret(email)
+        const QRCode = await genQRCode(email, OTPSecret)
+
+        return res.status(200).json({ success: true, message: 'QR Code successfully created', QRCode })
+
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
+
+router.post('/otp/verify-code', async(req, res) => {
+    try {
+        let { email, code } = req.body
+
+        if (!email || !code) {
+            return res.status(400).json({success: false, message: 'email or OTPCode missing from request body'})
+        }
+
+        const exists = await accountManager.userExists(email)
+        if (!exists) {
+            return res.status(404).json({ success: false, message: 'User does not exist' })
+        }
+
+        const OTPSecret = await accountManager.getOTPSecret(email)
+        const success = verifyOTP( code, OTPSecret)
+
+        if (success) {
+            return res.status(200).json({ success: true, message: 'The provided code is correct' })
+        } else {
+            return res.status(403).json({ success: false, message: 'The provided code is incorrect' })
+        }
+
+
     } catch (err) {
         return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
     }

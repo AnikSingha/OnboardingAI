@@ -1,6 +1,6 @@
 const connectToDatabase = require('../db.js')
 const { hashPassword, checkPassword } = require('./hashing.js')
-
+const { genSecret } = require('./otp.js')
 class AccountManager {
 
     // returns true if user exists
@@ -26,12 +26,14 @@ class AccountManager {
             let client = await connectToDatabase()
             let userCollection = client.db('auth').collection('users')
             let hashedPassword = await hashPassword(password)
+            let OTPSecret = genSecret()
 
             let newUser = {
                 email,
                 password: hashedPassword,
                 business_name: business,
-                role
+                role,
+                OTPSecret
             }
 
             let res = await userCollection.insertOne(newUser) // add new user
@@ -182,7 +184,28 @@ class AccountManager {
         } catch (err) {
             return ''
         }
-    }    
+    }
+
+    async getOTPSecret(email) {
+        try {
+            let client = await connectToDatabase()
+            let userCollection = client.db('auth').collection('users')
+            
+            let result = await userCollection.findOne(
+                { email },
+                { projection: { OTPSecret: 1, _id: 0 } }
+            )
+
+            if (result && result.OTPSecret){
+                return result.OTPSecret
+            } else {
+                return ''
+            }
+            
+        } catch (err) {
+            return ''
+        }
+    }
 }
 
 module.exports = new AccountManager()

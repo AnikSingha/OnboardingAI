@@ -1,2 +1,6 @@
 .env
 node_modules/*
+combined.log
+error.log
+greeting_audio.mulaw
+test_tts_output.mp3

@@ -12,15 +12,19 @@
   "dependencies": {
     "@deepgram/sdk": "^3.7.0",
     "@google-cloud/text-to-speech": "^5.4.0",
+    "alawmulaw": "^6.0.0",
     "axios": "^1.7.7",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
+    "ffmpeg": "^0.0.4",
     "mongoose": "^8.6.3",
     "openai": "^4.62.1",
     "twilio": "^5.3.1",
     "uuid": "^10.0.0",
+    "websocket": "^1.0.35",
+    "winston": "^3.14.2",
     "ws": "^8.18.0"
   }
 }

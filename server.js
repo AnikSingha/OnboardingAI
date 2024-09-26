@@ -1,245 +1,312 @@
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
-const cors = require('cors');
 const twilio = require('twilio');
-const mongoose = require('mongoose');
 const axios = require('axios');
-const fs = require('fs');
 const path = require('path');
+const http = require('http');
+const WebSocketServer = require('websocket').server;
+const { createClient } = require("@deepgram/sdk");
+const { spawn } = require('child_process');
 
+// Create Express app
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5001;
 
-app.use(cors());
+// Create HTTP server
+const server = http.createServer(app);
+
+// Middleware
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('MongoDB Connected'))
-.catch(err => console.log(err));
-
-
-const businessSchema = new mongoose.Schema({
-  name: String,
-  officialNumber: String,
-  twilioNumber: String,
-  
-});
-
-const Business = mongoose.model('Business', businessSchema);
-
-
+// Initialize Twilio client
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioClient = twilio(accountSid, authToken);
 
+// Initialize Deepgram client
+const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 
-app.post('/api/businesses', async (req, res) => {
-  const { name, officialNumber} = req.body;
+// Endpoint to handle incoming calls
+app.post('/twiml', (req, res) => {
+  const twiml = new twilio.twiml.VoiceResponse();
+  const ngrokDomain = process.env.PUBLIC_URL;
 
-  try {
-    const existingTwilioNumber = process.env.TWILIO_PHONE_NUMBER
-
-    if (existingTwilioNumber.length === 0) {
-      return res.status(400).json({ error: 'Number is not valid' });
-    }
-
-    const newBusiness = new Business({
-      name,
-      officialNumber,
-      twilioNumber: existingTwilioNumber,
-    });
-
-    await newBusiness.save();
-
-    res.status(201).json(newBusiness);
-  } catch (error) {
-    console.error('Error registering business:', error);
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
-app.get('/api/businesses', async (req, res) => {
-  try {
-    const businesses = await Business.find();
-    res.status(200).json(businesses);
-  } catch (error) {
-    console.error('Error fetching businesses:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.post('/api/call', async (req, res) => {
-  const { toNumber, businessId } = req.body;
-  
-  try {
-    const business = await Business.findById(businessId);
-    
-    if (!business) {
-      return res.status(404).json({ error: 'Business not found' });
-    }
-    
-    const call = await twilioClient.calls.create({
-      url: `${process.env.NGROK_URL}/api/calls/voice?businessId=${businessId}`,
-      to: toNumber,
-      from: business.twilioNumber,
-    });
-    
-    res.status(200).json({ callSid: call.sid });
-  } catch (error) {
-    console.error('Error making call:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
-app.post('/api/calls/voice', async (req, res) => {
-  const VoiceResponse = twilio.twiml.VoiceResponse;
-  const twiml = new VoiceResponse();
-  const businessId = req.query.businessId;
-  const isReturning = req.query.isReturning === 'true';
-
-  try {
-    const business = await Business.findById(businessId);
-    if (!business) {
-      twiml.say('Sorry, the business is not available at the moment.');
-      res.type('text/xml');
-      return res.send(twiml.toString());
-    }
-
-    if (!isReturning) {
-      twiml.say('Hello, this is your AI assistant. How can I help you today?');
-    }
-
-    const gather = twiml.gather({
-      input: 'speech',
-      timeout: 5,
-      language: 'en-US',
-      action: `${process.env.NGROK_URL}/api/calls/process?businessId=${businessId}`,
-      method: 'POST',
-    });
-
-    if (isReturning) {
-      gather.say('What else can I help you with?');
-    } else {
-      gather.say('Please tell me how I can assist you.');
-    }
-
-    // Handle the case where no input is received
-    twiml.redirect(`${process.env.NGROK_URL}/api/calls/no-input?businessId=${businessId}&isReturning=${isReturning}`);
-
-    res.type('text/xml');
-    res.send(twiml.toString());
-  } catch (error) {
-    console.error('Error handling voice webhook:', error);
-    twiml.say('An error occurred. Please try again later.');
-    res.type('text/xml');
-    res.send(twiml.toString());
-  }
-});
-
-
-app.post('/api/calls/no-input', (req, res) => {
-  const VoiceResponse = twilio.twiml.VoiceResponse;
-  const twiml = new VoiceResponse();
-  const businessId = req.query.businessId;
-  const isReturning = req.query.isReturning === 'true';
-  twiml.say('We did not receive any input.');
-
-  if (isReturning) {
-    twiml.say('Please let me know if there is anything else I can assist you with.');
-    twiml.redirect(`${process.env.NGROK_URL}/api/calls/voice?businessId=${businessId}&isReturning=true`);
-  } else {
-    twiml.say('Goodbye.');
-    twiml.hangup();
-  }
-
+  twiml.connect().stream({
+    url: `wss://${ngrokDomain}/media-stream`,
+    track: 'inbound_track'
+  });
+  console.log('TwiML response:', twiml.toString());
   res.type('text/xml');
   res.send(twiml.toString());
 });
 
+// WebSocket server handling
+const wss = new WebSocketServer({
+  httpServer: server,
+  autoAcceptConnections: false
+});
 
-app.post('/api/calls/process', async (req, res) => {
-  const VoiceResponse = twilio.twiml.VoiceResponse;
-  const twiml = new VoiceResponse();
-  const businessId = req.query.businessId;
-  const speechResult = req.body.SpeechResult;
-  const digits = req.body.Digits;
-
-  console.log('Request Body:', req.body);
-
-  try {
-    const business = await Business.findById(businessId);
-    if (!business) {
-      twiml.say('Sorry, the business is not available at the moment.');
-      res.type('text/xml');
-      return res.send(twiml.toString());
-    }
-
-    let userInput = speechResult || digits;
-    if (!userInput) {
-      twiml.say('Sorry, I did not receive any input.');
-      twiml.redirect(`${process.env.NGROK_URL}/api/calls/voice?businessId=${businessId}`);
-      res.type('text/xml');
-      return res.send(twiml.toString());
-    }
-
-    if (digits) {
-      switch (digits) {
-        case '1':
-          userInput = 'I would like to schedule an appointment.';
-          break;
-        case '2':
-          userInput = 'I need support.';
-          break;
-        default:
-          userInput = 'I need assistance.';
-      }
-    }
-
-    const openaiResponse = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: userInput }],
-        max_tokens: 150,
-        temperature: 0.7,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-      }
-    );
-
-    const aiText = openaiResponse.data.choices[0].message.content.trim();
-
-
-    twiml.say(aiText);
-    twiml.say('Is there anything else I can help you with?');
-    twiml.redirect(`${process.env.NGROK_URL}/api/calls/voice?businessId=${businessId}&isReturning=true`);
-
-    res.type('text/xml');
-    res.send(twiml.toString());
-  } catch (error) {
-    console.error('Error processing input:', error);
-    if (error.response && error.response.data) {
-      console.error('OpenAI API Error Response:', error.response.data);
-    }
-    twiml.say('I encountered an error while processing your request.');
-    twiml.redirect(`${process.env.NGROK_URL}/api/calls/voice?businessId=${businessId}`);
-    res.type('text/xml');
-    res.send(twiml.toString());
+wss.on('request', (request) => {
+  console.log('WebSocket connection attempt:', request.resourceURL.pathname);
+  
+  if (request.resourceURL.pathname === '/media-stream') {
+    const connection = request.accept(null, request.origin);
+    console.log('WebSocket connection accepted');
+    new MediaStream(connection);
+  } else {
+    request.reject(404, 'Not Found');
+    console.log(`Rejected WebSocket connection to invalid path: ${request.resourceURL.pathname}`);
   }
 });
 
-app.listen(port, () => {
+class MediaStream {
+  constructor(connection) {
+    console.log('MediaStream instance created');
+    this.connection = connection;
+    this.connection.on('message', this.processMessage.bind(this));
+    this.connection.on('close', this.close.bind(this));
+    this.connection.on('error', this.handleError.bind(this));
+    this.streamSid = null;
+    this.hasGreeted = false;
+    this.initializeDeepgram();
+    console.log('MediaStream instance created');
+  }
+
+  initializeDeepgram() {
+    console.log('Initializing Deepgram connection');
+    this.dgSocket = deepgram.listen.live({
+      language: 'en-US',
+      punctuate: true,
+      interim_results: false,
+    });
+  this.dgSocket.addListener('open', () => console.log('Deepgram connection opened'));
+  this.dgSocket.addListener('close', () => console.log('Deepgram connection closed'));
+  this.dgSocket.addListener('transcription', (transcription) => {
+    console.log('Received transcription from Deepgram:', JSON.stringify(transcription));
+    const transcriptText = transcription.channel.alternatives[0].transcript;
+    if (transcriptText) {
+      console.log('Transcription:', transcriptText);
+      this.generateAndSendResponse(transcriptText);
+    } else {
+      console.log('Received empty transcription');
+    }
+  });
+
+    this.dgSocket.addListener('error', (error) => {
+      console.error('Deepgram error:', error);
+    });
+
+    console.log('Deepgram connection initialized');
+  }
+  async sendInitialGreeting() {
+    console.log('Attempting to send initial greeting');
+    if (!this.hasGreeted) {
+      const greeting = "Hello! How can I assist you today?";
+      console.log('Generating speech for greeting:', greeting);
+      try {
+        const speechAudio = await this.synthesizeSpeechWithDeepgram(greeting);
+        if (speechAudio) {
+          console.log('Speech generated, sending to Twilio');
+          await this.sendAudioToTwilio(speechAudio);
+          this.hasGreeted = true;
+          console.log('Initial greeting sent successfully');
+        } else {
+          console.log('Failed to generate speech for greeting');
+        }
+      } catch (error) {
+        console.error('Error sending initial greeting:', error);
+      }
+    } else {
+      console.log('Greeting has already been sent');
+    }
+  }
+
+  processMessage(message) {
+    if (message.type === 'utf8') {
+      const data = JSON.parse(message.utf8Data);
+      console.log('Received message type:', data.event);
+      
+      switch(data.event) {
+        case 'connected':
+          console.log('Connected event received:', data);
+          break;
+        case 'start':
+          console.log('Start event received:', data);
+          this.streamSid = data.start.streamSid;
+          break;
+        case 'media':
+          this.handleMediaData(data);
+          break;
+        case 'stop':
+          console.log('Stop event received:', data);
+          this.close();
+          break;
+      }
+    } else if (message.type === 'binary') {
+      this.handleBinaryData(message.binaryData);
+    }
+  }
+
+  handleMediaData(data) {
+    if (data.media && data.media.payload) {
+      const audioChunk = Buffer.from(data.media.payload, 'base64');
+      console.log(`Sending ${audioChunk.length} bytes to Deepgram`);
+      this.dgSocket.send(audioChunk);
+    } else {
+      console.log('Received media event without payload');
+    }
+  }
+
+  handleBinaryData(data) {
+    this.dgSocket.send(data);
+  }
+
+  async generateAndSendResponse(transcriptText) {
+    try {
+      const aiText = await this.generateAIResponse(transcriptText);
+      const speechAudio = await this.synthesizeSpeechWithDeepgram(aiText);
+      if (speechAudio) {
+        this.sendAudioToTwilio(speechAudio);
+      }
+    } catch (error) {
+      console.error('Error in generate and send response:', error);
+    }
+  }
+
+  async generateAIResponse(transcriptText) {
+    try {
+      const openaiResponse = await axios.post(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: 'You are a helpful assistant.' },
+            { role: 'user', content: transcriptText }
+          ],
+          max_tokens: 150,
+          temperature: 0.7,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+        }
+      );
+
+      const aiText = openaiResponse.data.choices[0].message.content.trim();
+      console.log('AI Response:', aiText);
+      return aiText;
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      return 'Sorry, I am having trouble processing your request.';
+    }
+  }
+
+  async synthesizeSpeechWithDeepgram(text) {
+    try {
+      const response = await axios.post(
+        'https://api.deepgram.com/v1/tts',
+        { text, voice: 'en-US' },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Token ${process.env.DEEPGRAM_API_KEY}`,
+          },
+          responseType: 'arraybuffer',
+        }
+      );
+
+      return this.transcodeAudio(Buffer.from(response.data));
+    } catch (error) {
+      console.error('Error synthesizing speech with Deepgram:', error);
+      return null;
+    }
+  }
+
+  transcodeAudio(inputBuffer) {
+    return new Promise((resolve, reject) => {
+      const args = [
+        '-f', 'mp3',
+        '-i', 'pipe:0',
+        '-ar', '8000',
+        '-ac', '1',
+        '-f', 'mulaw',
+        'pipe:1',
+      ];
+
+      const ffmpeg = spawn('ffmpeg', args);
+      const chunks = [];
+
+      ffmpeg.stdin.write(inputBuffer);
+      ffmpeg.stdin.end();
+
+      ffmpeg.stdout.on('data', (chunk) => {
+        chunks.push(chunk);
+      });
+
+      ffmpeg.stdout.on('end', () => {
+        resolve(Buffer.concat(chunks));
+      });
+
+      ffmpeg.stderr.on('data', (data) => {
+        console.error('FFmpeg error:', data.toString());
+      });
+
+      ffmpeg.on('error', (error) => {
+        reject(error);
+      });
+    });
+  }
+
+  sendAudioToTwilio(audioBuffer) {
+    return new Promise((resolve, reject) => {
+      const chunkSize = 320;
+      let offset = 0;
+  
+      const sendChunk = () => {
+        if (offset >= audioBuffer.length) {
+          console.log('Finished streaming audio to Twilio');
+          resolve();
+          return;
+        }
+  
+        const chunk = audioBuffer.slice(offset, offset + chunkSize);
+        offset += chunkSize;
+  
+        const payload = chunk.toString('base64');
+        const message = {
+          event: 'media',
+          streamSid: this.streamSid,
+          media: {
+            payload
+          }
+        };
+  
+        this.connection.sendUTF(JSON.stringify(message));
+        setTimeout(sendChunk, 20);
+      };
+  
+      console.log('Starting to stream audio to Twilio');
+      sendChunk();
+    });
+  }
+
+  close() {
+    console.log('Closing MediaStream');
+    if (this.dgSocket) {
+      this.dgSocket.finish();
+    }
+  }
+
+  handleError(error) {
+    console.error('WebSocket error:', error);
+  }
+}
+
+// Start the server
+server.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });

@@ -1,0 +1,30 @@
+import { NavDropdown } from 'react-bootstrap';
+import Container from 'react-bootstrap/Container';
+import Nav from 'react-bootstrap/Nav';
+import Navbar from 'react-bootstrap/Navbar';
+import { RxAvatar } from 'react-icons/rx';
+
+export default function OnboardNav() {
+  return (
+    <>
+      <Navbar fixed='top' style={{ backgroundColor: '#e0ebec', height:132, paddingLeft:200}}>
+        <Container>
+          <Navbar.Brand href="#home">
+            <div style={{width:266,height:72,background:'white',alignItems: 'center', padding: '10px 20px',display: 'flex',borderRadius: '8px', border:'3px solid black'}}>
+            <span style={{color:'#0075FF',fontWeight:'bold',fontSize:40}}>Onboard</span>
+            <span style={{color:'black',fontWeight:'bold',fontSize:40}}>AI</span>
+            </div>
+          </Navbar.Brand>
+          <Nav className="me-auto">
+            
+            <NavDropdown title="Price" style={{marginLeft:162}}></NavDropdown>
+            <NavDropdown title="Resource"></NavDropdown>
+            <NavDropdown title="Tool"></NavDropdown>
+            <RxAvatar style={{height:50,width:50,marginLeft:350}}/>
+          </Nav>
+        </Container>
+      </Navbar>
+
+    </>
+  );
+}

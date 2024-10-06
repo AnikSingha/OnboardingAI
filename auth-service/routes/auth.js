@@ -83,23 +83,22 @@ router.get('/decode-token', async (req, res) => {
     }
 })
 
-// change later so that it checks the email from the token not the req.body
 
-router.post('/otp/qr-code', async (req, res) => {
+router.get('/otp/qr-code', async (req, res) => {
     try {
-        let { email } = req.body
+        let { valid, decoded } = verifyToken(req.cookies.token)
         
-        if (!email) {
-            return res.status(400).json({success: false, message: 'email missing from request body'})
+        if (!decoded) {
+            return res.status(403).json({success: false, message: 'No token was provided'})
         }
 
-        const exists = await accountManager.userExists(email)
+        const exists = await accountManager.userExists(decoded.email)
         if (!exists) {
             return res.status(404).json({ success: false, message: 'User does not exist' })
         }
 
-        const OTPSecret = await accountManager.getOTPSecret(email)
-        const QRCode = await genQRCode(email, OTPSecret)
+        const OTPSecret = await accountManager.getOTPSecret(decoded.email)
+        const QRCode = await genQRCode(decoded.email, OTPSecret)
 
         return res.status(200).json({ success: true, message: 'QR Code successfully created', QRCode })
 

@@ -1,16 +1,16 @@
 const express = require('express')
 const accountManager = require('../utils/accounts.js')
-const { createToken } = require('../utils/token.js')
+const { verifyToken } = require('../utils/token.js')
 
 const router = express.Router()
 
-// In prod check if email is the same as the user, otherwise unauthorized
 router.delete('/delete-account', async (req, res) => {
     try {
         const { email } = req.body
+        const { valid, decoded} = verifyToken(req.cookies.token)
 
-        if (!email) {
-            return res.status(400).json({success: false, message: 'email missing from request body'})
+        if (decoded.email != email ) {
+            return res.status(403).json({success: false, message: 'Unauthorized'})
         }
 
         const success = await accountManager.deleteUser(email)

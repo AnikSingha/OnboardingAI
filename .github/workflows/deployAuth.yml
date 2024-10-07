@@ -35,7 +35,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             echo "Installing npm packages..."
-            cd OnboardingAI/auth
+            cd OnboardingAI/auth-service
             git checkout auth
             npm install
 

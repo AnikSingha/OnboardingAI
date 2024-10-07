@@ -2,6 +2,7 @@ const express = require('express')
 const accountManager = require('../utils/accounts.js')
 const { createToken, verifyToken } = require('../utils/token.js')
 const { verifyOTP, genQRCode } = require('../utils/otp.js')
+const { sendEmailLogin } = require('../utils/email.js')
 
 const router = express.Router()
 
@@ -129,6 +130,49 @@ router.post('/otp/verify-code', async(req, res) => {
             return res.status(403).json({ success: false, message: 'The provided code is incorrect' })
         }
 
+
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
+
+// For now we aren't redirecting to anything because the frontend isn't deployed
+router.get('/login-link', async(req, res) => {
+    try {
+        let token = req.query.token
+        
+        if (!token) {
+            return res.status(400).json({success: false, message: 'No token was provided'})
+        }
+
+        let result = verifyToken(token)
+        if (!result.valid) {
+            return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error })
+        }
+        
+        res.cookie('token', token, { httpOnly: true })
+        return res.status(200).json({ success: true, message: 'Token accepted' });
+        // return res.redirect('/')
+
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
+
+router.post('/send-login-link', async(req, res) => {
+    try {
+        let email = req.body.email
+
+        if (!email) {
+            return res.status(400).json({success: false, message: 'email missing from request body'})
+        }
+        
+        let result = sendEmailLogin(email)
+        if (!result) {
+            return res.status(500).json({ success: false, message: 'Failed to send login link' })
+        }
+
+        return res.status(200).json({ success: true, message: 'Login link sent successfully' })
 
     } catch (err) {
         return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })

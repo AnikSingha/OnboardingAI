@@ -1,0 +1,44 @@
+name: Deploy auth
+
+on:
+  push:
+    branches:
+      - auth
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Update code
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            echo "Changing directory to OnboardingAI..."
+            cd OnboardingAI
+
+            echo "Pulling latest code from repo ..."
+            git pull
+
+            echo "Code update complete."
+          EOF
+
+        - name: Install libraries and deploy
+          run: |
+            ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+              echo "Installing npm packages..."
+              cd OnboardingAI
+              npm install
+
+              echo "Starting the Express server..."
+              node server.js
+              echo "Express server started."
+            EOF
+

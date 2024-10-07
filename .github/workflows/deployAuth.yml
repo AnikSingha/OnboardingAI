@@ -23,6 +23,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             echo "Changing directory to OnboardingAI..."
             cd OnboardingAI
+            git checkout auth
 
             echo "Pulling latest code from repo ..."
             git pull
@@ -30,15 +31,16 @@ jobs:
             echo "Code update complete."
           EOF
 
-        - name: Install libraries and deploy
-          run: |
-            ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-              echo "Installing npm packages..."
-              cd OnboardingAI
-              npm install
+      - name: Install libraries and deploy
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            echo "Installing npm packages..."
+            cd OnboardingAI/auth
+            git checkout auth
+            npm install
 
-              echo "Starting the Express server..."
-              node server.js
-              echo "Express server started."
-            EOF
+            echo "Starting the Express server..."
+            node server.js
+            echo "Express server started."
+          EOF
 

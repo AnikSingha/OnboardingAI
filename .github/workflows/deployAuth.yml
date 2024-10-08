@@ -44,9 +44,13 @@ jobs:
             echo "Installing npm packages..."
             npm install
 
+            echo "Terminating any previously running Node.js instances..."
+            sudo pkill -f node || echo "No Node.js processes found."
+
             echo "Starting the Express server..."
-            node server.js &
+            nohup node server.js > server.log 2>&1 &
             echo "Express server started."
+            exit
           EOF
 
 

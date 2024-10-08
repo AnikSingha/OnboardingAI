@@ -18,7 +18,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Update code and inject environment variables
+      - name: Inject environment variables
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             # Inject environment variables
@@ -29,24 +29,24 @@ jobs:
 
             echo "Current directory: $(pwd)"
             cd OnboardingAI/auth-service
-            echo "Installing npm packages..."
-            npm install
-
-            echo "Starting the Express server..."
-            node server.js
-            echo "Express server started."
+            echo "Environment variables injected."
           EOF
 
-      - name: Install libraries and deploy
+      - name: Update code and deploy
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            echo "Installing npm packages..."
+            echo "Changing directory to OnboardingAI/auth-service..."
             cd OnboardingAI/auth-service
+            echo "Pulling latest code from repo..."
             git checkout auth
+            git pull
+
+            echo "Installing npm packages..."
             npm install
 
             echo "Starting the Express server..."
-            node server.js
+            node server.js &
             echo "Express server started."
           EOF
+
 

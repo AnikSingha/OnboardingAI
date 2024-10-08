@@ -35,6 +35,6 @@ app.use('/auth', authRoutes)
 app.use('/user', userRoutes)
 app.use('/business', businessRoutes)
 
-app.listen(3000, () => {
-    console.log(`Server running on port 3000`)
+app.listen(80, () => {
+    console.log(`Server running on port 80`)
 })

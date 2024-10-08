@@ -18,17 +18,23 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Update code
+      - name: Update code and inject environment variables
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            echo "Changing directory to OnboardingAI..."
-            cd OnboardingAI
-            git checkout auth
+            # Inject environment variables
+            export ALGORITHM="${{ secrets.ALGORITHM }}"
+            export DB_URI="${{ secrets.DB_URI }}"
+            export EMAILPASSWORD="${{ secrets.EMAILPASSWORD }}"
+            export SECRET_KEY="${{ secrets.SECRET_KEY }}"
 
-            echo "Pulling latest code from repo ..."
-            git pull
+            echo "Current directory: $(pwd)"
+            cd OnboardingAI/auth-service
+            echo "Installing npm packages..."
+            npm install
 
-            echo "Code update complete."
+            echo "Starting the Express server..."
+            node server.js
+            echo "Express server started."
           EOF
 
       - name: Install libraries and deploy

@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken')
 require('dotenv').config()
 
-const secretKey = process.env.secret_key
-const algorithm = process.env.algorithm
+const secretKey = process.env.SECRET_KEY
+const algorithm = process.env.ALGORITHM
 const expiresIn = '1h'
 
 function createToken(email, business, role) {

@@ -48,7 +48,7 @@ jobs:
             sudo pkill -f node || echo "No Node.js processes found."
 
             echo "Starting the Express server..."
-            nohup node server.js > server.log 2>&1 &
+            nohup sudo ~/.nvm/versions/node/v22.9.0/bin/node server.js > output.log 2>&1 &
             echo "Express server started."
             exit
           EOF

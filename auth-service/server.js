@@ -35,6 +35,6 @@ app.use('/auth', authRoutes)
 app.use('/user', userRoutes)
 app.use('/business', businessRoutes)
 
-app.listen(80, () => {
-    console.log(`Server running on port 80`)
-})
+app.listen(80, '0.0.0.0', () => {
+    console.log(`Server running at http://18.217.62.107/`);
+});

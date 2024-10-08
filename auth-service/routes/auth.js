@@ -7,7 +7,7 @@ const { sendEmailLogin } = require('../utils/email.js')
 const router = express.Router()
 
 router.get('/', async (req, res) => {
-    return res.status(20).json({ success: true, message: 'Server running' })
+    return res.status(200).json({ success: true, message: 'Server running' })
 })
 
 router.post('/sign-up', async (req, res) => {

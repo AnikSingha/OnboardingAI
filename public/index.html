@@ -97,9 +97,14 @@
             appointments.forEach(appointment => {
                 const appointmentElement = document.createElement('div');
                 appointmentElement.classList.add('appointment-item');
+                
+                const appointmentDate = new Date(appointment.date);
+                const timezoneOffset = appointmentDate.getTimezoneOffset() * 60000;
+                const adjustedDate = new Date(appointmentDate.getTime() + timezoneOffset);
+                
                 appointmentElement.innerHTML = `
                     <p><strong>Name:</strong> ${appointment.customerName}</p>
-                    <p><strong>Date:</strong> ${new Date(appointment.date).toLocaleDateString()}</p>
+                    <p><strong>Date:</strong> ${adjustedDate.toLocaleDateString()}</p>
                     <p><strong>Time:</strong> ${appointment.time}</p>
                     <p><strong>Service:</strong> ${appointment.service}</p>
                 `;

@@ -7,124 +7,24 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>OnboardingAI Chat Test</h1>
-    <p>Data extraction testing for appointment scheduling.</p>
-    <div id="app-container">
-        <div id="chat-container"></div>
-        <div id="chart-container"></div>
-    </div>
-    <div id="input-container">
-        <input type="text" id="user-input" placeholder="Type your message...">
-        <button onclick="sendMessage()">Send</button>
-        <button class="toggle-button" onclick="toggleAppointments()">Toggle Appointments</button>
-    </div>
-
-    <script>
-        const chatContainer = document.getElementById('chat-container');
-        const userInput = document.getElementById('user-input');
-        const chartContainer = document.getElementById('chart-container');
-        
-        // Generate a unique session ID
-        const sessionId = Date.now().toString();
-
-        // Add initial message from the AI
-        appendMessage("AI: Hello! I'm the Business Appointment Assistant. How can I help you today? Would you like to schedule an appointment or have any questions about our services?");
-
-        // Fetch and display appointments
-        fetchAppointments();
-
-        async function sendMessage() {
-            const message = userInput.value.trim();
-            if (message) {
-                appendMessage('You: ' + message);
-                userInput.value = '';
-
-                try {
-                    const response = await fetch('/chat', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ message, sessionId }),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Network response error');
-                    }
-
-                    const data = await response.json();
-                    appendMessage('AI: ' + data.reply);
-                    
-                    // Fetch appointments after each message to update the chart
-                    fetchAppointments();
-                } catch (error) {
-                    console.error('Error:', error);
-                    appendMessage('Error: Failed to get response from the server.');
-                }
-            }
-        }
-
-        function appendMessage(message) {
-            const messageElement = document.createElement('div');
-            messageElement.textContent = message;
-            messageElement.classList.add('message');
-            
-            if (message.startsWith('You: ')) {
-                messageElement.classList.add('user-message');
-            } else if (message.startsWith('AI: ')) {
-                messageElement.classList.add('ai-message');
-            }
-            
-            chatContainer.appendChild(messageElement);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        async function fetchAppointments() {
-            try {
-                const response = await fetch('/appointments');
-                if (!response.ok) {
-                    throw new Error('Failed to load appointments');
-                }
-                const appointments = await response.json();
-                displayAppointments(appointments);
-            } catch (error) {
-                console.error('Error loading appointments:', error);
-            }
-        }
-
-        function displayAppointments(appointments) {
-            chartContainer.innerHTML = '<h2>Appointment Database</h2>';
-            appointments.forEach(appointment => {
-                const appointmentElement = document.createElement('div');
-                appointmentElement.classList.add('appointment-item');
-                
-                const appointmentDate = new Date(appointment.date);
-                const timezoneOffset = appointmentDate.getTimezoneOffset() * 60000;
-                const adjustedDate = new Date(appointmentDate.getTime() + timezoneOffset);
-                
-                appointmentElement.innerHTML = `
-                    <p><strong>Name:</strong> ${appointment.customerName}</p>
-                    <p><strong>Date:</strong> ${adjustedDate.toLocaleDateString()}</p>
-                    <p><strong>Time:</strong> ${appointment.time}</p>
-                    <p><strong>Service:</strong> ${appointment.service}</p>
-                `;
-                chartContainer.appendChild(appointmentElement);
-            });
-        }
-
-        userInput.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        function toggleAppointments() {
-            if (chartContainer.style.display === 'none' || chartContainer.style.display === '') {
-                chartContainer.style.display = 'block';
-            } else {
-                chartContainer.style.display = 'none';
-            }
-        }
-    </script>
+    <header>
+        <h1>OnboardingAI Chat Test</h1>
+        <p>Data extraction testing for appointment scheduling.</p>
+    </header>
+    <main id="app-container">
+        <section id="chat-section">
+            <div id="chat-container"></div>
+            <div id="input-container">
+                <input type="text" id="user-input" placeholder="Type your message...">
+                <button id="send-button">Send</button>
+            </div>
+        </section>
+        <aside id="info-section">
+            <div id="chart-container"></div>
+            <div id="available-dates-container"></div>
+            <button id="toggle-appointments" class="toggle-button">Toggle Appointments</button>
+        </aside>
+    </main>
+    <script src="script.js"></script>
 </body>
 </html>

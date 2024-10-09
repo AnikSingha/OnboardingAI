@@ -28,10 +28,12 @@ const systemMessage = {
   - Preferred date and time
   - Requested service
 
+  You will be provided with a list of available dates and their remaining slots. Only schedule appointments on these available dates. If a requested date is not available, suggest the closest available date.
+
   After extracting this information, format it as a JSON object and include it in your response like this:
   [APPOINTMENT_DATA]{"customerName": "John Doe", "email": "john@example.com", "phone": "123-456-7890", "date": "2023-05-01", "time": "14:00", "service": "Haircut"}[/APPOINTMENT_DATA]
 
-  Conduct the exchange as a phone conversation, do not ask for multiple fields of iinformation at once.
+  Please conduct the exchange as if it was a phone call, do not ask for multiple fields of information at once, ask for one field at a time.
   
   Please be polite, professional, and efficient in your responses. If you need more information to complete a task, ask for it clearly.`
 };
@@ -45,6 +47,17 @@ app.post('/chat', async (req, res) => {
       conversations.set(sessionId, [systemMessage]);
     }
     const conversation = conversations.get(sessionId);
+
+    // Fetch available dates
+    const availableDates = await availableDateService.getAvailableDates();
+    
+    // Add available dates information to the conversation
+    conversation.push({
+      role: "system",
+      content: `Available dates for appointments: ${availableDates.map(d => 
+        `${new Date(d.date).toISOString().split('T')[0]} (${d.availableSlots} slots)`
+      ).join(', ')}`
+    });
 
     // Add user message to conversation history
     conversation.push({ role: "user", content: message });
@@ -65,8 +78,13 @@ app.post('/chat', async (req, res) => {
     const appointmentDataMatch = reply.match(/\[APPOINTMENT_DATA\](.*?)\[\/APPOINTMENT_DATA\]/);
     if (appointmentDataMatch) {
       const appointmentData = JSON.parse(appointmentDataMatch[1]);
-      const savedAppointment = await appointmentService.createAppointment(appointmentData);
-      console.log('Appointment saved:', savedAppointment);
+      try {
+        const savedAppointment = await appointmentService.createAppointment(appointmentData);
+        console.log('Appointment saved:', savedAppointment);
+      } catch (error) {
+        console.error('Error saving appointment:', error.message);
+        conversation.push({ role: "assistant", content: `I'm sorry, but the selected date is not available. Please choose another date.` });
+      }
     }
 
     // Remove the appointment data from the reply
@@ -111,4 +129,28 @@ app.get('/appointments', async (req, res) => {
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
+});
+
+const availableDateService = require('./services/availableDateService');
+
+// Add available dates
+app.post('/available-dates', async (req, res) => {
+  try {
+    const { date, slots } = req.body;
+    const parsedDate = new Date(date);
+    const availableDate = await availableDateService.addAvailableDate(parsedDate, slots);
+    res.json(availableDate);
+  } catch (error) {
+    res.status(500).json({ error: 'An error occurred while adding available date.' });
+  }
+});
+
+// Get available dates
+app.get('/available-dates', async (req, res) => {
+  try {
+    const availableDates = await availableDateService.getAvailableDates();
+    res.json(availableDates);
+  } catch (error) {
+    res.status(500).json({ error: 'An error occurred while fetching available dates.' });
+  }
 });

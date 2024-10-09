@@ -1,7 +1,12 @@
 const Appointment = require('../models/appointment');
+const availableDateService = require('./availableDateService');
 
 class AppointmentService {
   async createAppointment(appointmentData) {
+    const availableDate = await availableDateService.decrementAvailableSlots(appointmentData.date);
+    if (!availableDate) {
+      throw new Error('No available slots for the selected date');
+    }
     const appointment = new Appointment(appointmentData);
     return await appointment.save();
   }

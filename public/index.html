@@ -1,43 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OnboardingAI Chat Test</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>OnboardingAI Chat Test</h1>
+    <p>Data extraction testing for appointment scheduling.</p>
+    <div id="app-container">
+        <div id="chat-container"></div>
+        <div id="chart-container"></div>
+    </div>
+    <div id="input-container">
+        <input type="text" id="user-input" placeholder="Type your message...">
+        <button onclick="sendMessage()">Send</button>
+        <button class="toggle-button" onclick="toggleAppointments()">Toggle Appointments</button>
+    </div>
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const chartContainer = document.getElementById('chart-container');
+        
+        // Generate a unique session ID
+        const sessionId = Date.now().toString();
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+        // Add initial message from the AI
+        appendMessage("AI: Hello! I'm the Business Appointment Assistant. How can I help you today? Would you like to schedule an appointment or have any questions about our services?");
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
-  </body>
+        // Fetch and display appointments
+        fetchAppointments();
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (message) {
+                appendMessage('You: ' + message);
+                userInput.value = '';
+
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ message, sessionId }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Network response error');
+                    }
+
+                    const data = await response.json();
+                    appendMessage('AI: ' + data.reply);
+                    
+                    // Fetch appointments after each message to update the chart
+                    fetchAppointments();
+                } catch (error) {
+                    console.error('Error:', error);
+                    appendMessage('Error: Failed to get response from the server.');
+                }
+            }
+        }
+
+        function appendMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.textContent = message;
+            messageElement.classList.add('message');
+            
+            if (message.startsWith('You: ')) {
+                messageElement.classList.add('user-message');
+            } else if (message.startsWith('AI: ')) {
+                messageElement.classList.add('ai-message');
+            }
+            
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function fetchAppointments() {
+            try {
+                const response = await fetch('/appointments');
+                if (!response.ok) {
+                    throw new Error('Failed to load appointments');
+                }
+                const appointments = await response.json();
+                displayAppointments(appointments);
+            } catch (error) {
+                console.error('Error loading appointments:', error);
+            }
+        }
+
+        function displayAppointments(appointments) {
+            chartContainer.innerHTML = '<h2>Appointment Database</h2>';
+            appointments.forEach(appointment => {
+                const appointmentElement = document.createElement('div');
+                appointmentElement.classList.add('appointment-item');
+                appointmentElement.innerHTML = `
+                    <p><strong>Name:</strong> ${appointment.customerName}</p>
+                    <p><strong>Date:</strong> ${new Date(appointment.date).toLocaleDateString()}</p>
+                    <p><strong>Time:</strong> ${appointment.time}</p>
+                    <p><strong>Service:</strong> ${appointment.service}</p>
+                `;
+                chartContainer.appendChild(appointmentElement);
+            });
+        }
+
+        userInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function toggleAppointments() {
+            if (chartContainer.style.display === 'none' || chartContainer.style.display === '') {
+                chartContainer.style.display = 'block';
+            } else {
+                chartContainer.style.display = 'none';
+            }
+        }
+    </script>
+</body>
 </html>

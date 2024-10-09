@@ -1,0 +1,128 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+#app-container {
+    display: flex;
+    flex-direction: column;
+    width: 90%;
+    max-width: 800px;
+    margin-bottom: 20px;
+}
+
+#chat-container {
+    width: 100%;
+    height: 300px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    overflow-y: scroll;
+    padding: 20px;
+    background-color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#chart-container {
+    width: 100%;
+    height: 300px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 10px;
+    background-color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    display: block; /* Ensure it is visible by default */
+}
+
+#input-container {
+    display: flex;
+    width: 100%;
+}
+
+#user-input {
+    flex-grow: 1;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px 0 0 5px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 0 5px 5px 0;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+.toggle-button {
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #007BFF;
+    border-radius: 5px;
+    margin-left: 10px;
+}
+
+.toggle-button:hover {
+    background-color: #0056b3;
+}
+
+.message {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    max-width: 80%;
+}
+
+.user-message {
+    background-color: #e6f2ff;
+    align-self: flex-end;
+    margin-left: auto;
+}
+
+.ai-message {
+    background-color: #f0f0f0;
+    align-self: flex-start;
+}
+
+.appointment-item {
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+}
+
+.appointment-item:last-child {
+    border-bottom: none;
+}
+
+@media (min-width: 500px) {
+    #app-container {
+        flex-direction: row;
+    }
+
+    #chat-container, #chart-container {
+        height: 500px;
+        margin-bottom: 0;
+    }
+
+    #chat-container {
+        margin-right: 20px;
+    }
+
+    #input-container {
+        width: 350px;
+    }
+}

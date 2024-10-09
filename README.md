@@ -1,4 +1,4 @@
-# Promp Testing
+# Prompt Testing
 
 ## Required Keys
 

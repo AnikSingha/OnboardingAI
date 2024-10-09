@@ -14,7 +14,7 @@ const conversations = new Map();
 // Define the AI assistant's role and capabilities
 const systemMessage = {
   role: "system",
-  content: `You are an AI assistant for a business, primarily responsible for making appointments. Your tasks include:
+  content: `You are an AI assistant for a business, primarily responsible for making appointments. You should conduct the conversation as if it's a phone call, speaking naturally and conversationally. Your tasks include:
   1. Scheduling appointments for clients
   2. Checking availability in the calendar
   3. Confirming appointment details
@@ -30,13 +30,19 @@ const systemMessage = {
 
   You will be provided with a list of available dates and their remaining slots. Only schedule appointments on these available dates. If a requested date is not available, suggest the closest available date.
 
-  After extracting this information, format it as a JSON object and include it in your response like this:
+  When mentioning dates, use a natural, spoken form. For example, say "May 1st" instead of "2023-05-01".
+
+  After extracting the appointment information, format it as a JSON object and include it in your response like this:
   [APPOINTMENT_DATA]{"customerName": "John Doe", "email": "john@example.com", "phone": "123-456-7890", "date": "2023-05-01", "time": "14:00", "service": "Haircut"}[/APPOINTMENT_DATA]
 
-  Please conduct the exchange as if it was a phone call, do not ask for multiple fields of information at once, ask for one field at a time.
-  
-  Please be polite, professional, and efficient in your responses. If you need more information to complete a task, ask for it clearly.`
+  Remember to conduct the exchange as if it was a phone call. Ask for one piece of information at a time, and use natural transitions between questions. Be polite, professional, and efficient in your responses. If you need more information to complete a task, ask for it clearly and conversationally.`
+
 };
+
+function formatDate(date) {
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  return new Date(date).toLocaleDateString('en-US', options);
+}
 
 app.post('/chat', async (req, res) => {
   try {
@@ -55,7 +61,7 @@ app.post('/chat', async (req, res) => {
     conversation.push({
       role: "system",
       content: `Available dates for appointments: ${availableDates.map(d => 
-        `${new Date(d.date).toISOString().split('T')[0]} (${d.availableSlots} slots)`
+        `${formatDate(d.date)} (${d.availableSlots} slots)`
       ).join(', ')}`
     });
 

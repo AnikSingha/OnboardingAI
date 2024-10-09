@@ -2,8 +2,7 @@ const AvailableDate = require('../models/availableDate');
 
 class AvailableDateService {
   async addAvailableDate(date, slots) {
-    const utcDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-    const availableDate = new AvailableDate({ date: utcDate, availableSlots: slots });
+    const availableDate = new AvailableDate({ date, availableSlots: slots });
     return await availableDate.save();
   }
 

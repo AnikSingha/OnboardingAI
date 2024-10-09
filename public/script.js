@@ -8,7 +8,7 @@ const toggleAppointmentsButton = document.getElementById('toggle-appointments');
 const sessionId = Date.now().toString();
 
 // Add initial message from the AI
-appendMessage("AI: Hello! I'm the Business Appointment Assistant. How can I help you today? Would you like to schedule an appointment or have any questions about our services?");
+appendMessage("AI: Hello! Thank you for calling our business. This is the AI appointment assistant speaking. How may I help you today? Would you like to schedule an appointment or do you have any questions about our services?");
 
 // Fetch and display appointments
 fetchAppointments();
@@ -92,7 +92,7 @@ function displayAppointments(appointments) {
         const appointmentElement = document.createElement('div');
         appointmentElement.classList.add('appointment-item');
         const utcDate = new Date(appointment.date);
-        const formattedDate = utcDate.toLocaleDateString(undefined, { timeZone: 'UTC' });
+        const formattedDate = formatDate(appointment.date);
         appointmentElement.innerHTML = `
             <p><strong>Name:</strong> ${appointment.customerName}</p>
             <p><strong>Date:</strong> ${formattedDate}</p>
@@ -120,7 +120,7 @@ function displayAvailableDates(availableDates) {
     availableDates.forEach(date => {
         const listItem = document.createElement('li');
         const utcDate = new Date(date.date);
-        const formattedDate = utcDate.toLocaleDateString(undefined, { timeZone: 'UTC' });
+        const formattedDate = formatDate(date.date);
         listItem.textContent = `${formattedDate} - ${date.availableSlots} slots`;
         dateList.appendChild(listItem);
     });
@@ -146,3 +146,8 @@ toggleAppointmentsButton.addEventListener('click', toggleAppointments);
 
 // Call fetchAvailableDates when the page loads
 fetchAvailableDates();
+
+function formatDate(date) {
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  return new Date(date).toLocaleDateString('en-US', options);
+}

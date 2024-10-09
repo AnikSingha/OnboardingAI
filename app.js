@@ -31,6 +31,8 @@ const systemMessage = {
   After extracting this information, format it as a JSON object and include it in your response like this:
   [APPOINTMENT_DATA]{"customerName": "John Doe", "email": "john@example.com", "phone": "123-456-7890", "date": "2023-05-01", "time": "14:00", "service": "Haircut"}[/APPOINTMENT_DATA]
 
+  Conduct the exchange as a phone conversation, do not ask for multiple fields of iinformation at once.
+  
   Please be polite, professional, and efficient in your responses. If you need more information to complete a task, ask for it clearly.`
 };
 

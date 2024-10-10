@@ -35,13 +35,18 @@ const systemMessage = {
   After extracting the appointment information, format it as a JSON object and include it in your response like this:
   [APPOINTMENT_DATA]{"customerName": "John Doe", "email": "john@example.com", "phone": "123-456-7890", "date": "2023-05-01", "time": "14:00", "service": "Haircut"}[/APPOINTMENT_DATA]
 
-  Remember to conduct the exchange as if it was a phone call. Ask for one piece of information at a time, and use natural transitions between questions. Be polite, professional, and efficient in your responses. If you need more information to complete a task, ask for it clearly and conversationally.`
+  Remember to conduct the exchange as if it was a phone call. Ask for one piece of information at a time, and use natural transitions between questions. Be polite, professional, and efficient in your responses. If you need more information to complete a task, ask for it clearly and conversationally.
+
+  When presenting available dates to the user, format them in a natural, conversational way.`
 
 };
 
 function formatDate(date) {
-  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  return new Date(date).toLocaleDateString('en-US', options);
+  console.log('Formatting date:', date);
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' };
+  const formattedDate = new Date(date).toLocaleString('en-US', options);
+  console.log('Formatted date:', formattedDate);
+  return formattedDate;
 }
 
 app.post('/chat', async (req, res) => {
@@ -56,13 +61,15 @@ app.post('/chat', async (req, res) => {
 
     // Fetch available dates
     const availableDates = await availableDateService.getAvailableDates();
+    console.log('Available dates:', availableDates);
     
     // Add available dates information to the conversation
     conversation.push({
       role: "system",
-      content: `Available dates for appointments: ${availableDates.map(d => 
-        `${formatDate(d.date)} (${d.availableSlots} slots)`
-      ).join(', ')}`
+      content: `Available dates for appointments: ${JSON.stringify(availableDates.map(d => ({
+        date: d.date,
+        availableSlots: d.availableSlots
+      })))}`
     });
 
     // Add user message to conversation history
@@ -143,7 +150,8 @@ const availableDateService = require('./services/availableDateService');
 app.post('/available-dates', async (req, res) => {
   try {
     const { date, slots } = req.body;
-    const parsedDate = new Date(date);
+    // Parse the date and set it to noon UTC to avoid timezone issues
+    const parsedDate = new Date(date + 'T12:00:00Z');
     const availableDate = await availableDateService.addAvailableDate(parsedDate, slots);
     res.json(availableDate);
   } catch (error) {

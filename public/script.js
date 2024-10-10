@@ -148,6 +148,6 @@ toggleAppointmentsButton.addEventListener('click', toggleAppointments);
 fetchAvailableDates();
 
 function formatDate(date) {
-  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' };
   return new Date(date).toLocaleDateString('en-US', options);
 }

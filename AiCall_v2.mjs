@@ -9,6 +9,7 @@ import { createClient, LiveTranscriptionEvents } from '@deepgram/sdk';
 import OpenAI from 'openai';
 import fs from 'fs';
 import { Blob } from 'blob-polyfill';
+import chalk from 'chalk';
 
 // Add this line to make Blob globally available
 global.Blob = Blob;
@@ -161,7 +162,7 @@ app.ws('/media', (ws, req) => {
       });
 
       dgLive.on(LiveTranscriptionEvents.Transcript, async (transcription) => {
-        console.log('Transcription received:', JSON.stringify(transcription, null, 2));
+        //console.log('Transcription received:', JSON.stringify(transcription, null, 2));
 
         if (transcription.type === 'UtteranceEnd') {
           console.log('UtteranceEnd detected.');
@@ -172,7 +173,7 @@ app.ws('/media', (ws, req) => {
         const transcript = alternatives.transcript;
 
         if (transcript && transcription.is_final) {
-          console.log('Final Transcription:', transcript);
+          console.log(chalk.blue('Final Transcription:', transcript));
 
 
           const assistantResponse = await processTranscript(transcript);
@@ -183,7 +184,7 @@ app.ws('/media', (ws, req) => {
 
           await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
 
-          console.log('Assistant response sent to Twilio.');
+          //console.log('Assistant response sent to Twilio.');
           interactionCount++;
         }
       });
@@ -198,7 +199,7 @@ app.ws('/media', (ws, req) => {
 
     } else if (data.event === 'media') {
       const audioBufferData = Buffer.from(data.media.payload, 'base64');
-      console.log(`Received media event, audioBuffer length: ${audioBufferData.length}`);
+      //console.log(`Received media event, audioBuffer length: ${audioBufferData.length}`);
     
 
       fs.appendFileSync('received_audio.mulaw', audioBufferData);
@@ -206,7 +207,7 @@ app.ws('/media', (ws, req) => {
 
       if (dgLive && dgLive.getReadyState() === 1) {
         dgLive.send(audioBufferData);
-        console.log('Audio buffer sent to Deepgram.');
+        //console.log('Audio buffer sent to Deepgram.');
       } else {
         console.log('Deepgram connection not open. Buffering audio data.');
         audioBufferQueue.push(audioBufferData);
@@ -254,7 +255,7 @@ const processTranscript = async (transcript) => {
     });
 
     const assistantResponse = response.choices[0].message.content;
-    console.log('Assistant Response:', assistantResponse);
+    console.log(chalk.green('Assistant Response:', assistantResponse));
 
     return assistantResponse;
   } catch (error) {
@@ -262,7 +263,6 @@ const processTranscript = async (transcript) => {
     return 'Sorry, I am unable to process your request at the moment.';
   }
 };
-
 
 
 const generateTTS = async (text) => {

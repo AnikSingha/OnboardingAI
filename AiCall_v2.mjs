@@ -8,6 +8,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { createClient, LiveTranscriptionEvents } from '@deepgram/sdk';
 import OpenAI from 'openai';
 import fs from 'fs';
+import { Blob } from 'blob-polyfill';
+
+// Add this line to make Blob globally available
+global.Blob = Blob;
 
 const app = express();
 expressWs(app);

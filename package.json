@@ -2,6 +2,7 @@
   "dependencies": {
     "@deepgram/sdk": "^3.8.0",
     "axios": "^1.7.7",
+    "blob-polyfill": "^9.0.20240710",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "express-ws": "^5.0.2",

@@ -1,4 +1,17 @@
 {
+  "name": "onboarding-ai-test",
+  "version": "0.1.0",
+  "description": "Onboarding AI Test with scheduling",
+
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+
   "dependencies": {
     "@deepgram/sdk": "^3.8.0",
     "axios": "^1.7.7",
@@ -7,12 +20,15 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "express-ws": "^5.0.2",
-    "mongodb": "^6.9.0",
+    "mongoose": "^8.6.3",
     "nodemon": "^3.1.7",
     "openai": "^4.67.1",
     "twilio": "^5.3.3",
     "uuid": "^10.0.0",
     "wavefile": "^11.0.0",
     "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=16.x"
   }
 }

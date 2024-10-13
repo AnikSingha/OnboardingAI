@@ -45,7 +45,6 @@ function formatDate(date) {
   console.log('Formatting date:', date);
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' };
   const formattedDate = new Date(date).toLocaleString('en-US', options);
-  console.log('Formatted date:', formattedDate);
   return formattedDate;
 }
 
@@ -61,7 +60,6 @@ app.post('/chat', async (req, res) => {
 
     // Fetch available dates
     const availableDates = await availableDateService.getAvailableDates();
-    console.log('Available dates:', availableDates);
     
     // Add available dates information to the conversation
     conversation.push({

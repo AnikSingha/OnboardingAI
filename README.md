@@ -1,4 +1,4 @@
-#setting up
+# setting up
 npx create-react-app onboard\
 cd onboard\
 npm install react-bootstrap bootstrap // bootstrap\

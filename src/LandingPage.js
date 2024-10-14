@@ -1,5 +1,8 @@
 import React from 'react';
 import { ChevronDown, Calendar, LayoutDashboard, Phone, BarChart3 } from 'lucide-react';
+import { Link } from 'react-router-dom'; // Import Link from react-router-dom
+
+
 
 export default function LandingPage() {
   return (
@@ -26,7 +29,7 @@ function Header() {
       </nav>
       <div className="flex space-x-4">
         <button className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-50">
-          Sign In
+          Sign Up
         </button>
         <button className="px-6 py-2 text-sm font-medium text-white bg-[#5468FF] rounded-full hover:bg-[#4054FF]">
           Contact Sales
@@ -67,9 +70,11 @@ function HeroSection() {
           <p className="text-xl text-gray-600 mb-10">
             Respond to leads, organize contacts, and instantly generate client communications with OnboardAI
           </p>
-          <button className="px-8 py-3 text-lg font-medium text-gray-800 bg-white rounded-full hover:bg-gray-100 shadow-md">
-            Start For Free
-          </button>
+          <Link to="/signup">
+            <button className="px-8 py-3 text-lg font-medium text-gray-800 bg-white rounded-full hover:bg-gray-100 shadow-md">
+              Start For Free
+            </button>
+          </Link>
         </div>
         <div className="md:w-1/2 relative">
           <img src="/placeholder.svg?height=600&width=400" alt="OnboardAI Dashboard" className="w-full max-w-md mx-auto" />

@@ -7,10 +7,10 @@ import { RxAvatar } from 'react-icons/rx';
 export default function OnboardNav() {
   return (
     <>
-      <Navbar fixed='top' style={{ backgroundColor: '#e0ebec', height:132, paddingLeft:200}}>
+      <Navbar fixed='top' style={{display:"flex", width: 'auto',backgroundColor: '#e0ebec', height:90, paddingLeft:200}}>
         <Container>
           <Navbar.Brand href="#home">
-            <div style={{width:266,height:72,background:'white',alignItems: 'center', padding: '10px 20px',display: 'flex',borderRadius: '8px', border:'3px solid black'}}>
+            <div style={{width:250,height:60,background:'white',alignItems: 'center', padding: '10px 20px',display: 'flex',borderRadius: '8px', border:'3px solid black'}}>
             <span style={{color:'#0075FF',fontWeight:'bold',fontSize:40}}>Onboard</span>
             <span style={{color:'black',fontWeight:'bold',fontSize:40}}>AI</span>
             </div>

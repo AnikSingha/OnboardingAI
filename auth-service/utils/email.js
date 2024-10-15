@@ -17,7 +17,7 @@ async function sendEmailLogin(email) {
     try {
         let userInfo = await accountManager.getUserInfo(email)
         let token = createToken(email, userInfo.business_name, userInfo.role)
-        loginLink = `http://localhost:3000/auth/login-link?token=${token}`
+        let loginLink = `https://api.onboardingai.org/auth/login-link?token=${token}`
 
         const mailOptions = {
             from: 'onboardingaicontact@gmail.com',

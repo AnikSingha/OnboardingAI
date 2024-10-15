@@ -11,7 +11,7 @@ function HeroSection() {
             <p className="text-xl text-gray-600 mb-10">
               Respond to leads, organize contacts, and instantly generate client communications with OnboardAI
             </p>
-            <Link to="/signup">
+            <Link to="/sign-up">
               <button className="px-8 py-3 text-lg font-medium text-gray-800 bg-white rounded-full hover:bg-gray-100 shadow-md">
                 Start For Free
               </button>

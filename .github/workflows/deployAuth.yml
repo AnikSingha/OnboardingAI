@@ -26,7 +26,6 @@ jobs:
             export DB_URI="${{ secrets.DB_URI }}"
             export EMAILPASSWORD="${{ secrets.EMAILPASSWORD }}"
             export SECRET_KEY="${{ secrets.SECRET_KEY }}"
-
             echo "Current directory: $(pwd)"
             cd OnboardingAI/auth-service
             echo "Environment variables injected."
@@ -40,17 +39,27 @@ jobs:
             echo "Pulling latest code from repo..."
             git checkout auth
             git pull
-
             echo "Installing npm packages..."
             npm install
-
             echo "Terminating any previously running Node.js instances..."
             sudo pkill -f node || echo "No Node.js processes found."
-
             echo "Starting the Express server..."
             nohup sudo ~/.nvm/versions/node/v22.9.0/bin/node server.js > output.log 2>&1 &
             echo "Express server started."
+
+            # Test the Nginx configuration
+            echo "Testing Nginx configuration..."
+            sudo nginx -t
+            if [ $? -eq 0 ]; then
+              echo "Nginx configuration is valid. Reloading Nginx..."
+              sudo systemctl reload nginx
+              echo "Nginx reloaded."
+            else
+              echo "Nginx configuration is invalid. Aborting reload."
+              exit 1
+            fi
             exit
           EOF
+
 
 

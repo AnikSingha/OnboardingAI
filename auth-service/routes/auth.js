@@ -18,7 +18,7 @@ router.post('/business-sign-up', async (req, res) => {
         if (!name || !email || !password || !business_name) {
             return res.status(400).json({
                 success: false,
-                message: 'email, password, or business_name were missing from request body'
+                message: 'name, email, password, or business_name were missing from request body'
             })
         }
 

@@ -93,6 +93,10 @@ router.get('/otp/qr-code', async (req, res) => {
     try {
         let { valid, decoded } = verifyToken(req.cookies.token)
         
+        if (!valid) {
+            return res.status(403).json({success: false, message: 'Unauthorized'})
+        }
+
         if (!decoded) {
             return res.status(403).json({success: false, message: 'No token was provided'})
         }

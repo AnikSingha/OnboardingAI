@@ -95,23 +95,6 @@ class AccountManager {
         }
     }
 
-    // returns the emails of all employees belonging to a business
-    async getBusinessEmployees(businessName) {
-        try {
-            let client = await connectToDatabase()
-            let userCollection = client.db('auth').collection('users')
-
-            let employees = await userCollection.find(
-                { business_name: businessName },
-                { projection: { email: 1 } }
-            ).toArray()
-
-            return employees.map(employee => employee.email)
-        } catch (err) {
-            return []
-        }
-    }
-
     // returns true if user was successfully deleted
     async deleteUser(email) {
         try {
@@ -120,22 +103,6 @@ class AccountManager {
 
             let res = await userCollection.deleteOne({ email })
             return res.acknowledged
-
-        } catch (err) {
-            return false
-        }
-    }
-
-    // deletes every user under this business
-    async deleteBusiness(businessName) {
-        try {
-            const employees = await this.getBusinessEmployees(businessName)
-
-            await Promise.all(employees.map(async (employee) => {
-                await this.deleteUser(employee)
-            }))
-
-            return true
 
         } catch (err) {
             return false

@@ -1,5 +1,6 @@
 const express = require('express')
 const accountManager = require('../utils/accounts.js')
+const businessManager = require('../utils/businessManager.js')
 const { verifyToken } = require('../utils/token.js')
 
 const router = express.Router()
@@ -13,11 +14,11 @@ router.get('/get-employees', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Name of business was not provided' })
         }
 
-        if (decoded.business != business){
+        if (!valid || decoded.business !== business){
             return res.status(403).json({ success: false, message: 'Unauthorized' })
         }
 
-        const employees = await accountManager.getBusinessEmployees(business)
+        const employees = await businessManager.getEmployees(business)
 
         if (employees && employees.length > 0) {
             return res.status(200).json({ success: true, message: 'Employees successfully retrieved', employees })
@@ -38,12 +39,14 @@ router.put('/update-business-name', async (req, res) => {
             return res.status(400).json({ success: false, message: 'business_name or new_name were missing from request body' })
         }
 
-        if (decoded.business != business || decoded.role != 'Owner') { 
+        if (!valid || decoded.business !== business || decoded.role !== 'Owner') { 
             return res.status(403).json({success: false, message: 'Unauthorized to change name this business'})
         }
 
-        const employees = await accountManager.getBusinessEmployees(business);
-        await Promise.all(employees.map(employee => accountManager.updateBusinessName(employee, name)))
+        let success = businessManager.updateBusinessName(name)
+        if (!success) {
+            return res.status(500).json({ success: false, message: `Internal server error` })
+        }
 
         return res.status(200).json({ success: true, message: 'Business name updated for all employees' })
     } catch (err) {
@@ -60,7 +63,7 @@ router.put('/update-employee-role', async (req, res) => {
             return res.status(400).json({success: false, message: 'email, role, or business_name missing from request body'})
         }
 
-        if (decoded.business != business || decoded.role != 'Owner') { 
+        if (!valid || decoded.business !== business || decoded.role !== 'Owner') { 
             return res.status(403).json({success: false, message: 'Unauthorized to update employee roles from this business'})
         }
 
@@ -89,12 +92,12 @@ router.put('/terminate-employee', async (req, res) => {
             return res.status(400).json({success: false, message: 'email or business_name missing from request body'})
         }
 
-        if (decoded.business != business || decoded.role != 'Owner') { 
+        if (!valid || decoded.business !== business || decoded.role !== 'Owner') { 
             return res.status(403).json({success: false, message: 'Unauthorized to terminate employees from this business'})
         }
 
         const user = await accountManager.getUserInfo(email)
-        if (user.business_name != business ) {
+        if (user.business_name !== business ) {
             return res.status(403).json({ 
                 success: false,
                 message: 'Unauthorized: You do not have permission to terminate employees for this business.' }

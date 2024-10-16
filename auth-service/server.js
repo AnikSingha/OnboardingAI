@@ -2,6 +2,7 @@ const express = require('express')
 const cookieParser = require('cookie-parser')
 const { unless } = require('express-unless');
 const { verifyToken } = require('./utils/token.js')
+const cors = require('cors')
 
 const authRoutes = require('./routes/auth')
 const userRoutes = require('./routes/user')
@@ -11,6 +12,14 @@ const app = express()
 app.use(express.json())
 app.use(cookieParser())
 
+const corsOptions = {
+    origin: '*',
+    methods: '*',
+    credentials: true, 
+    optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
 function checkToken(req, res, next) {
     const token = req.cookies.token;
 

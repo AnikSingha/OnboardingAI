@@ -18,7 +18,7 @@ function Header() {
           </button>
         </Link>
           <button className="px-6 py-2 text-sm font-medium text-white bg-[#5468FF] rounded-full hover:bg-[#4054FF]">
-            Contact Sales
+            Log in
           </button>
         </div>
       </header>

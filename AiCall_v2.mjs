@@ -12,7 +12,6 @@ import { Blob } from 'blob-polyfill';
 import chalk from 'chalk';
 import { processTranscript } from './AiProcessor.mjs';
 
-// Add this line to make Blob globally available
 global.Blob = Blob;
 
 const app = express();
@@ -20,13 +19,7 @@ expressWs(app);
 
 const PORT = process.env.PORT || 3000;
 
-
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
-
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 
 app.use(express.json());
@@ -54,6 +47,7 @@ app.ws('/media', (ws, req) => {
   let interactionCount = 0; // For managing audio order
   let expectedAudioIndex = 0;
   const audioBuffers = {};
+  let isProcessingResponse = false;
   
   const sessionId = Date.now().toString();
 
@@ -166,7 +160,7 @@ app.ws('/media', (ws, req) => {
       });
 
       dgLive.on(LiveTranscriptionEvents.Transcript, async (transcription) => {
-        //console.log('Transcription received:', JSON.stringify(transcription, null, 2));
+        console.log('Transcription received:', JSON.stringify(transcription, null, 2));
 
         if (transcription.type === 'UtteranceEnd') {
           console.log('UtteranceEnd detected.');
@@ -176,7 +170,8 @@ app.ws('/media', (ws, req) => {
         const alternatives = transcription.channel.alternatives[0];
         const transcript = alternatives.transcript;
 
-        if (transcript && transcription.is_final) {
+        if (transcript && transcription.is_final && !isProcessingResponse) {
+          isProcessingResponse = true;
           console.log(chalk.blue('Final Transcription:', transcript));
 
 
@@ -190,6 +185,7 @@ app.ws('/media', (ws, req) => {
 
           //console.log('Assistant response sent to Twilio.');
           interactionCount++;
+          isProcessingResponse = false;
         }
       });
 

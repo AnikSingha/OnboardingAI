@@ -1,5 +1,6 @@
 const express = require('express')
 const accountManager = require('../utils/accounts.js')
+const businessManager = require('../utils/businessManager.js')
 const { createToken, verifyToken } = require('../utils/token.js')
 const { verifyOTP, genQRCode } = require('../utils/otp.js')
 const { sendEmailLogin } = require('../utils/email.js')
@@ -10,11 +11,48 @@ router.get('/', async (req, res) => {
     return res.status(200).json({ success: true, message: 'Server running' })
 })
 
+router.post('/business-sign-up', async (req, res) => {
+    try {
+        const {name, email, password, business_name} = req.body
+
+        if (!name || !email || !password || !business_name) {
+            return res.status(400).json({
+                success: false,
+                message: 'email, password, or business_name were missing from request body'
+            })
+        }
+
+        const exists = await accountManager.userExists(email)
+        if (exists) {
+            return res.status(409).json({ success: false, message: 'User already exists' })
+        }
+
+        const existBusiness = await businessManager.businessExists(business_name)
+        if (existBusiness) {
+            return res.status(409).json({ success: false, message: 'Business already exists' })
+        }
+
+        let createUserSuccess = await accountManager.addUser(name, email, password, business_name, 'Owner')
+        let createBusinessSuccess = await businessManager.createBusiness(business_name, [email], [])
+
+        if (!createUserSuccess || !createBusinessSuccess){
+            return res.status(500).json({ success: false, message: `Internal server error` })
+        }
+        
+        const token = createToken(email, business_name, 'Owner')
+        res.cookie('token', token, { httpOnly: true })
+
+        return res.status(201).json({ success: true, message: 'Success' })
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
+
 router.post('/sign-up', async (req, res) => {
     try {
-        const { email, password, business_name, role } = req.body
+        const { name, email, password, business_name, role } = req.body
 
-        if (!email || !password || !business_name || !role) {
+        if (!name || !email || !password || !business_name || !role) {
             return res.status(400).json({
                 success: false,
                 message: 'email, password, business_name, or role were missing from request body'
@@ -26,7 +64,7 @@ router.post('/sign-up', async (req, res) => {
             return res.status(409).json({ success: false, message: 'User already exists' })
         }
 
-        const success = await accountManager.addUser(email, password, business_name, role)
+        const success = await accountManager.addUser(name, email, password, business_name, role)
         if (success) {
             const token = createToken(email, business_name, role)
             res.cookie('token', token, { httpOnly: true })

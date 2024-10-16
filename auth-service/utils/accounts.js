@@ -21,7 +21,7 @@ class AccountManager {
     }
 
     // returns true if successful
-    async addUser(email, password, business, role) {
+    async addUser(name, email, password, business, role) {
         try {
             let client = await connectToDatabase()
             let userCollection = client.db('auth').collection('users')
@@ -29,6 +29,7 @@ class AccountManager {
             let OTPSecret = genSecret()
 
             let newUser = {
+                name,
                 email,
                 password: hashedPassword,
                 business_name: business,

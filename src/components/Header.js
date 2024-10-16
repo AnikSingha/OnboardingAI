@@ -17,9 +17,11 @@ function Header() {
             Sign Up
           </button>
         </Link>
+        <Link to='/login'>
           <button className="px-6 py-2 text-sm font-medium text-white bg-[#5468FF] rounded-full hover:bg-[#4054FF]">
             Log in
           </button>
+        </Link>
         </div>
       </header>
     );

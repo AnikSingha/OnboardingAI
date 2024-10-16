@@ -28,7 +28,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#E6E6FA] flex flex-col">
       {/* Top Bar */}
       <div className="bg-white p-4 flex justify-between items-center">
-        <Link href="/" className="text-gray-600 hover:text-gray-900">
+        <Link to='/' className="text-gray-600 hover:text-gray-900">
           <ArrowLeft className="h-6 w-6" />
         </Link>
         <nav className="hidden md:flex space-x-6">

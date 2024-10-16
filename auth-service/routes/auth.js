@@ -40,7 +40,7 @@ router.post('/business-sign-up', async (req, res) => {
         }
         
         const token = createToken(email, business_name, 'Owner')
-        res.cookie('token', token, { httpOnly: true })
+        res.cookie('token', token, { httpOnly: true, sameSite: 'lax' })
 
         return res.status(201).json({ success: true, message: 'Success' })
     } catch (err) {
@@ -97,7 +97,7 @@ router.get('/login', async (req, res) => {
         if (success) {
             const { business_name, role } = await accountManager.getUserInfo(email)
             const token = createToken(email, business_name, role)
-            res.cookie('token', token, { httpOnly: true })
+            res.cookie('token', token, { httpOnly: true, sameSite: 'lax'})
             return res.status(201).json({ success: true, message: 'Success' })
         } else {
             return res.status(401).json({ success: false, message: 'Invalid credentials' })

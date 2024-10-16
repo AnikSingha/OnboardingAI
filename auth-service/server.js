@@ -27,7 +27,13 @@ function checkToken(req, res, next) {
 }
 
 checkToken.unless = unless
-const tokenMiddleware = checkToken.unless({ path: ['/auth/sign-up', '/auth/login', '/auth/login-link', '/auth/send-login-link'] })
+const tokenMiddleware = checkToken.unless({ path: [
+    '/auth/sign-up', 
+    '/auth/login',
+    '/auth/login-link',
+    '/auth/send-login-link',
+    '/auth/business-sign-up'
+]})
 app.use(tokenMiddleware)
 
 

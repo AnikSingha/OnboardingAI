@@ -32,6 +32,7 @@ export default function LoginPage() {
     try {
       const response = await fetch('https://api.onboardingai.org/auth/login', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

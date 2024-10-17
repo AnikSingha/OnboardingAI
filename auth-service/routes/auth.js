@@ -40,7 +40,7 @@ router.post('/business-sign-up', async (req, res) => {
         }
         
         const token = createToken(email, business_name, 'Owner')
-        res.cookie('token', token, { httpOnly: true, sameSite: 'lax' })
+        res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true })
 
         return res.status(201).json({ success: true, message: 'Success' })
     } catch (err) {
@@ -67,7 +67,7 @@ router.post('/sign-up', async (req, res) => {
         const success = await accountManager.addUser(name, email, password, business_name, role)
         if (success) {
             const token = createToken(email, business_name, role)
-            res.cookie('token', token, { httpOnly: true })
+            res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true })
             return res.status(201).json({ success: true, message: 'Success' })
         } else {
             return res.status(400).json({ success: false, message: 'User creation failed' })
@@ -97,7 +97,7 @@ router.post('/login', async (req, res) => {
         if (success) {
             const { business_name, role } = await accountManager.getUserInfo(email)
             const token = createToken(email, business_name, role)
-            res.cookie('token', token, { httpOnly: true, sameSite: 'lax'})
+            res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true })
             return res.status(201).json({ success: true, message: 'Success' })
         } else {
             return res.status(401).json({ success: false, message: 'Invalid credentials' })
@@ -196,7 +196,7 @@ router.get('/login-link', async(req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error })
         }
         
-        res.cookie('token', token, { httpOnly: true })
+        res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true })
         return res.status(200).json({ success: true, message: 'Token accepted' });
         // return res.redirect('/')
 

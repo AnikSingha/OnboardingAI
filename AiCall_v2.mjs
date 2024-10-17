@@ -160,7 +160,7 @@ app.ws('/media', (ws, req) => {
       });
 
       dgLive.on(LiveTranscriptionEvents.Transcript, async (transcription) => {
-        console.log('Transcription received:', JSON.stringify(transcription, null, 2));
+        //console.log('Transcription received:', JSON.stringify(transcription, null, 2));
 
         if (transcription.type === 'UtteranceEnd') {
           console.log('UtteranceEnd detected.');

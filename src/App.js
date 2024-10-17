@@ -2,12 +2,13 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import LandingPage from './routes/LandingPage.js';
 import BusinessSetup from './BusinessSetup.js';
-import AIPrompts from './AIPrompts.js';
+import AIPrompts from './misc/AIPrompts.js';
 import SignUpPage from './routes/SignUpPage.js'; 
 import LoginPage from './components/LoginPage';
 
 
 function App() {
+
   return (
     <Router>
       <Routes>

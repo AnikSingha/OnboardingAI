@@ -51,7 +51,6 @@ export default function LoginPage() {
         throw new Error(data.message || 'Network response was not ok')
       }
 
-      // Clear any existing alert message on success
       setAlertMessage('');
     } catch (err) {
       if (err.message === "Business already exists"){
@@ -60,7 +59,7 @@ export default function LoginPage() {
         setAlertMessage(`Failed: ${err.message}`)
       }
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-[#E6E6FA] flex flex-col">
@@ -76,9 +75,11 @@ export default function LoginPage() {
           <select className="px-4 py-2 border rounded-full text-sm">
             <option>English (United States)</option>
           </select>
-          <button className="bg-[#6366F1] text-white px-6 py-2 rounded-full text-sm">
-            Log in
-          </button>
+          <Link to='/login'>
+            <button className="bg-[#6366F1] text-white px-6 py-2 rounded-full text-sm">
+              Log in
+            </button>
+          </Link>
         </div>
       </div>
 

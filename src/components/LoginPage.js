@@ -10,18 +10,48 @@ export default function LoginPage() {
     rememberMe: false
   })
 
+  const [alertMessage, setAlertMessage] = useState('')
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
+    setAlertMessage('')
     setFormData(prevState => ({
       ...prevState,
       [name]: type === 'checkbox' ? checked : value
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Handle form submission here
-    console.log(formData)
+
+    const payload = {
+      email: formData.email,
+      password: formData.password,
+    };
+
+    try {
+      const response = await fetch('https://api.onboardingai.org/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Network response was not ok')
+      }
+
+      setAlertMessage('');
+    } catch (err) {
+      if (err.message === "Business already exists"){
+        setAlertMessage(`Failed: This organization name is taken`)
+      } else {
+        setAlertMessage(`Failed: ${err.message}`)
+      }
+    }
   }
 
   return (
@@ -51,11 +81,21 @@ export default function LoginPage() {
                 <span className="text-black">AI</span>
               </div>
             </div>
+            
+            {/* Alert message */}
+            {alertMessage && (
+              <div
+                className="mb-4 p-4 rounded-lg text-white bg-red-500"
+              >
+                {alertMessage}
+              </div>
+            )}
+
             <h1 className="text-3xl font-bold mb-6 text-center">Log in</h1>
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email address or user name
+                  Email address
                 </label>
                 <input
                   type="text"
@@ -129,7 +169,7 @@ export default function LoginPage() {
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-600">
                 Don't have an account?{' '}
-                <Link href="/signup" className="text-[#4285F4] hover:underline">
+                <Link to="/signup" className="text-[#4285F4] hover:underline">
                   Sign up
                 </Link>
               </p>

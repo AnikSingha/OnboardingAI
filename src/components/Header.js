@@ -1,5 +1,6 @@
 import Logo from "./Logo";
 import NavItem from "./NavItem";
+import { Link } from "react-router-dom";
 
 function Header() {
     return (
@@ -11,12 +12,16 @@ function Header() {
           <NavItem text="Tool" />
         </nav>
         <div className="flex space-x-4">
+        <Link to='/sign-up'>
           <button className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-50">
             Sign Up
           </button>
+        </Link>
+        <Link to='/login'>
           <button className="px-6 py-2 text-sm font-medium text-white bg-[#5468FF] rounded-full hover:bg-[#4054FF]">
-            Contact Sales
+            Log in
           </button>
+        </Link>
         </div>
       </header>
     );

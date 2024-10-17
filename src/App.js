@@ -3,8 +3,8 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import LandingPage from './routes/LandingPage.js';
 import BusinessSetup from './BusinessSetup.js';
 import AIPrompts from './AIPrompts.js';
-//import SignUpPage from './SignUpPage.js'; 
-
+import SignUpPage from './routes/SignUpPage.js'; 
+import LoginPage from './components/LoginPage';
 
 
 function App() {
@@ -14,8 +14,10 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/setup" element={<BusinessSetup />} />
         <Route path="/ai-prompts" element={<AIPrompts />} />
-        {/* <Route path="/signup" element={<SignUpPage />} />  */}
+        <Route path="/sign-up" element={<SignUpPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/login" element={<LoginPage />} />
+
       </Routes>
     </Router>
   );

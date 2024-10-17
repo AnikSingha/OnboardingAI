@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import LandingPage from './routes/LandingPage.js';
-import BusinessSetup from './miscBusinessSetup.js';
+import BusinessSetup from './misc/BusinessSetup.js';
 import AIPrompts from './misc/AIPrompts.js';
 import SignUpPage from './routes/SignUpPage.js'; 
 import LoginPage from './components/LoginPage';

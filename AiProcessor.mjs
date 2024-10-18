@@ -65,7 +65,8 @@ export async function processTranscript(transcript, sessionId) {
       const appointmentData = JSON.parse(appointmentDataMatch[1]);
       try {
         //const savedAppointment = await appointmentService.createAppointment(appointmentData);
-        console.log('Appointment saved:', savedAppointment);
+        //console.log('Appointment saved:', savedAppointment);
+        console.log('Appointment data:', appointmentData);
       } catch (error) {
         console.error('Error saving appointment:', error.message);
         conversation.push({ role: "assistant", content: `I'm sorry, but the selected date is not available. Please choose another date.` });

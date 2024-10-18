@@ -38,6 +38,8 @@ export const AuthProvider = ({ children }) => {
                 if (response.ok) {
                     const data = await response.json()
                     const decoded = data.decoded
+                    console.log(decoded)
+                    
                     if (decoded) {
                         login(decoded.user, decoded.business_name, decoded.role)
                     } else {

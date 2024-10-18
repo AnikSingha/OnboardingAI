@@ -27,13 +27,6 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const checkAuth = async () => {
-            const tokenExists = checkCookie('token')
-            
-            if (!tokenExists) {
-                console.log("Token cookie does not exist. User is not authenticated.")
-                return
-            }
-            
             setLoading(true)
 
             try {
@@ -68,16 +61,4 @@ export const AuthProvider = ({ children }) => {
             {children}
         </AuthContext.Provider>
     );
-};
-
-
-const checkCookie = (name) => {
-    const cookies = document.cookie.split('; ');
-    for (let cookie of cookies) {
-        const [cookieName] = cookie.split('=');
-        if (cookieName === name) {
-            return true
-        }
-    }
-    return false
 };

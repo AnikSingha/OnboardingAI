@@ -4,8 +4,8 @@ import LandingPage from './routes/LandingPage.js';
 import BusinessSetup from './misc/BusinessSetup.js';
 import AIPrompts from './misc/AIPrompts.js';
 import SignUpPage from './routes/SignUpPage.js'; 
-import LoginPage from './components/LoginPage';
-
+import LoginPage from './routes/LoginPage';
+import ForgotPassword from './routes/ForgotPassword.js';
 
 function App() {
 
@@ -18,6 +18,7 @@ function App() {
         <Route path="/sign-up" element={<SignUpPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="forgot-password" element={<ForgotPassword/>} />
 
       </Routes>
     </Router>

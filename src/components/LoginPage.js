@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useContext } from 'react'
-import { AuthContext } from './AuthContext'
+import { AuthContext } from '../AuthContext'
 import { ChevronDown, Eye, EyeOff, ArrowLeft, User } from 'lucide-react'
 import { Link } from 'react-router-dom';
 

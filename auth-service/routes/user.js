@@ -9,7 +9,7 @@ router.delete('/delete-account', async (req, res) => {
         const { email } = req.body
         const { valid, decoded} = verifyToken(req.cookies.token)
 
-        if (decoded.email != email ) {
+        if (!valid || decoded.email !== email ) {
             return res.status(403).json({success: false, message: 'Unauthorized'})
         }
 

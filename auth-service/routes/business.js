@@ -7,7 +7,7 @@ const router = express.Router()
 
 router.get('/get-employees', async (req, res) => {
     try {
-        const { business_name: business } = req.body
+        const { business_name: business } = req.query
         const { valid, decoded } = verifyToken(req.cookies.token)
 
         if (!business) {
@@ -115,5 +115,76 @@ router.put('/terminate-employee', async (req, res) => {
     }
 })
 
+router.put('/add-phone-number', async (req, res) => {
+    try {
+        const { business_name: business, phone_number } = req.body
+        const { valid, decoded } = verifyToken(req.cookies.token)
+
+        if (!business || !phone_number) {
+            return res.status(400).json({success: false, message: 'phone_number or business_name missing from request body'})
+        }
+
+        if (!valid || decoded.business !== business || decoded.role !== 'Owner') { 
+            return res.status(403).json({success: false, message: 'Unauthorized to perform actions on this business'})
+        }
+
+        const success = await businessManager.addPhoneNumber(business, phone_number)
+        if (success) {
+            return res.status(200).json({ success: true, message: 'Phone number successfully added' })
+        } else {
+            return res.status(400).json({ success: false, message: 'Failed to add phone number' })
+        }
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
+
+router.get('/get-phone-numbers', async (req, res) => {
+    try {
+        const { business_name: business } = req.query
+        const { valid, decoded } = verifyToken(req.cookies.token)
+
+        if (!business) {
+            return res.status(400).json({ success: false, message: 'business_name missing from query parameters' })
+        }
+
+        if (!valid || decoded.business !== business || decoded.role !== 'Owner') {
+            return res.status(403).json({ success: false, message: 'Unauthorized to access this business' })
+        }
+
+        const phoneNumbers = await businessManager.getPhoneNumbers(business);
+        if (phoneNumbers) {
+            return res.status(200).json({ success: true, phone_numbers: phoneNumbers })
+        } else {
+            return res.status(404).json({ success: false, message: 'No phone numbers found for this business' })
+        }
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
+
+router.delete('/delete-phone-number', async (req, res) => {
+    try {
+        const { business_name: business, phone_number } = req.body
+        const { valid, decoded } = verifyToken(req.cookies.token)
+
+        if (!business || !phone_number) {
+            return res.status(400).json({ success: false, message: 'business_name or phone_number missing from request body' })
+        }
+
+        if (!valid || decoded.business !== business || decoded.role !== 'Owner') {
+            return res.status(403).json({ success: false, message: 'Unauthorized to perform actions on this business' })
+        }
+
+        const success = await businessManager.deletePhoneNumber(business, phone_number);
+        if (success) {
+            return res.status(200).json({ success: true, message: 'Phone number successfully deleted' })
+        } else {
+            return res.status(404).json({ success: false, message: 'Phone number not found for this business' })
+        }
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
 
 module.exports = router

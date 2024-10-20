@@ -112,6 +112,71 @@ class BusinessManager {
         }
     }
 
+    // returns true if successful
+    async addPhoneNumber(business_name, phoneNumber) {
+        try {
+            let client = await connectToDatabase()
+            let businessCollection = client.db('auth').collection('businesses')
+
+            let exists = await this.businessExists(business_name)
+            if (!exists) {
+                return false
+            }
+
+            const result = await businessCollection.updateOne(
+                { business_name: business_name },
+                { $addToSet: { phone_numbers: phoneNumber } }
+            );
+
+            return result.modifiedCount > 0;
+        } catch (err) {
+            return false
+        }
+    }
+
+    async getPhoneNumbers(business_name) {
+        try {
+            let client = await connectToDatabase()
+            let businessCollection = client.db('auth').collection('businesses')
+    
+            let exists = await this.businessExists(business_name)
+            if (!exists) {
+                return false
+            }
+    
+            const business = await businessCollection.findOne(
+                { business_name: business_name },
+                { projection: { phone_numbers: 1 } }
+            );
+    
+            return business.phone_numbers
+        } catch (err) {
+            return false
+        }
+    }
+    
+    async deletePhoneNumber(business_name, phoneNumber) {
+        try {
+            let client = await connectToDatabase()
+            let businessCollection = client.db('auth').collection('businesses')
+    
+            let exists = await this.businessExists(business_name)
+            if (!exists) {
+                return false
+            }
+    
+            const result = await businessCollection.updateOne(
+                { business_name: business_name },
+                { $pull: { phone_numbers: phoneNumber } }
+            );
+    
+            return result.modifiedCount > 0
+        } catch (err) {
+            return false
+        }
+    }
+    
+
 }
 
 module.exports = new BusinessManager()

@@ -1,8 +1,11 @@
 import React, { useState } from 'react'
+import { useContext } from 'react'
+import { AuthContext } from './AuthContext'
 import { ChevronDown, Eye, EyeOff, ArrowLeft, User } from 'lucide-react'
 import { Link } from 'react-router-dom';
 
 export default function LoginPage() {
+  const { login } = useContext(AuthContext)
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
@@ -45,6 +48,7 @@ export default function LoginPage() {
         throw new Error(data.message || 'Network response was not ok')
       }
 
+      await login()
       setAlertMessage('');
     } catch (err) {
       if (err.message === "Business already exists"){

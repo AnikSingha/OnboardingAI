@@ -9,11 +9,35 @@ export const AuthProvider = ({ children }) => {
     const [role, setRole] = useState(null)
     const [loading, setLoading] = useState(false)
 
-    const login = (userData, businessData, roleData) => {
-        setIsAuthenticated(true)
-        setUser(userData)
-        setBusiness(businessData)
-        setRole(roleData)
+    const login = async () => {
+        setLoading(true)
+
+        try {
+            const response = await fetch("https://api.onboardingai.org/auth/decode-token", {
+                method: "GET",
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                const data = await response.json()
+                const decoded = data.decoded
+                console.log(decoded)
+                
+                if (decoded) {
+                    setIsAuthenticated(true)
+                    setUser(decoded.user)
+                    setBusiness(decoded.business_name)
+                    setRole(decoded.role)
+                } else {
+                    console.error("No decoded token found in response")
+                }
+            } else {
+                console.error("Failed to decode token")
+            }
+        } catch (error) {
+            console.error("Error during token decoding:", error)
+        }
+
         setLoading(false)
     }
 
@@ -26,36 +50,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     useEffect(() => {
-        const checkAuth = async () => {
-            setLoading(true)
-
-            try {
-                const response = await fetch("https://api.onboardingai.org/auth/decode-token", {
-                    method: "GET",
-                    credentials: 'include'
-                });
-
-                if (response.ok) {
-                    const data = await response.json()
-                    const decoded = data.decoded
-                    console.log(decoded)
-                    
-                    if (decoded) {
-                        login(decoded.user, decoded.business_name, decoded.role)
-                    } else {
-                        console.error("No decoded token found in response")
-                    }
-                } else {
-                    console.error("Failed to decode token")
-                }
-            } catch (error) {
-                console.error("Error during token decoding:", error)
-            }
-
-            setLoading(false)
-        }
-
-        checkAuth()
+        login()
     }, [])
 
     return (

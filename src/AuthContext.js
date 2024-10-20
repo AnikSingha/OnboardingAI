@@ -25,17 +25,21 @@ export const AuthProvider = ({ children }) => {
                 
                 if (decoded) {
                     setIsAuthenticated(true)
+                    console.log('is now authenticated')
                     setUser(decoded.user)
                     setBusiness(decoded.business_name)
                     setRole(decoded.role)
                 } else {
                     console.error("No decoded token found in response")
+                    await logout()
                 }
             } else {
                 console.error("Failed to decode token")
+                await logout()
             }
         } catch (error) {
             console.error("Error during token decoding:", error)
+            await logout()
         }
 
         setLoading(false)
@@ -66,6 +70,7 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         login()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     return (

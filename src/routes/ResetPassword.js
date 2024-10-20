@@ -4,7 +4,7 @@ import { ArrowLeft, User } from 'lucide-react';
 import { AuthContext } from '../AuthContext'; // Adjust the import path as needed
 
 export default function ResetPassword() {
-  const { isAuthenticated, user } = useContext(AuthContext);
+  const { isAuthenticated, user, loading } = useContext(AuthContext);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
@@ -12,10 +12,14 @@ export default function ResetPassword() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/');
-    }
-  }, [isAuthenticated, navigate]);
+      const timer = setTimeout(() => {
+          if (!loading && !isAuthenticated) {
+              navigate('/')
+          }
+      }, 150)
+
+      return () => clearTimeout(timer)
+  }, [isAuthenticated, loading, navigate])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

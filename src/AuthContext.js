@@ -41,13 +41,28 @@ export const AuthProvider = ({ children }) => {
         setLoading(false)
     }
 
-    const logout = () => {
-        setIsAuthenticated(false)
-        setUser(null)
-        setBusiness(null)
-        setRole(null)
-        setLoading(false)
-    }
+    const logout = async () => {
+        try {
+            const response = await fetch('https://api.onboardingai.org/auth/logout', {
+                method: 'POST',
+                credentials: 'include',
+            });
+    
+            if (!response.ok) {
+                throw new Error('Failed to log out. Please try again.');
+            }
+    
+            setIsAuthenticated(false);
+            setUser(null);
+            setBusiness(null);
+            setRole(null);
+            setLoading(false);
+        } catch (error) {
+            console.error('Logout error:', error);
+            setLoading(false);
+        }
+    };
+    
 
     useEffect(() => {
         login()

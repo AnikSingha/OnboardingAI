@@ -225,5 +225,13 @@ router.post('/send-login-link', async(req, res) => {
     }
 })
 
-module.exports = router
+router.post('/logout', (req, res) => {
+    try {
+        res.cookie('token', '', { httpOnly: true, sameSite: 'lax', secure: true, maxAge: 0, domain: '.onboardingai.org' })
+        return res.status(200).json({ success: true, message: 'Logged out successfully' })
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
 
+module.exports = router

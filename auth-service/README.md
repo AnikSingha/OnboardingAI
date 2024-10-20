@@ -316,7 +316,26 @@ This section describes the authentication-related API routes under `/auth`. Thes
       "message": "Failed to send login link"
     }
     ```
+    
+### 10. `/auth/logout`
 
+- **Method**: `POST`
+- **Description**: Logs out the user by clearing the authentication cookie.
+- **Response**:
+  - Status `200`: 
+    ```json
+    {
+      "success": true,
+      "message": "Logged out successfully"
+    }
+    ```
+  - Status `500`: 
+    ```json
+    {
+      "success": false,
+      "message": "Internal server error: [error message]"
+    }
+    ```
 # Business API Routes
 
 This section describes the business-related API routes under `/business`. These routes handle employee management and business name updates for authorized users.

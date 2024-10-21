@@ -336,6 +336,36 @@ This section describes the authentication-related API routes under `/auth`. Thes
       "message": "Internal server error: [error message]"
     }
     ```
+
+  ### 11. `/auth/forgot-password`
+
+- **Method**: `POST`
+- **Description**: Sends a password reset email to the specified email address.
+- **Request Body**:
+  - `email`: User's email
+- **Response**:
+  - **Status `200`**: 
+    ```json
+    {
+      "success": true,
+      "message": "Reset password email sent successfully"
+    }
+    ```
+  - **Status `400`**: 
+    ```json
+    {
+      "success": false,
+      "message": "email missing from request body"
+    }
+    ```
+  - **Status `500`**: 
+    ```json
+    {
+      "success": false,
+      "message": "Internal server error: [error message]"
+    }
+    ``` 
+
 # Business API Routes
 
 This section describes the business-related API routes under `/business`. These routes handle employee management and business name updates for authorized users.

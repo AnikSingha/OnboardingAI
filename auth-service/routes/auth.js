@@ -3,7 +3,7 @@ const accountManager = require('../utils/accounts.js')
 const businessManager = require('../utils/businessManager.js')
 const { createToken, verifyToken } = require('../utils/token.js')
 const { verifyOTP, genQRCode } = require('../utils/otp.js')
-const { sendEmailLogin } = require('../utils/email.js')
+const { sendEmailLogin, sendResetPassword } = require('../utils/email.js')
 
 const router = express.Router()
 
@@ -233,5 +233,25 @@ router.post('/logout', (req, res) => {
         return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
     }
 })
+
+router.post('/forgot-password', async (req, res) => {
+    const { email } = req.body
+
+    if (!email) {
+        return res.status(400).json({ success: false, message: 'email missing from request body' })
+    }
+
+    try {
+        const result = await sendResetPassword(email)
+
+        if (result) {
+            return res.status(200).json({ success: true, message: 'Reset password email sent successfully' })
+        } else {
+            return res.status(500).json({ success: false, message: 'Failed to send reset password email' })
+        }
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+});
 
 module.exports = router

@@ -43,7 +43,8 @@ const tokenMiddleware = checkToken.unless({ path: [
     '/auth/send-login-link',
     '/auth/business-sign-up',
     '/auth/logout',
-    '/auth/decode-token'
+    '/auth/decode-token',
+    '/auth/forgot-password'
 ]})
 app.use(tokenMiddleware)
 

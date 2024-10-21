@@ -2,7 +2,7 @@ const express = require('express')
 const accountManager = require('../utils/accounts.js')
 const { verifyToken } = require('../utils/token.js')
 
-const router = express.Router()
+const router = express.Router({ strict: false });
 
 router.delete('/delete-account', async (req, res) => {
     try {

@@ -5,7 +5,7 @@ const { createToken, verifyToken } = require('../utils/token.js')
 const { verifyOTP, genQRCode } = require('../utils/otp.js')
 const { sendEmailLogin, sendResetPassword } = require('../utils/email.js')
 
-const router = express.Router()
+const router = express.Router({ strict: false });
 
 router.get('/', async (req, res) => {
     return res.status(200).json({ success: true, message: 'Server running' })

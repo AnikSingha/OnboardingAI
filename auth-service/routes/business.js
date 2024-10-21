@@ -3,7 +3,7 @@ const accountManager = require('../utils/accounts.js')
 const businessManager = require('../utils/businessManager.js')
 const { verifyToken } = require('../utils/token.js')
 
-const router = express.Router()
+const router = express.Router({ strict: false });
 
 router.get('/get-employees', async (req, res) => {
     try {

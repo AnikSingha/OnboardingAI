@@ -234,7 +234,7 @@ router.post('/logout', (req, res) => {
     }
 })
 
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password/', async (req, res) => {
     const { email } = req.body
 
     if (!email) {

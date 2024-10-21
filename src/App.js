@@ -19,7 +19,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/setup" element={<BusinessSetup />} />
         <Route path="/ai-prompts" element={<AIPrompts />} />
         <Route path="/sign-up" element={<SignUpPage />} />
@@ -29,7 +29,7 @@ function App() {
         <Route path="reset-password" element={<ResetPassword/>} />
         <Route path="/schedule" element={<Schedule />} />
         <Route path="/callinghistory" element={<CallingHistory />} />
-        <Route path="/dashboard" element={<LandingPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/account" element={<Account />} />
         <Route path="/about" element={<About />} />
       </Routes>

@@ -15,9 +15,9 @@ export default function ResetPassword() {
       const timer = setTimeout(() => {
           if (!loading && !isAuthenticated) {
               navigate('/')
-          }
+          } 
       }, 30)
-
+      
       return () => clearTimeout(timer)
   }, [isAuthenticated, loading, navigate])
 
@@ -65,6 +65,14 @@ export default function ResetPassword() {
       setAlertMessage(`Failed: ${err.message}`);
     }
   };
+
+  if (loading) {
+    return <div className="min-h-screen bg-white"></div>
+  }
+
+  if (!isAuthenticated) {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-[#E6E6FA] flex flex-col">

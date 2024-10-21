@@ -16,7 +16,7 @@ export default function ResetPassword() {
           if (!loading && !isAuthenticated) {
               navigate('/')
           }
-      }, 150)
+      }, 30)
 
       return () => clearTimeout(timer)
   }, [isAuthenticated, loading, navigate])

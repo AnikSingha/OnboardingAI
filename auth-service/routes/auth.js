@@ -252,6 +252,6 @@ router.post('/forgot-password', async (req, res) => {
     } catch (err) {
         return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
     }
-});
+})
 
 module.exports = router

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useContext } from 'react'
 import { AuthContext } from '../AuthContext'
 import { ChevronDown, Eye, EyeOff, ArrowLeft, User } from 'lucide-react'
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
   const { login } = useContext(AuthContext)
@@ -14,6 +14,7 @@ export default function LoginPage() {
   })
 
   const [alertMessage, setAlertMessage] = useState('')
+  const navigate = useNavigate()
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -49,7 +50,8 @@ export default function LoginPage() {
       }
 
       await login()
-      setAlertMessage('');
+      setAlertMessage('')
+      navigate('/dashboard')
     } catch (err) {
       if (err.message === "Business already exists"){
         setAlertMessage(`Failed: This organization name is taken`)

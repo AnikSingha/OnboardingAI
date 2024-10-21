@@ -13,26 +13,30 @@ import Dashboard from "./routes/dashboard";
 import CallingHistory from "./routes/callinghistory";
 import Account from "./routes/account";
 import About from "./routes/about";
+import { AuthProvider } from './AuthContext.js';
+
 
 function App() {
 
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/setup" element={<BusinessSetup />} />
-        <Route path="/ai-prompts" element={<AIPrompts />} />
-        <Route path="/sign-up" element={<SignUpPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="forgot-password" element={<ForgotPassword/>} />
-        <Route path="reset-password" element={<ResetPassword/>} />
-        <Route path="/schedule" element={<Schedule />} />
-        <Route path="/callinghistory" element={<CallingHistory />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/account" element={<Account />} />
-        <Route path="/about" element={<About />} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/setup" element={<BusinessSetup />} />
+          <Route path="/ai-prompts" element={<AIPrompts />} />
+          <Route path="/sign-up" element={<SignUpPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="forgot-password" element={<ForgotPassword/>} />
+          <Route path="reset-password" element={<ResetPassword/>} />
+          <Route path="/schedule" element={<Schedule />} />
+          <Route path="/callinghistory" element={<CallingHistory />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/account" element={<Account />} />
+          <Route path="/about" element={<About />} />
+        </Routes>
+      </AuthProvider>
     </Router>
   );
 }

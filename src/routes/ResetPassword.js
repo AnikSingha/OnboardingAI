@@ -40,7 +40,7 @@ export default function ResetPassword() {
       return;
     }
 
-    const payload = { email:user, password };
+    const payload = { email: user, password };
 
     try {
       const response = await fetch('https://api.onboardingai.org/auth/change-password', {
@@ -49,6 +49,7 @@ export default function ResetPassword() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -59,7 +60,7 @@ export default function ResetPassword() {
       setSuccessMessage('Your password has been reset successfully.');
       setTimeout(() => {
         navigate('/login')
-      }, 200)
+      }, 2000)
     } catch (err) {
       setAlertMessage(`Failed: ${err.message}`);
     }

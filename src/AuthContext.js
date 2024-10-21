@@ -1,5 +1,4 @@
 import { createContext, useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom";
 
 export const AuthContext = createContext()
 
@@ -9,7 +8,6 @@ export const AuthProvider = ({ children }) => {
     const [business, setBusiness] = useState(null)
     const [role, setRole] = useState(null)
     const [loading, setLoading] = useState(false)
-    const navigate = useNavigate()
 
     const login = async () => {
         setLoading(true)
@@ -43,9 +41,6 @@ export const AuthProvider = ({ children }) => {
         }
 
         setLoading(false)
-        if (isAuthenticated) {
-            navigate('/dashboard')
-        }
     }
 
     const logout = async () => {

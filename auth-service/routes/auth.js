@@ -254,7 +254,7 @@ router.post('/forgot-password/', async (req, res) => {
     }
 })
 
-router.get('/reset-password/', async (req, res) => {
+router.get('/reset-password', async (req, res) => {
     const { token } = req.query
     if (!token) {
         return res.status(400).json({ success: false, message: 'email missing from request body' })
@@ -269,6 +269,26 @@ router.get('/reset-password/', async (req, res) => {
         res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
 
         return res.redirect('https://www.onboardingai.org/reset-password')
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
+
+router.post('/change-password', async (req, res) => {
+    const { email, password } = req.body
+
+    if (!email || !password) {
+        return res.status(400).json({ success: false, message: 'email or password missing from request body' })
+    }
+
+    try {
+        const result = accountManager.updatePassword(email, password)
+
+        if (result) {
+            return res.status(200).json({ success: true, message: 'Password was successfully changed' })
+        } else {
+            return res.status(500).json({ success: false, message: 'Failed to change password' })
+        }
     } catch (err) {
         return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
     }

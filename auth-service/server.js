@@ -21,7 +21,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 const openPaths = new Set([
-    '/auth/forgot-password/',
+    '/auth/forgot-password',
     '/auth/sign-up', 
     '/auth/login',
     '/auth/login-link',

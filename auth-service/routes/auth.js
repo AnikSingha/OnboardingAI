@@ -254,4 +254,24 @@ router.post('/forgot-password/', async (req, res) => {
     }
 })
 
+router.post('/reset-password/', async (req, res) => {
+    const { token } = req.query
+    if (!token) {
+        return res.status(400).json({ success: false, message: 'email missing from request body' })
+    }
+
+    let result = verifyToken(token)
+    if (!result.valid) {
+        return res.status(403).json({success: false, message: 'Unauthorized'})
+    }
+    try {
+        const token = createToken(result.decoded.email, result.decoded.business_name, result.decoded.role)
+        res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
+        
+        return res.redirect('https://www.onboardingai.org/reset-password')
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
+
 module.exports = router

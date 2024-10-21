@@ -28,7 +28,8 @@ const openPaths = new Set([
     '/auth/send-login-link',
     '/auth/business-sign-up',
     '/auth/logout',
-    '/auth/decode-token'
+    '/auth/decode-token',
+    '/auth/reset-password'
 ]);
 
 function checkToken(req, res, next) {

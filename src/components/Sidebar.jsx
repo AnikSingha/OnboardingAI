@@ -1,71 +1,34 @@
-import { NavbarBrand } from 'react-bootstrap';
-import Nav from 'react-bootstrap/Nav';
-import { IoStatsChartOutline } from "react-icons/io5";
-import { RiCalendarScheduleLine } from "react-icons/ri";
-import { MdPhoneCallback, MdManageAccounts } from "react-icons/md";
-import { BsExclamationSquareFill } from "react-icons/bs";
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { BarChart, Phone, User, Calendar, Settings, Megaphone } from 'lucide-react';
 
-// Define an array of navigation items
 const navItems = [
-  { path: '/dashboard', icon: <IoStatsChartOutline />, label: 'Dashboard' },
-  { path: '/schedule', icon: <RiCalendarScheduleLine />, label: 'Schedule' },
-  { path: '/callinghistory', icon: <MdPhoneCallback />, label: 'Calling History' },
-  { path: '/account', icon: <MdManageAccounts />, label: 'Account' },
-  { path: '/about', icon: <BsExclamationSquareFill />, label: 'About' },
+  { path: '/dashboard', icon: <BarChart className="h-4 w-4" />, label: 'Dashboard' },
+  { path: '/contacts', icon: <User className="h-4 w-4" />, label: 'Contacts' },
+  { path: '/schedule', icon: <Calendar className="h-4 w-4" />, label: 'Schedule' },
+  { path: '/campaigns', icon: <Megaphone className="h-4 w-4" />, label: 'Campaigns' },
+  { path: '/settings', icon: <Settings className="h-4 w-4" />, label: 'Settings' },
 ];
 
-export default function OnboardSide() {
-  const [activePath, setActivePath] = useState('');
-
-  useEffect(() => {
-    setActivePath(window.location.pathname);
-  }, []);
-
+export default function Sidebar() {
   return (
-    <Nav className="flex-column" style={{ display:'flex',marginTop: 90, maxWidth:220, height: '100%',minHeight: '550px' ,background: '#F1F2F7', overflowY: 'auto' }}>
-      <NavbarBrand style={{ marginLeft: 54, marginTop: 30, fontSize: 14, letterSpacing: '1px', fontWeight: 'bold', color: '#082431' }}>Menu</NavbarBrand>
-      
-      {navItems.slice(0, 3).map((item) => (
-        <Nav.Item key={item.path}>
-          <Nav.Link 
-            as={Link}
+    <aside className="w-64 bg-white p-6 shadow-md">
+      <div className="flex items-center mb-8">
+        <Phone className="h-8 w-8 text-blue-600 mr-2" />
+        <span className="text-2xl font-bold text-blue-600">OnboardAI</span>
+      </div>
+      <nav>
+        {navItems.map((item) => (
+          <Link
+            key={item.path}
             to={item.path}
-            style={{
-              paddingLeft: '54px', 
-              color: activePath === item.path ? '#007bff' : '#273240',
-              fontWeight: activePath === item.path ? 'bold' : 'normal',
-            }}
+            className="flex items-center w-full py-2 px-4 mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md"
           >
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {item.icon}
-              <span style={{ marginLeft: '8px' }}>{item.label}</span>
-            </div>
-          </Nav.Link>
-        </Nav.Item>
-      ))}
-
-      <NavbarBrand style={{ marginLeft: 54, marginTop: 30, fontSize: 14, letterSpacing: '1px', fontWeight: 'bold', color: '#082431' }}>Other</NavbarBrand>
-      
-      {navItems.slice(3).map((item) => (
-        <Nav.Item key={item.path}>
-          <Nav.Link 
-            as={Link}
-            to={item.path}
-            style={{
-              paddingLeft: '54px', 
-              color: activePath === item.path ? '#007bff' : '#273240',
-              fontWeight: activePath === item.path ? 'bold' : 'normal',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {item.icon}
-              <span style={{ marginLeft: '8px' }}>{item.label}</span>
-            </div>
-          </Nav.Link>
-        </Nav.Item>
-      ))}
-    </Nav>
+            {item.icon}
+            <span className="ml-2">{item.label}</span>
+          </Link>
+        ))}
+      </nav>
+    </aside>
   );
 }

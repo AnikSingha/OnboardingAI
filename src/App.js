@@ -1,18 +1,21 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import LandingPage from './routes/LandingPage.js';
-import BusinessSetup from './misc/BusinessSetup.js';
-import AIPrompts from './misc/AIPrompts.js';
-import SignUpPage from './routes/SignUpPage.js'; 
+import './index.css';
+import LandingPage from './routes/LandingPage';
+import BusinessSetup from './misc/BusinessSetup';
+import AIPrompts from './misc/AIPrompts';
+import SignUpPage from './routes/SignUpPage'; 
 import LoginPage from './routes/LoginPage';
-import ForgotPassword from './routes/ForgotPassword.js';
-import ResetPassword from './routes/ResetPassword.js';
-import Schedule from './routes/schedule';
-import Dashboard from "./routes/dashboard";
-import CallingHistory from "./routes/callinghistory";
-import Account from "./routes/account";
-import About from "./routes/about";
+import ForgotPassword from './routes/ForgotPassword';
+import ResetPassword from './routes/ResetPassword';
+import Schedule from './routes/SchedulePage';
+import Dashboard from "./routes/Dashboard";
+import ContactsPage from "./routes/ContactsPage";
+import CampaignsPage from "./routes/CampaignsPage";
+import NewCampaign from "./routes/NewCampaign";
+import CampaignDetails from "./routes/CampaignDetails";
+import SettingsPage from "./routes/SettingsPage";
 import { AuthProvider } from './AuthContext.js';
 
 
@@ -26,15 +29,17 @@ function App() {
           <Route path="/setup" element={<BusinessSetup />} />
           <Route path="/ai-prompts" element={<AIPrompts />} />
           <Route path="/sign-up" element={<SignUpPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="forgot-password" element={<ForgotPassword/>} />
-          <Route path="reset-password" element={<ResetPassword/>} />
-          <Route path="/schedule" element={<Schedule />} />
-          <Route path="/callinghistory" element={<CallingHistory />} />
+          <Route path="/forgot-password" element={<ForgotPassword/>} />
+          <Route path="/reset-password" element={<ResetPassword/>} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/account" element={<Account />} />
-          <Route path="/about" element={<About />} />
+          <Route path="/contacts" element={<ContactsPage />} />
+          <Route path="/schedule" element={<Schedule />} />
+          <Route path="/campaigns" element={<CampaignsPage />} />
+          <Route path="/campaigns/new" element={<NewCampaign />} />
+          <Route path="/campaigns/:id" element={<CampaignDetails />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </Router>

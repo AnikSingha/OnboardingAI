@@ -33,7 +33,7 @@ export default function SettingsPage() {
     conversationStyle: 'Friendly'
   });
 
-  // Billing and Subscription
+  // Billing
   const [billingInfo, setBillingInfo] = useState({
     currentPlan: 'Basic',
     billingCycle: 'Monthly',
@@ -90,7 +90,7 @@ export default function SettingsPage() {
     // TODO: Implement API call to save AI settings
   };
 
-  // Handlers for Billing and Subscription
+  // Handlers for Billing
   const handleUpgradePlan = () => {
     console.log('Upgrading plan...');
     // TODO: Implement plan upgrade logic

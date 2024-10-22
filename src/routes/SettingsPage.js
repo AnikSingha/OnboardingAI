@@ -23,7 +23,8 @@ export default function SettingsPage() {
   // Notifications
   const [notifications, setNotifications] = useState({
     email: false,
-    sms: false
+    sms: false,
+    leadStatusUpdate: false  // Add this new option
   });
 
   // AI Settings
@@ -68,7 +69,15 @@ export default function SettingsPage() {
 
   // Handlers for Notifications
   const handleNotificationToggle = (type) => {
-    setNotifications({ ...notifications, [type]: !notifications[type] });
+    setNotifications(prevNotifications => ({
+      ...prevNotifications,
+      [type]: !prevNotifications[type]
+    }));
+    // TODO: Implement API call to update notification settings
+    console.log('Notifications updated:', {
+      ...notifications,
+      [type]: !notifications[type]
+    });
   };
 
   // Handlers for AI Settings
@@ -146,11 +155,27 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label htmlFor="email-notifications">Email Notifications</Label>
-                <Switch id="email-notifications" checked={notifications.email} onCheckedChange={() => handleNotificationToggle('email')} />
+                <Switch 
+                  id="email-notifications" 
+                  checked={notifications.email} 
+                  onCheckedChange={() => handleNotificationToggle('email')} 
+                />
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="sms-notifications">SMS Notifications</Label>
-                <Switch id="sms-notifications" checked={notifications.sms} onCheckedChange={() => handleNotificationToggle('sms')} />
+                <Switch 
+                  id="sms-notifications" 
+                  checked={notifications.sms} 
+                  onCheckedChange={() => handleNotificationToggle('sms')} 
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="lead-status-notifications">Lead Status Updates</Label>
+                <Switch 
+                  id="lead-status-notifications" 
+                  checked={notifications.leadStatusUpdate} 
+                  onCheckedChange={() => handleNotificationToggle('leadStatusUpdate')} 
+                />
               </div>
             </CardContent>
           </Card>

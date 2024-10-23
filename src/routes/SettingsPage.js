@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Label } from "../components/ui/label"
 import { Switch } from "../components/ui/switch"
 import Layout from '../components/Layout'
+import { X } from 'lucide-react' 
 
 export default function SettingsPage() {
   // Account Information
@@ -24,7 +25,7 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState({
     email: false,
     sms: false,
-    leadStatusUpdate: false  // Add this new option
+    leadStatusUpdate: false
   });
 
   // AI Settings
@@ -69,15 +70,12 @@ export default function SettingsPage() {
 
   // Handlers for Notifications
   const handleNotificationToggle = (type) => {
-    setNotifications(prevNotifications => ({
-      ...prevNotifications,
-      [type]: !prevNotifications[type]
-    }));
-    // TODO: Implement API call to update notification settings
-    console.log('Notifications updated:', {
+    const newValue = !notifications[type];
+    setNotifications({
       ...notifications,
-      [type]: !notifications[type]
+      [type]: newValue
     });
+    console.log(`${type} notifications set to:`, newValue);
   };
 
   // Handlers for AI Settings
@@ -100,6 +98,8 @@ export default function SettingsPage() {
     console.log('Updating payment method...');
     // TODO: Implement payment method update logic
   };
+
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
 
   return (
     <Layout>
@@ -131,19 +131,67 @@ export default function SettingsPage() {
               <CardDescription>Change your password</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="current-password">Current Password</Label>
-                <Input id="current-password" name="currentPassword" type="password" value={passwordInfo.currentPassword} onChange={handlePasswordChange} />
-              </div>
-              <div>
-                <Label htmlFor="new-password">New Password</Label>
-                <Input id="new-password" name="newPassword" type="password" value={passwordInfo.newPassword} onChange={handlePasswordChange} />
-              </div>
-              <div>
-                <Label htmlFor="confirm-password">Confirm New Password</Label>
-                <Input id="confirm-password" name="confirmPassword" type="password" value={passwordInfo.confirmPassword} onChange={handlePasswordChange} />
-              </div>
-              <Button onClick={handleChangePassword}>Change Password</Button>
+              {!showPasswordChange && (
+                <Button 
+                  onClick={() => setShowPasswordChange(true)}
+                  variant="outline"
+                >
+                  Change Password
+                </Button>
+              )}
+              
+              {showPasswordChange && (
+                <div className="bg-gray-50 p-4 rounded-md relative">
+                  <Button
+                    onClick={() => {
+                      setShowPasswordChange(false);
+                      setPasswordInfo({
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                      });
+                    }}
+                    variant="ghost"
+                    className="absolute top-2 right-2 h-8 w-8 p-0"
+                    aria-label="Close"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <div className="space-y-4 pt-4">
+                    <div>
+                      <Label htmlFor="current-password">Current Password</Label>
+                      <Input 
+                        id="current-password" 
+                        name="currentPassword" 
+                        type="password" 
+                        value={passwordInfo.currentPassword} 
+                        onChange={handlePasswordChange} 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="new-password">New Password</Label>
+                      <Input 
+                        id="new-password" 
+                        name="newPassword" 
+                        type="password" 
+                        value={passwordInfo.newPassword} 
+                        onChange={handlePasswordChange} 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="confirm-password">Confirm New Password</Label>
+                      <Input 
+                        id="confirm-password" 
+                        name="confirmPassword" 
+                        type="password" 
+                        value={passwordInfo.confirmPassword} 
+                        onChange={handlePasswordChange} 
+                      />
+                    </div>
+                    <Button onClick={handleChangePassword}>Update Password</Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -157,24 +205,24 @@ export default function SettingsPage() {
                 <Label htmlFor="email-notifications">Email Notifications</Label>
                 <Switch 
                   id="email-notifications" 
-                  checked={notifications.email} 
-                  onCheckedChange={() => handleNotificationToggle('email')} 
+                  checked={notifications.email}
+                  onCheckedChange={() => handleNotificationToggle('email')}
                 />
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="sms-notifications">SMS Notifications</Label>
                 <Switch 
                   id="sms-notifications" 
-                  checked={notifications.sms} 
-                  onCheckedChange={() => handleNotificationToggle('sms')} 
+                  checked={notifications.sms}
+                  onCheckedChange={() => handleNotificationToggle('sms')}
                 />
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="lead-status-notifications">Lead Status Updates</Label>
                 <Switch 
                   id="lead-status-notifications" 
-                  checked={notifications.leadStatusUpdate} 
-                  onCheckedChange={() => handleNotificationToggle('leadStatusUpdate')} 
+                  checked={notifications.leadStatusUpdate}
+                  onCheckedChange={() => handleNotificationToggle('leadStatusUpdate')}
                 />
               </div>
             </CardContent>

@@ -1,11 +1,16 @@
 import React from 'react';
+import { useContext } from 'react'
 import { Button } from "../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { BarChart, Bell, Calendar, Phone } from "lucide-react";
+import { BarChart, Bell, Calendar, Phone, LogOut } from "lucide-react";
 import Layout from '../components/Layout';
+import { AuthContext } from '../AuthContext'
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
+  const { logout } = useContext(AuthContext)
+  const navigate = useNavigate()
   return (
     <Layout>
       <div className="p-8">
@@ -15,7 +20,14 @@ export default function Dashboard() {
             <Button variant="outline" className="mr-4 border-blue-600 text-blue-600 hover:bg-blue-50">
               <Bell className="h-4 w-4 mr-2" /> Notifications
             </Button>
-            <div className="w-10 h-10 bg-blue-600 rounded-full"></div>
+            <Button variant="outline" className="mr-4 border-blue-600 text-blue-600 hover:bg-blue-50">
+              <LogOut className="h-4 w-4 mr-2" 
+                  onClick={() => {
+                    logout();  // First, call the logout function
+                    navigate('/');  // Then navigate to the landing page (assumes immediate redirection)
+                  }} 
+              /> Log Out
+            </Button>
           </div>
         </div>
 

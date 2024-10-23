@@ -25,7 +25,7 @@ function App() {
     <Router>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/setup" element={<BusinessSetup />} />
           <Route path="/ai-prompts" element={<AIPrompts />} />
           <Route path="/sign-up" element={<SignUpPage />} />

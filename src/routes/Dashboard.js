@@ -33,7 +33,6 @@ export default function Dashboard() {
           >
               <LogOut className="h-4 w-4 mr-2" /> Log Out
           </Button>
-
           </div>
         </div>
 

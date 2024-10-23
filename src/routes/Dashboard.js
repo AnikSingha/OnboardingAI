@@ -25,7 +25,6 @@ export default function Dashboard() {
                   onClick={() => {
                     logout();
                     navigate('/');
-                    console.log('log out');
                   }} 
               /> Log Out
             </Button>

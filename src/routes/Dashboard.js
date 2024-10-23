@@ -23,8 +23,9 @@ export default function Dashboard() {
             <Button variant="outline" className="mr-4 border-blue-600 text-blue-600 hover:bg-blue-50">
               <LogOut className="h-4 w-4 mr-2" 
                   onClick={() => {
-                    logout();  // First, call the logout function
-                    navigate('/');  // Then navigate to the landing page (assumes immediate redirection)
+                    logout();
+                    navigate('/');
+                    console.log('log out');
                   }} 
               /> Log Out
             </Button>

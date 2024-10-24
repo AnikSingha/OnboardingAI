@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -14,6 +14,7 @@ export default function LoginPage() {
     agreeMarketing: false
   })
   const [alertMessage, setAlertMessage] = useState('')
+  const navigate = useNavigate()
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -53,6 +54,7 @@ export default function LoginPage() {
       }
 
       setAlertMessage('');
+      navigate('/dashboard')
     } catch (err) {
       if (err.message === "Business already exists"){
         setAlertMessage(`Failed: This organization name is taken`)

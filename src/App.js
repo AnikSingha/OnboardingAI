@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import LandingPage from './routes/LandingPage.js';
 import BusinessSetup from './BusinessSetup.js';
 import AIPrompts from './AIPrompts.js';
+import AboutPageHeader from './AboutPage.js';
 //import SignUpPage from './SignUpPage.js'; 
 
 
@@ -15,6 +16,7 @@ function App() {
         <Route path="/setup" element={<BusinessSetup />} />
         <Route path="/ai-prompts" element={<AIPrompts />} />
         {/* <Route path="/signup" element={<SignUpPage />} />  */}
+        <Route path="/about" element={<AboutPageHeader />} /> 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

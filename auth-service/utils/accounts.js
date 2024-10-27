@@ -140,7 +140,7 @@ class AccountManager {
     
             let result = await userCollection.findOne(
                 { email },
-                { projection: { business_name: 1, role: 1, _id: 0 } }
+                { projection: { name: 1, business_name: 1, role: 1, _id: 0 } }
             )
     
             if (result && result.business_name && result.role) {

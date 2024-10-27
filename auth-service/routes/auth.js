@@ -39,7 +39,7 @@ router.post('/business-sign-up', async (req, res) => {
             return res.status(500).json({ success: false, message: `Internal server error` })
         }
         
-        const token = createToken(email, business_name, 'Owner')
+        const token = createToken(name, email, business_name, 'Owner')
         res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
 
         return res.status(201).json({ success: true, message: 'Success' })
@@ -66,7 +66,7 @@ router.post('/sign-up', async (req, res) => {
 
         const success = await accountManager.addUser(name, email, password, business_name, role)
         if (success) {
-            const token = createToken(email, business_name, role)
+            const token = createToken(name, email, business_name, role)
             res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
             return res.status(201).json({ success: true, message: 'Success' })
         } else {
@@ -95,8 +95,8 @@ router.post('/login', async (req, res) => {
 
         const success = await accountManager.isValidPassword(email, password)
         if (success) {
-            const { business_name, role } = await accountManager.getUserInfo(email)
-            const token = createToken(email, business_name, role)
+            const { name, business_name, role } = await accountManager.getUserInfo(email)
+            const token = createToken(name, email, business_name, role)
             res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
             return res.status(201).json({ success: true, message: 'Success' })
         } else {
@@ -265,7 +265,7 @@ router.get('/reset-password', async (req, res) => {
         return res.status(403).json({success: false, message: 'Unauthorized'})
     }
     try {
-        const token = createToken(result.decoded.email, result.decoded.business_name, result.decoded.role)
+        const token = createToken(result.decoded.name, result.decoded.email, result.decoded.business_name, result.decoded.role)
         res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
 
         return res.redirect('https://www.onboardingai.org/reset-password')

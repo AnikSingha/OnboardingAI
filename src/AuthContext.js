@@ -5,6 +5,7 @@ export const AuthContext = createContext()
 export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false)
     const [user, setUser] = useState(null)
+    const [name, setName] = useState(null)
     const [business, setBusiness] = useState(null)
     const [role, setRole] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -25,6 +26,7 @@ export const AuthProvider = ({ children }) => {
                 if (decoded) {
                     setIsAuthenticated(true)
                     setUser(decoded.email)
+                    setName(decoded.name)
                     setBusiness(decoded.business_name)
                     setRole(decoded.role)
                 } else {
@@ -58,6 +60,7 @@ const logout = async () => {
         // Perform state updates here if needed
         setIsAuthenticated(false);
         setUser(null);
+        setName(null);
         setBusiness(null);
         setRole(null);
 
@@ -79,7 +82,7 @@ const logout = async () => {
     }, [])
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, business, role, loading, login, logout }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, name, business, role, loading, login, logout }}>
             {children}
         </AuthContext.Provider>
     );

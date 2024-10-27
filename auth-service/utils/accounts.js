@@ -174,6 +174,38 @@ class AccountManager {
             return ''
         }
     }
+
+    async updateUserName(email, newName) {
+        try {
+            let client = await connectToDatabase()
+            let userCollection = client.db('auth').collection('users')
+            
+            const result = await userCollection.updateOne(
+                { email: email },
+                { $set: { name: newName } }
+            )
+
+            return result.acknowledged
+        } catch (err) {
+            return false
+        }
+    }
+
+    async updateEmail(oldEmail, newEmail) {
+        try {
+            let client = await connectToDatabase()
+            let userCollection = client.db('auth').collection('users')
+            
+            const result = await userCollection.updateOne(
+                { email: oldEmail },
+                { $set: { email: newEmail } }
+            )
+            return result.acknowledged
+        } catch (err) {
+            return false
+        }
+    }
+    
 }
 
 module.exports = new AccountManager()

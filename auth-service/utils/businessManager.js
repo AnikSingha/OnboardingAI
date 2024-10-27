@@ -175,6 +175,27 @@ class BusinessManager {
             return false
         }
     }
+
+    async updateEmployeeEmail(business_name, employeeEmail, newEmail) {
+        try {
+            let client = await connectToDatabase()
+            let businessCollection = client.db('auth').collection('businesses')
+    
+            let exists = await this.businessExists(business_name)
+            if (!exists) {
+                return false
+            }
+
+            const result = await businessCollection.updateOne(
+                { business_name: business_name, employees: employeeEmail },
+                { $set: { "employees.$": newEmail } }
+            );
+    
+            return result.modifiedCount > 0;
+        } catch (err) {
+            return false
+        }
+    }
     
 
 }

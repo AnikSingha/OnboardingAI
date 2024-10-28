@@ -89,7 +89,7 @@ export default function LoginPage() {
       {/* Main Content */}
       <div className="flex-grow flex py-8">
         {/* Left Side */}
-        <div className="w-1/2 p-12 flex flex-col justify-center">
+        <div className="w-1/2 p-12 flex flex-col justify-center items-center mx-auto text-center">
           <div className="text-4xl font-bold mb-4 inline-block border-2 border-black rounded-xl px-4 py-2 w-fit">
             <span className="text-[#4285F4]">Onboard</span>
             <span className="text-black">AI</span>
@@ -99,7 +99,7 @@ export default function LoginPage() {
             Access to thousands of design resources and templates
           </p>
           <img
-            src="/placeholder.svg?height=400&width=400"
+            src="/placeholder.svg"
             alt="App Interface Mockup"
             className="w-full max-w-md mx-auto"
           />

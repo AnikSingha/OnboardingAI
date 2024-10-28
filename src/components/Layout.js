@@ -17,19 +17,19 @@ export default function Layout({ children }) {
           {!sidebarCollapsed && <Logo/>}
         </div>
         <nav>
-          <Link to="/dashboard" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
+          <Link to="/dashboard" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
             <BarChart className="h-4 w-4 mr-2"/> {!sidebarCollapsed && 'Dashboard'}
           </Link>
-          <Link to="/contacts" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
+          <Link to="/contacts" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
             <User className="h-4 w-4 mr-2" /> {!sidebarCollapsed && 'Contacts'}
           </Link>
-          <Link to="/schedule" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
+          <Link to="/schedule" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
             <Calendar className="h-4 w-4 mr-2" /> {!sidebarCollapsed && 'Schedule'}
           </Link>
-          <Link to="/campaigns" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
+          <Link to="/campaigns" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
             <Phone className="h-4 w-4 mr-2" /> {!sidebarCollapsed && 'Campaigns'}
           </Link>
-          <Link to="/settings" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
+          <Link to="/settings" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
             <Settings className="h-4 w-4 mr-2" /> {!sidebarCollapsed && 'Settings'}
           </Link>
         </nav>

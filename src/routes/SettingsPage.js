@@ -8,21 +8,16 @@ import { Switch } from "../components/ui/switch"
 import Layout from '../components/Layout'
 import { X } from 'lucide-react' 
 import ConfirmationDialog from '../components/ConfirmationDialog'
+import { useNavigate } from 'react-router-dom';
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const { user, name } = useContext(AuthContext);
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
     name: name || 'Not set',
     email: user || 'Not set'
-  });
-
-  // Password
-  const [passwordInfo, setPasswordInfo] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
   });
 
   // Notifications
@@ -126,31 +121,6 @@ export default function SettingsPage() {
 
   const [alertMessage, setAlertMessage] = useState(null);
 
-  // Handlers for Password
-  const handlePasswordChange = (e) => {
-    setPasswordInfo({ ...passwordInfo, [e.target.user]: e.target.value });
-  };
-
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
-
-  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
-
-  const handleChangePassword = () => {
-    setShowPasswordConfirm(true);
-  };
-
-  const confirmPasswordUpdate = () => {
-    console.log('Changing password with:', passwordInfo);
-    // TODO: Implement API call to change password
-    setShowPasswordConfirm(false);
-    setShowPasswordChange(false); // Close the password change form
-    setPasswordInfo({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    });
-  };
-
   // Handlers for Notifications
   const handleNotificationToggle = (type) => {
     const newValue = !notifications[type];
@@ -180,6 +150,10 @@ export default function SettingsPage() {
   const handleUpdatePayment = () => {
     console.log('Updating payment method...');
     // TODO: Implement payment method update logic
+  };
+
+  const handleResetPassword = () => {
+    navigate('/reset-password');
   };
 
   return (
@@ -220,68 +194,13 @@ export default function SettingsPage() {
               <CardTitle>Password</CardTitle>
               <CardDescription>Change your password</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {!showPasswordChange && (
-                <Button 
-                  onClick={() => setShowPasswordChange(true)}
-                  variant="outline"
-                >
-                  Change Password
-                </Button>
-              )}
-              
-              {showPasswordChange && (
-                <div className="bg-gray-50 p-4 rounded-md relative">
-                  <Button
-                    onClick={() => {
-                      setShowPasswordChange(false);
-                      setPasswordInfo({
-                        currentPassword: '',
-                        newPassword: '',
-                        confirmPassword: ''
-                      });
-                    }}
-                    variant="ghost"
-                    className="absolute top-2 right-2 h-8 w-8 p-0"
-                    aria-label="Close"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                  <div className="space-y-4 pt-4">
-                    <div>
-                      <Label htmlFor="current-password">Current Password</Label>
-                      <Input 
-                        id="current-password" 
-                        name="currentPassword" 
-                        type="password" 
-                        value={passwordInfo.currentPassword} 
-                        onChange={handlePasswordChange} 
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="new-password">New Password</Label>
-                      <Input 
-                        id="new-password" 
-                        name="newPassword" 
-                        type="password" 
-                        value={passwordInfo.newPassword} 
-                        onChange={handlePasswordChange} 
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="confirm-password">Confirm New Password</Label>
-                      <Input 
-                        id="confirm-password" 
-                        name="confirmPassword" 
-                        type="password" 
-                        value={passwordInfo.confirmPassword} 
-                        onChange={handlePasswordChange} 
-                      />
-                    </div>
-                    <Button onClick={handleChangePassword}>Update Password</Button>
-                  </div>
-                </div>
-              )}
+            <CardContent>
+              <Button 
+                onClick={handleResetPassword}
+                variant="outline"
+              >
+                Reset Password
+              </Button>
             </CardContent>
           </Card>
 
@@ -393,16 +312,6 @@ export default function SettingsPage() {
         onConfirm={confirmUpdate}
         title="Update Account Information"
         description="Are you sure you want to update your account information?"
-        confirmText={isUpdating ? "Updating..." : "Update"}
-        disabled={isUpdating}
-      />
-
-      <ConfirmationDialog
-        open={showPasswordConfirm}
-        onOpenChange={setShowPasswordConfirm}
-        onConfirm={confirmPasswordUpdate}
-        title="Update Password"
-        description="Are you sure you want to change your password?"
         confirmText={isUpdating ? "Updating..." : "Update"}
         disabled={isUpdating}
       />

@@ -59,7 +59,7 @@ router.put('/update-email', async(req, res) => {
             return res.status(403).json({success: false, message: 'Unauthorized'})
         }
 
-        if (accountManager.userExists(newEmail)) {
+        if (await accountManager.userExists(newEmail)) {
             return res.status(409).json({ success: false, message: 'Email already in use' })
         }
 

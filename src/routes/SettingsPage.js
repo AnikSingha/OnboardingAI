@@ -12,8 +12,6 @@ import { AuthContext } from '../context/AuthContext'
 export default function SettingsPage() {
   const { user, name } = useContext(AuthContext);
 
-  const { user, name } = useContext(AuthContext);
-
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
     name: name || 'Not set',

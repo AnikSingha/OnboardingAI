@@ -72,7 +72,7 @@ export default function SettingsPage() {
     try {
       if (accountInfo.name !== name) {
         const nameResponse = await fetch('https://api.onboardingai.org/user/update-name', {
-          method: 'PUT',
+          method: 'POST',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ export default function SettingsPage() {
 
       if (accountInfo.email !== user) {
         const emailResponse = await fetch('https://api.onboardingai.org/user/update-email', {
-          method: 'PUT',
+          method: 'POST',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',

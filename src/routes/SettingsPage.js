@@ -7,6 +7,7 @@ import { Label } from "../components/ui/label"
 import { Switch } from "../components/ui/switch"
 import Layout from '../components/Layout'
 import { X } from 'lucide-react' 
+import ConfirmationDialog from '../components/ConfirmationDialog'
 
 export default function SettingsPage() {
   const { user, name } = useContext(AuthContext);
@@ -63,9 +64,16 @@ export default function SettingsPage() {
     setAccountInfo({ ...accountInfo, [e.target.name]: e.target.value });
   };
 
+  const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
+
   const handleUpdateAccount = () => {
+    setShowUpdateConfirm(true);
+  };
+
+  const confirmUpdate = () => {
     console.log('Updating account with:', accountInfo);
     // TODO: Implement API call to update account information
+    setShowUpdateConfirm(false);
   };
 
   // Handlers for Password
@@ -73,9 +81,24 @@ export default function SettingsPage() {
     setPasswordInfo({ ...passwordInfo, [e.target.user]: e.target.value });
   };
 
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+
   const handleChangePassword = () => {
+    setShowPasswordConfirm(true);
+  };
+
+  const confirmPasswordUpdate = () => {
     console.log('Changing password with:', passwordInfo);
     // TODO: Implement API call to change password
+    setShowPasswordConfirm(false);
+    setShowPasswordChange(false); // Close the password change form
+    setPasswordInfo({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
   };
 
   // Handlers for Notifications
@@ -108,8 +131,6 @@ export default function SettingsPage() {
     console.log('Updating payment method...');
     // TODO: Implement payment method update logic
   };
-
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
 
   return (
     <Layout>
@@ -306,6 +327,22 @@ export default function SettingsPage() {
           </Card>
         </div>
       </div>
+
+      <ConfirmationDialog
+        open={showUpdateConfirm}
+        onOpenChange={setShowUpdateConfirm}
+        onConfirm={confirmUpdate}
+        title="Update Account Information"
+        description="Are you sure you want to update your account information?"
+      />
+
+      <ConfirmationDialog
+        open={showPasswordConfirm}
+        onOpenChange={setShowPasswordConfirm}
+        onConfirm={confirmPasswordUpdate}
+        title="Update Password"
+        description="Are you sure you want to change your password?"
+      />
     </Layout>
   )
 }

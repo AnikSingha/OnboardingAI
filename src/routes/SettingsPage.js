@@ -9,12 +9,12 @@ import Layout from '../components/Layout'
 import { X } from 'lucide-react' 
 
 export default function SettingsPage() {
-  const { user, name } = useContext(AuthContext);
+  const { user, email } = useContext(AuthContext);
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
-    name: name || 'Not set',
-    email: user?.email || 'Not set'
+    user: user || 'Not set',
+    email: email || 'Not set'
   });
 
   // Password
@@ -53,14 +53,14 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setAccountInfo({
-      name: name || '',
-      email: user?.email || ''
+      user: user || '',
+      email: email || ''
     });
-  }, [user, name]);
+  }, [user, email]);
 
   // Handlers for Account Information
   const handleAccountInfoChange = (e) => {
-    setAccountInfo({ ...accountInfo, [e.target.name]: e.target.value });
+    setAccountInfo({ ...accountInfo, [e.target.user]: e.target.value });
   };
 
   const handleUpdateAccount = () => {
@@ -70,7 +70,7 @@ export default function SettingsPage() {
 
   // Handlers for Password
   const handlePasswordChange = (e) => {
-    setPasswordInfo({ ...passwordInfo, [e.target.name]: e.target.value });
+    setPasswordInfo({ ...passwordInfo, [e.target.user]: e.target.value });
   };
 
   const handleChangePassword = () => {
@@ -90,7 +90,7 @@ export default function SettingsPage() {
 
   // Handlers for AI Settings
   const handleAISettingChange = (e) => {
-    setAiSettings({ ...aiSettings, [e.target.name]: e.target.value });
+    setAiSettings({ ...aiSettings, [e.target.user]: e.target.value });
   };
 
   const handleSaveAISettings = () => {

@@ -9,12 +9,12 @@ import Layout from '../components/Layout'
 import { X } from 'lucide-react' 
 
 export default function SettingsPage() {
-  const { user, email } = useContext(AuthContext);
+  const { user, email, name } = useContext(AuthContext);
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
-    name: user || 'Not set',
-    email: email || 'Not set'
+    name: name || 'Not set',
+    email: user || 'Not set'
   });
 
   // Password

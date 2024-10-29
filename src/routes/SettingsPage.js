@@ -92,17 +92,22 @@ export default function SettingsPage() {
 
 
       if (accountInfo.email !== user) {
+        let payload = {
+          email: user,
+          newEmail: accountInfo.email,
+          business_name: business
+        }
+        console.log(payload)
+        
         const emailResponse = await fetch('https://api.onboardingai.org/user/update-email', {
           method: 'PUT',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            email: user,
-            newEmail: accountInfo.email,
-            business_name: business
-          })
+          body: JSON.stringify(
+            payload
+          )
         });
 
         if (!emailResponse.ok) {

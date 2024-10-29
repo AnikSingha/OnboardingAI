@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
                     setIsAuthenticated(true)
                     setUser(decoded.email)
                     setName(decoded.name)
-                    setBusiness(decoded.business_name)
+                    setBusiness(decoded.business)
                     setRole(decoded.role)
                 } else {
                     console.error("No decoded token found in response")

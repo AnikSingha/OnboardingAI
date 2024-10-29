@@ -80,7 +80,6 @@ export default function SettingsPage() {
           body: JSON.stringify({
             email: user,
             name: accountInfo.name,
-            business_name: business
           })
         });
 
@@ -101,7 +100,8 @@ export default function SettingsPage() {
           },
           body: JSON.stringify({
             email: user,
-            newEmail: accountInfo.email
+            newEmail: accountInfo.email,
+            business_name: business
           })
         });
 

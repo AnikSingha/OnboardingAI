@@ -9,7 +9,7 @@ import Layout from '../components/Layout'
 import { X } from 'lucide-react' 
 
 export default function SettingsPage() {
-  const { user, email, name } = useContext(AuthContext);
+  const { user, name } = useContext(AuthContext);
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
@@ -53,10 +53,10 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setAccountInfo({
-      name: user || '',
-      email: email || ''
+      name: name || '',
+      email: user || ''
     });
-  }, [user, email]);
+  }, [name, user]);
 
   // Handlers for Account Information
   const handleAccountInfoChange = (e) => {

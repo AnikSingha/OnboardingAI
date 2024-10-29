@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from "./ui/button"
 import { BarChart, Calendar, Phone, Settings, User, ChevronLeft, ChevronRight, Megaphone, Users } from "lucide-react"
-import { BarChart, Calendar, Phone, Settings, User, ChevronLeft, ChevronRight } from "lucide-react"
 import Logo from "./Logo";
 
 export default function Layout({ children }) {

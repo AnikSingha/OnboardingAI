@@ -48,10 +48,17 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    setAccountInfo(prevInfo => ({
-      name: name || prevInfo.name || '',
-      email: user || prevInfo.email || ''
-    }));
+    console.log('Current name from context:', name);
+    console.log('Current user from context:', user);
+    
+    setAccountInfo(prevInfo => {
+      const newInfo = {
+        name: name === null ? prevInfo.name : name || prevInfo.name || '',
+        email: user === null ? prevInfo.email : user || prevInfo.email || ''
+      };
+      console.log('Setting account info to:', newInfo);
+      return newInfo;
+    });
   }, [name, user]);
 
   // Handlers for Account Information

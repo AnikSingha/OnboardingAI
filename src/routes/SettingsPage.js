@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { user, name } = useContext(AuthContext);
+  const { user, name, setUser, setName } = useContext(AuthContext);
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
@@ -85,8 +85,11 @@ export default function SettingsPage() {
 
         if (!nameResponse.ok) {
           throw new Error('Failed to update name');
+        } else {
+          setName(accountInfo.name)
         }
       }
+
 
       if (accountInfo.email !== user) {
         const emailResponse = await fetch('https://api.onboardingai.org/user/update-email', {
@@ -103,6 +106,8 @@ export default function SettingsPage() {
 
         if (!emailResponse.ok) {
           throw new Error('Failed to update email');
+        } else {
+          setUser(accountInfo.email)
         }
       }
 

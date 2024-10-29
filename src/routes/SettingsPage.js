@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react'
+import { AuthContext } from '../AuthContext'
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
@@ -9,6 +10,8 @@ import { X } from 'lucide-react'
 import { AuthContext } from '../context/AuthContext'
 
 export default function SettingsPage() {
+  const { user, name } = useContext(AuthContext);
+
   const { user, name } = useContext(AuthContext);
 
   // Account Information
@@ -51,11 +54,10 @@ export default function SettingsPage() {
     }
   });
 
-  // Add this effect after the useState declarations
   useEffect(() => {
     setAccountInfo({
-      name: name || 'Not set',
-      email: user?.email || 'Not set'
+      name: name || '',
+      email: user?.email || ''
     });
   }, [user, name]);
 

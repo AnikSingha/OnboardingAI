@@ -49,8 +49,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setAccountInfo({
-      name: name || '',
-      email: user || ''
+      name: name || accountInfo.name || '',
+      email: user || accountInfo.email || ''
     });
   }, [name, user]);
 

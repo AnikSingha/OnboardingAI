@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { user, name, business, setUser, setName } = useContext(AuthContext);
+  const { user, name, business, login } = useContext(AuthContext);
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
@@ -85,8 +85,6 @@ export default function SettingsPage() {
 
         if (!nameResponse.ok) {
           throw new Error('Failed to update name');
-        } else {
-          setName(accountInfo.name)
         }
       }
 
@@ -112,10 +110,10 @@ export default function SettingsPage() {
 
         if (!emailResponse.ok) {
           throw new Error('Failed to update email');
-        } else {
-          setUser(accountInfo.email)
         }
       }
+
+      await login()
 
       setShowUpdateConfirm(false);
       

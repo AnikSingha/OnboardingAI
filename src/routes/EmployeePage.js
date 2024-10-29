@@ -2,12 +2,16 @@ import React from 'react'
 import { Button } from "../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
-import { Plus, User } from "lucide-react"
+import { Plus } from "lucide-react"
 import Layout from '../components/Layout'
 
 export default function EmployeePage() {
   const employees = [
-    // You can add sample employee data here later
+    { id: 1, name: "Dr. Sarah Johnson", position: "Dentist", email: "sarah.johnson@smiledental.com" },
+    { id: 2, name: "Mike Davis", position: "Dental Hygienist", email: "mike.davis@smiledental.com" },
+    { id: 3, name: "Emily Chen", position: "Dental Assistant", email: "emily.chen@smiledental.com" },
+    { id: 4, name: "Lisa Brown", position: "Office Manager", email: "lisa.brown@smiledental.com" },
+    { id: 5, name: "Tom Wilson", position: "Receptionist", email: "tom.wilson@smiledental.com" },
   ]
 
   return (
@@ -24,7 +28,7 @@ export default function EmployeePage() {
         <Card>
           <CardHeader>
             <CardTitle>Employee List</CardTitle>
-            <CardDescription>Manage your company's employees</CardDescription>
+            <CardDescription>Manage your dental practice staff</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -33,11 +37,22 @@ export default function EmployeePage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Position</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead></TableHead> {}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {/* You can map through employees data here */}
+                {employees.map((employee) => (
+                  <TableRow key={employee.id}>
+                    <TableCell className="font-medium">{employee.name}</TableCell>
+                    <TableCell>{employee.position}</TableCell>
+                    <TableCell>{employee.email}</TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm">
+                        Edit
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -46,4 +61,3 @@ export default function EmployeePage() {
     </Layout>
   )
 }
-

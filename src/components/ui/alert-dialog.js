@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { createContext, useContext } from 'react';
+
+const AlertDialogContext = createContext();
 
 export function AlertDialog({ children, open, onOpenChange }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      {children}
-    </div>
+    <AlertDialogContext.Provider value={{ onOpenChange }}>
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+        {children}
+      </div>
+    </AlertDialogContext.Provider>
   );
 }
 
@@ -50,9 +54,14 @@ export function AlertDialogAction({ children, onClick }) {
 }
 
 export function AlertDialogCancel({ children, onClick }) {
+  const { onOpenChange } = useContext(AlertDialogContext);
+
   return (
     <button
-      onClick={onClick}
+      onClick={() => {
+        onOpenChange(false);
+        if (onClick) onClick();
+      }}
       className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200"
     >
       {children}

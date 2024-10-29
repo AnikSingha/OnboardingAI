@@ -70,11 +70,61 @@ export default function SettingsPage() {
     setShowUpdateConfirm(true);
   };
 
-  const confirmUpdate = () => {
-    console.log('Updating account with:', accountInfo);
-    // TODO: Implement API call to update account information
-    setShowUpdateConfirm(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const confirmUpdate = async () => {
+    setIsUpdating(true);
+    try {
+      if (accountInfo.name !== name) {
+        const nameResponse = await fetch('https://api.onboardingai.org/user/update-name', {
+          method: 'PUT',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: user,
+            name: accountInfo.name
+          })
+        });
+
+        if (!nameResponse.ok) {
+          throw new Error('Failed to update name');
+        }
+      }
+
+      if (accountInfo.email !== user) {
+        const emailResponse = await fetch('https://api.onboardingai.org/user/update-email', {
+          method: 'PUT',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: user,
+            newEmail: accountInfo.email
+          })
+        });
+
+        if (!emailResponse.ok) {
+          throw new Error('Failed to update email');
+        }
+      }
+
+      setShowUpdateConfirm(false);
+      
+      setAlertMessage({ type: 'success', text: 'Account information updated successfully' });
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Error updating account:', error);
+      setAlertMessage({ type: 'error', text: error.message });
+    } finally {
+      setIsUpdating(false);
+    }
   };
+
+  const [alertMessage, setAlertMessage] = useState(null);
 
   // Handlers for Password
   const handlePasswordChange = (e) => {
@@ -136,6 +186,15 @@ export default function SettingsPage() {
     <Layout>
       <div className="p-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Settings</h1>
+        
+        {/* Add alert message display */}
+        {alertMessage && (
+          <div className={`mb-4 p-4 rounded ${
+            alertMessage.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {alertMessage.text}
+          </div>
+        )}
         
         <div className="space-y-6">
           <Card>
@@ -334,6 +393,8 @@ export default function SettingsPage() {
         onConfirm={confirmUpdate}
         title="Update Account Information"
         description="Are you sure you want to update your account information?"
+        confirmText={isUpdating ? "Updating..." : "Update"}
+        disabled={isUpdating}
       />
 
       <ConfirmationDialog
@@ -342,6 +403,8 @@ export default function SettingsPage() {
         onConfirm={confirmPasswordUpdate}
         title="Update Password"
         description="Are you sure you want to change your password?"
+        confirmText={isUpdating ? "Updating..." : "Update"}
+        disabled={isUpdating}
       />
     </Layout>
   )

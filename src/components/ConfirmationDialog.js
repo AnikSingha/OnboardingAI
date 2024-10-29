@@ -15,7 +15,10 @@ export default function ConfirmationDialog({
   onOpenChange, 
   onConfirm, 
   title, 
-  description 
+  description,
+  disabled = false,
+  confirmText = "Update",
+  confirmButtonClassName = "",
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -25,8 +28,14 @@ export default function ConfirmationDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>Update</AlertDialogAction>
+          <AlertDialogCancel disabled={disabled}>Cancel</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={onConfirm}
+            disabled={disabled}
+            className={`${confirmButtonClassName} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {confirmText}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

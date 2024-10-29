@@ -13,7 +13,7 @@ app.use(cookieParser());
 
 const corsOptions = {
     origin: ['https://www.onboardingai.org', 'https://test.onboardingai.org'],
-    methods: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
     optionsSuccessStatus: 204
 };

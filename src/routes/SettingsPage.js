@@ -16,8 +16,8 @@ export default function SettingsPage() {
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
-    name: name || 'Not set',
-    email: user || 'Not set'
+    name: '',
+    email: ''
   });
 
   // Notifications

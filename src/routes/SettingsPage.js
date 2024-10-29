@@ -16,8 +16,8 @@ export default function SettingsPage() {
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
-    name: '',
-    email: ''
+    name: name || 'Not set',
+    email: user || 'Not set'
   });
 
   // Notifications
@@ -48,16 +48,9 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    console.log('Current name from context:', name);
-    console.log('Current user from context:', user);
-    
-    setAccountInfo(prevInfo => {
-      const newInfo = {
-        name: name === null ? prevInfo.name : name || prevInfo.name || '',
-        email: user === null ? prevInfo.email : user || prevInfo.email || ''
-      };
-      console.log('Setting account info to:', newInfo);
-      return newInfo;
+    setAccountInfo({
+      name: name || '',
+      email: user || ''
     });
   }, [name, user]);
 

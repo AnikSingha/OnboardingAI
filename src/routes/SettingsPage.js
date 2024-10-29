@@ -7,7 +7,6 @@ import { Label } from "../components/ui/label"
 import { Switch } from "../components/ui/switch"
 import Layout from '../components/Layout'
 import { X } from 'lucide-react' 
-import { AuthContext } from '../context/AuthContext'
 
 export default function SettingsPage() {
   const { user, name } = useContext(AuthContext);

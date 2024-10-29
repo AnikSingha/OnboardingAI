@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { user, name, setUser, setName } = useContext(AuthContext);
+  const { user, name, business, setUser, setName } = useContext(AuthContext);
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
@@ -79,7 +79,8 @@ export default function SettingsPage() {
           },
           body: JSON.stringify({
             email: user,
-            name: accountInfo.name
+            name: accountInfo.name,
+            business_name: business
           })
         });
 

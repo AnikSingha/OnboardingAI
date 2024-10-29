@@ -38,8 +38,8 @@ router.put('/update-name', async (req, res) => {
         const success = await accountManager.updateUserName(email, name)
 
         if (success) {
-            const result = await accountManager.getUserInfo()
-            const token = createToken(result.name, email, result.business_name, result.role)
+            const {uname, ubusiness_name, urole } = await accountManager.getUserInfo()
+            const token = createToken(uname, email, ubusiness_name, urole)
             res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
             return res.status(200).json({ success: true, message: 'Name successfully updated' })
         } else {
@@ -63,8 +63,8 @@ router.put('/update-email', async(req, res) => {
         const businessSuccess = await businessManager.updateEmployeeEmail(business_name, email, newEmail)
 
         if (userSuccess && businessSuccess) {
-            const result = await accountManager.getUserInfo()
-            const token = createToken(result.name, newEmail, result.business_name, result.role)
+            const {uname, ubusiness_name, urole } = await accountManager.getUserInfo()
+            const token = createToken(uname, newEmail, ubusiness_name, urole)
             res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
             return res.status(200).json({ success: true, message: 'Email successfully updated' })
         } else {

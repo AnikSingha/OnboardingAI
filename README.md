@@ -1,3 +1,33 @@
+# How to Run This Application
+
+This application consists of both frontend and backend components.
+
+## Frontend Setup
+
+**Note:** Backend requests will not work unless you:
+- Modify the backend server's CORS configuration
+- Change the cookie domain settings (currently restricted to `.onboardingai.org` domain)
+
+To run the frontend:
+```bash
+git clone https://github.com/AnikSingha/OnboardingAI.git
+npm install
+npm start
+```
+
+## Backend Setup
+
+**Note:** Backend requests will not work unless you:
+- To run the backend you require a .env file. We will provide according to our discretion.
+To run the backend:
+```bash
+git checkout auth
+cd auth-service
+npm install
+node server.js
+```
+
+
 # Authentication API Routes
 
 This section describes the authentication-related API routes under `/auth`. These routes handle user sign-ups, logins, token handling, and OTP (One-Time Password) verification.

@@ -1,5 +1,5 @@
 # Instruction
-- git clone //clone the repository 
+- git clone https://github.com/AnikSingha/OnboardingAI.git //clone the repository 
 - cd OnboardingAI //direct to the root of the project
 - npm i //install the dependencies of the project
 - npm start //run the project on your local device

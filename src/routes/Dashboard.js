@@ -1,11 +1,16 @@
 import React from 'react';
+import { useContext } from 'react'
 import { Button } from "../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { BarChart, Bell, Calendar, Phone } from "lucide-react";
+import { BarChart, Bell, Calendar, Phone, LogOut } from "lucide-react";
 import Layout from '../components/Layout';
+import { AuthContext } from '../AuthContext'
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
+  const { logout } = useContext(AuthContext)
+  const navigate = useNavigate()
   return (
     <Layout>
       <div className="p-8">
@@ -28,6 +33,7 @@ export default function Dashboard() {
           >
               <LogOut className="h-4 w-4 mr-2" /> Log Out
           </Button>
+
           </div>
         </div>
 

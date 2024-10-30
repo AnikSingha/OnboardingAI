@@ -5,6 +5,7 @@ export const AuthContext = createContext()
 export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false)
     const [user, setUser] = useState(null)
+    const [name, setName] = useState(null)
     const [business, setBusiness] = useState(null)
     const [role, setRole] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -25,7 +26,8 @@ export const AuthProvider = ({ children }) => {
                 if (decoded) {
                     setIsAuthenticated(true)
                     setUser(decoded.email)
-                    setBusiness(decoded.business_name)
+                    setName(decoded.name)
+                    setBusiness(decoded.business)
                     setRole(decoded.role)
                 } else {
                     console.error("No decoded token found in response")
@@ -43,27 +45,35 @@ export const AuthProvider = ({ children }) => {
         setLoading(false)
     }
 
-    const logout = async () => {
-        try {
-            const response = await fetch('https://api.onboardingai.org/auth/logout', {
-                method: 'POST',
-                credentials: 'include',
-            });
-    
-            if (!response.ok) {
-                throw new Error('Failed to log out. Please try again.');
-            }
-    
-            setIsAuthenticated(false);
-            setUser(null);
-            setBusiness(null);
-            setRole(null);
-            setLoading(false);
-        } catch (error) {
-            console.error('Logout error:', error);
-            setLoading(false);
+const logout = async () => {
+    setLoading(true); // Optional: Set a loading state
+    try {
+        const response = await fetch('https://api.onboardingai.org/auth/logout', {
+            method: 'POST',
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to log out. Please try again.');
         }
-    };
+
+        // Perform state updates here if needed
+        setIsAuthenticated(false);
+        setUser(null);
+        setName(null);
+        setBusiness(null);
+        setRole(null);
+
+        return true; // Indicate success
+    } catch (error) {
+        console.error('Logout error:', error);
+        alert(error.message); // Notify the user
+        return false; // Indicate failure
+    } finally {
+        setLoading(false); // Reset loading state
+    }
+};
+
     
 
     useEffect(() => {
@@ -72,7 +82,7 @@ export const AuthProvider = ({ children }) => {
     }, [])
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, business, role, loading, login, logout }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, name, business, role, loading, login, logout, setUser, setName }}>
             {children}
         </AuthContext.Provider>
     );

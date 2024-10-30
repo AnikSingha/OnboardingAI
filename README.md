@@ -316,6 +316,55 @@ This section describes the authentication-related API routes under `/auth`. Thes
       "message": "Failed to send login link"
     }
     ```
+    
+### 10. `/auth/logout`
+
+- **Method**: `POST`
+- **Description**: Logs out the user by clearing the authentication cookie.
+- **Response**:
+  - Status `200`: 
+    ```json
+    {
+      "success": true,
+      "message": "Logged out successfully"
+    }
+    ```
+  - Status `500`: 
+    ```json
+    {
+      "success": false,
+      "message": "Internal server error: [error message]"
+    }
+    ```
+
+  ### 11. `/auth/forgot-password`
+
+- **Method**: `POST`
+- **Description**: Sends a password reset email to the specified email address.
+- **Request Body**:
+  - `email`: User's email
+- **Response**:
+  - **Status `200`**: 
+    ```json
+    {
+      "success": true,
+      "message": "Reset password email sent successfully"
+    }
+    ```
+  - **Status `400`**: 
+    ```json
+    {
+      "success": false,
+      "message": "email missing from request body"
+    }
+    ```
+  - **Status `500`**: 
+    ```json
+    {
+      "success": false,
+      "message": "Internal server error: [error message]"
+    }
+    ``` 
 
 # Business API Routes
 
@@ -571,5 +620,79 @@ This section describes the user-related API routes under `/user`. These routes h
     {
       "success": false,
       "message": "Unauthorized"
+    }
+    ```
+
+  ### 2. `/user/update-name`
+
+- **Method**: `PUT`
+- **Description**: Updates the user's name in their account profile.
+- **Request Body**:
+  - `email`: The email of the user whose name is to be updated.
+  - `name`: The new name to set for the user.
+- **Response**:
+  - Status `200`: 
+    ```json
+    {
+      "success": true,
+      "message": "Name successfully updated"
+    }
+    ```
+  - Status `400`: 
+    ```json
+    {
+      "success": false,
+      "message": "Failed to update name"
+    }
+    ```
+  - Status `403`: 
+    ```json
+    {
+      "success": false,
+      "message": "Unauthorized"
+    }
+    ```
+  - Status `500`: 
+    ```json
+    {
+      "success": false,
+      "message": "Internal server error: [error details]"
+    }
+    ```
+### 3. `/user/update-email`
+
+- **Method**: `PUT`
+- **Description**: Updates the user's email in both their personal account profile and within a specified business's employee list.
+- **Request Body**:
+  - `business_name`: The name of the business where the user is listed as an employee.
+  - `email`: The current email of the user to be updated.
+  - `newEmail`: The new email to set for the user.
+- **Response**:
+  - Status `200`: 
+    ```json
+    {
+      "success": true,
+      "message": "Email successfully updated"
+    }
+    ```
+  - Status `400`: 
+    ```json
+    {
+      "success": false,
+      "message": "Failed to update email"
+    }
+    ```
+  - Status `403`: 
+    ```json
+    {
+      "success": false,
+      "message": "Unauthorized"
+    }
+    ```
+  - Status `500`: 
+    ```json
+    {
+      "success": false,
+      "message": "Internal server error: [error details]"
     }
     ```

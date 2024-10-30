@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BarChart, Phone, User, Calendar, Settings, Megaphone } from 'lucide-react';
+import { BarChart, Phone, User, Calendar, Settings, Megaphone, Users } from 'lucide-react';
 
 const navItems = [
   { path: '/dashboard', icon: <BarChart className="h-4 w-4" />, label: 'Dashboard' },
   { path: '/contacts', icon: <User className="h-4 w-4" />, label: 'Contacts' },
   { path: '/schedule', icon: <Calendar className="h-4 w-4" />, label: 'Schedule' },
   { path: '/campaigns', icon: <Megaphone className="h-4 w-4" />, label: 'Campaigns' },
+  { path: '/employees', icon: <Users className="h-4 w-4" />, label: 'Employees' },
   { path: '/settings', icon: <Settings className="h-4 w-4" />, label: 'Settings' },
 ];
 

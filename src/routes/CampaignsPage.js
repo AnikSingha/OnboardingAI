@@ -16,9 +16,11 @@ export default function CampaignsPage() {
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Campaigns</h1>
         
         <div className="flex justify-between items-center mb-6">
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-            <Plus className="mr-2 h-4 w-4" /> New Campaign
-          </Button>
+          <Link to="/campaigns/new">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Plus className="mr-2 h-4 w-4" /> New Campaign
+            </Button>
+          </Link>
         </div>
 
         <Card>

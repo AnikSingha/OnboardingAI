@@ -1,3 +1,4 @@
+
 # How to Run This Application
 
 This application consists of both frontend and backend components.
@@ -26,7 +27,6 @@ cd auth-service
 npm install
 node server.js
 ```
-
 
 # Authentication API Routes
 

@@ -1,8 +1,8 @@
 # Instruction
-- git clone https://github.com/AnikSingha/OnboardingAI.git <em>clone the repository </em>
-- cd OnboardingAI <em>direct to the root of the project</em>
-- npm i <em>install the dependencies of the project </em>
-- npm start <em>run the project on your local device </em>
+- <code>git clone https://github.com/AnikSingha/OnboardingAI.git </code> <em>clone the repository </em>
+- <code>cd OnboardingAI </code> <em>direct to the root of the project</em>
+- <code>npm i </code> <em>install the dependencies of the project </em>
+- <code>npm start </code> <em>run the project on your local device </em>
 
 # Authentication API Routes
 

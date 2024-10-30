@@ -3,6 +3,7 @@
 - <code>cd OnboardingAI </code> <em>direct to the root of the project</em>
 - <code>npm i </code> <em>install the dependencies of the project </em>
 - <code>npm start </code> <em>run the project on your local device </em>
+- <strong>reminder authentication will not work on the local device if you want to test it please check: </strong> **[OnboardingAI](https://www.onboardingai.org/)**
 
 # Authentication API Routes
 

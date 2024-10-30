@@ -29,7 +29,7 @@ export default function Layout({ children }) {
           <Link to="/campaigns" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
             <Phone className="h-4 w-4 mr-2" /> {!sidebarCollapsed && 'Campaigns'}
           </Link>
-          <Link to="/employees" className={`flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
+          <Link to="/employees" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
             <Users className="h-4 w-4 mr-2" /> {!sidebarCollapsed && 'Employees'}
           </Link>
           <Link to="/settings" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>

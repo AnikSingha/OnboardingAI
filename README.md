@@ -1,9 +1,32 @@
-# Instruction
-- <code>git clone https://github.com/AnikSingha/OnboardingAI.git </code> <em>clone the repository </em>
-- <code>cd OnboardingAI </code> <em>direct to the root of the project</em>
-- <code>npm i </code> <em>install the dependencies of the project </em>
-- <code>npm start </code> <em>run the project on your local device </em>
-- <strong>reminder authentication will not work on the local device if you want to test it please check: </strong> **[OnboardingAI](https://www.onboardingai.org/)**
+
+# How to Run This Application
+
+This application consists of both frontend and backend components.
+
+## Frontend Setup
+
+**Note:** Backend requests will not work unless you:
+- Modify the backend server's CORS configuration
+- Change the cookie domain settings (currently restricted to `.onboardingai.org` domain)
+
+To run the frontend:
+```bash
+git clone https://github.com/AnikSingha/OnboardingAI.git
+npm install
+npm start
+```
+
+## Backend Setup
+
+**Note:** Backend requests will not work unless you:
+- To run the backend you require a .env file. We will provide according to our discretion.
+To run the backend:
+```bash
+git checkout auth
+cd auth-service
+npm install
+node server.js
+```
 
 # Authentication API Routes
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -14,6 +14,7 @@ export default function LoginPage() {
     agreeMarketing: false
   })
   const [alertMessage, setAlertMessage] = useState('')
+  const navigate = useNavigate()
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -53,6 +54,7 @@ export default function LoginPage() {
       }
 
       setAlertMessage('');
+      navigate('/dashboard')
     } catch (err) {
       if (err.message === "Business already exists"){
         setAlertMessage(`Failed: This organization name is taken`)
@@ -65,7 +67,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#E6E6FA] flex flex-col">
       {/* Top Bar */}
-      <div className="bg-white p-4 flex justify-between items-center ">
+      <div className="bg-white p-4 flex justify-between items-center">
         <div className="flex items-center">
           <div className="text-2xl font-bold px-3 py-1 border-2 border-black rounded-xl mr-4">
             <span className="text-[#4285F4]">Onboard</span>

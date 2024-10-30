@@ -1,14 +1,19 @@
 import React from 'react'
 import { Button } from "../components/ui/button"
+import { Input } from "../components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge"
-import {  Plus, Eye } from "lucide-react"
+import { Megaphone, Plus, Play, Pause, BarChart, Eye } from "lucide-react"
 import { Link } from 'react-router-dom'
 import Layout from '../components/Layout'
-import campaigns from './campaigns.json'
 
 export default function CampaignsPage() {
+  const campaigns = [
+    { id: 1, name: "Spring Sale", status: "Active", calls: 1234, success: 78, startDate: "2023-05-01", endDate: "2023-06-01" },
+    { id: 2, name: "Customer Follow-up", status: "Scheduled", calls: 0, success: 0, startDate: "2023-06-15", endDate: "2023-07-15" },
+    { id: 3, name: "New Product Launch", status: "Draft", calls: 0, success: 0, startDate: "", endDate: "" },
+  ]
 
   return (
     <Layout>

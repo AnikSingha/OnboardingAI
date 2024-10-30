@@ -17,6 +17,7 @@ import NewCampaign from "./routes/NewCampaign";
 import CampaignDetails from "./routes/CampaignDetails";
 import SettingsPage from "./routes/SettingsPage";
 import EmployeePage from "./routes/EmployeePage";
+import AboutPageHeader from './routes/AboutPage.js';
 import { AuthProvider } from './AuthContext.js';
 
 
@@ -41,6 +42,7 @@ function App() {
           <Route path="/campaigns/:id" element={<CampaignDetails />} />
           <Route path="/employees" element={<EmployeePage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/about" element={<AboutPageHeader />} /> 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

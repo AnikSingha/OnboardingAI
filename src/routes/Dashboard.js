@@ -15,7 +15,19 @@ export default function Dashboard() {
             <Button variant="outline" className="mr-4 border-blue-600 text-blue-600 hover:bg-blue-50">
               <Bell className="h-4 w-4 mr-2" /> Notifications
             </Button>
-            <div className="w-10 h-10 bg-blue-600 rounded-full"></div>
+            <Button
+              variant="outline"
+              className="mr-4 border-blue-600 text-blue-600 hover:bg-blue-50"
+              onClick={async () => {
+                  // Call the logout function
+                  const success = await logout(); // Ensure logout returns a success status
+                  if (success) {
+                      navigate('/'); // Only navigate if logout was successful
+                  }
+              }}
+          >
+              <LogOut className="h-4 w-4 mr-2" /> Log Out
+          </Button>
           </div>
         </div>
 

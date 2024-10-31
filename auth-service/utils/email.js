@@ -15,8 +15,8 @@ const transporter = nodemailer.createTransport({
 
 async function sendEmailLogin(email) {
     try {
-        let userInfo = await accountManager.getUserInfo(email)
-        let token = createToken(userInfo.name, email, userInfo.business_name, userInfo.role)
+        let { name, business_name, role} = await accountManager.getUserInfo(email)
+        let token = createToken(name, email, business_name, role)
         let loginLink = `https://api.onboardingai.org/auth/login-link?token=${token}`
 
         const mailOptions = {

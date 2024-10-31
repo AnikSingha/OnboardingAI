@@ -94,9 +94,9 @@ export default function LoginPage() {
             <span className="text-[#4285F4]">Onboard</span>
             <span className="text-black">AI</span>
           </div>
-          <h1 className="text-5xl font-bold mb-4">Design with us</h1>
+          <h1 className="text-5xl font-bold mb-4">AI-Powered Onboarding Made Simple</h1>
           <p className="text-xl mb-8">
-            Access to thousands of design resources and templates
+            Effortless Customer Onboarding for Small Businesses
           </p>
           <img
             src="/placeholder.svg"

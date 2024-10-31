@@ -1,0 +1,5 @@
+[
+    { "id": 1, "name": "Spring Sale", "status": "Active", "calls": 1234, "success": 78, "startDate": "2023-05-01", "endDate": "2023-06-01" },
+    { "id": 2, "name": "Customer Follow-up", "status": "Scheduled", "calls": 0, "success": 0, "startDate": "2023-06-15", "endDate": "2023-07-15" },
+    { "id": 3, "name": "New Product Launch", "status": "Draft", "calls": 0, "success": 0, "startDate": "", "endDate": "" }
+]

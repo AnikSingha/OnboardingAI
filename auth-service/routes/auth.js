@@ -265,7 +265,7 @@ router.get('/reset-password', async (req, res) => {
         return res.status(403).json({success: false, message: 'Unauthorized'})
     }
     try {
-        const token = createToken(result.decoded.name, result.decoded.email, result.decoded.business_name, result.decoded.role)
+        const token = createToken(result.decoded.name, result.decoded.email, result.decoded.business, result.decoded.role)
         res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
 
         return res.redirect('https://www.onboardingai.org/reset-password')

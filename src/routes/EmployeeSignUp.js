@@ -23,6 +23,7 @@ export default function EmployeeSignUp() {
         });
 
         if (!response.ok) {
+          navigate('/')
           const data = await response.json();
           throw new Error(data.message || 'Failed to decode token');
         }
@@ -32,17 +33,17 @@ export default function EmployeeSignUp() {
           setBusiness(data.decoded.business || '');
           setEmail(data.decoded.email || '');
         } else {
-          setAlertMessage(data.message || 'Failed to retrieve user data');
+          navigate('/')
         }
       } catch (err) {
-        setAlertMessage(`Error: ${err.message}`);
+        navigate('/')
       } finally {
         setLoading(false);
       }
     };
 
     decodeToken();
-  }, []);
+  }, [navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

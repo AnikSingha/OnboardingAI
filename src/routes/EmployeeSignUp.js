@@ -1,26 +1,59 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft} from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export default function EmployeeSignUp() {
-  const [organizationName, setOrganizationName] = useState('OnboardAI');
-  const [email, setEmail] = useState(''); 
+  const [loading, setLoading] = useState(true);
+  const [business, setBusiness] = useState('OnboardAI');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
+    const decodeToken = async () => {
+      try {
+        const response = await fetch('https://api.onboardingai.org/decode-business-token', {
+          method: 'GET',
+          credentials: 'include'
+        });
 
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Failed to decode token');
+        }
+
+        const data = await response.json();
+        if (data.success && data.decoded) {
+          setBusiness(data.decoded.business || '');
+          setEmail(data.decoded.email || '');
+        } else {
+          setAlertMessage(data.message || 'Failed to retrieve user data');
+        }
+      } catch (err) {
+        setAlertMessage(`Error: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    decodeToken();
   }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     if (name === 'password') {
       setPassword(value);
-    } else {
+    } else if (name === 'confirmPassword') {
       setConfirmPassword(value);
+    } else if (name === 'firstName') {
+      setFirstName(value);
+    } else if (name === 'lastName') {
+      setLastName(value);
     }
     setAlertMessage('');
     setSuccessMessage('');
@@ -34,10 +67,15 @@ export default function EmployeeSignUp() {
       return;
     }
 
-    const payload = { email: user, password };
+    const payload = { 
+      name:`${firstName} ${lastName}`,
+      email, 
+      password,
+      business_name: business,
+      role: 'employee'};
 
     try {
-      const response = await fetch('https://api.onboardingai.org/auth/change-password', {
+      const response = await fetch('https://api.onboardingai.org/auth/sign-up', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,6 +97,10 @@ export default function EmployeeSignUp() {
       setAlertMessage(`Failed: ${err.message}`);
     }
   };
+
+  if (loading) {
+    return <div className="min-h-screen bg-white"></div>
+  }
 
   return (
     <div className="min-h-screen bg-[#E6E6FA] flex flex-col">
@@ -96,13 +138,43 @@ export default function EmployeeSignUp() {
 
             <h1 className="text-3xl font-bold mb-6 text-center">Sign up</h1>
             <form onSubmit={handleSubmit}>
+            <div className="mb-4 flex space-x-4">
+                <div className="w-1/2">
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    id="firstName"
+                    name="firstName"
+                    value={firstName}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+                <div className="w-1/2">
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    value={lastName}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+              </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Organization
                 </label>
                 <input
                   type="text"
-                  value={organizationName}
+                  value={business}
                   readOnly
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
                 />
@@ -173,4 +245,3 @@ export default function EmployeeSignUp() {
     </div>
   );
 }
-

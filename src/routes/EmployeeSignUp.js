@@ -17,7 +17,7 @@ export default function EmployeeSignUp() {
   useEffect(() => {
     const decodeToken = async () => {
       try {
-        const response = await fetch('https://api.onboardingai.org/decode-business-token', {
+        const response = await fetch('https://api.onboardingai.org/auth/decode-business-token', {
           method: 'GET',
           credentials: 'include'
         });

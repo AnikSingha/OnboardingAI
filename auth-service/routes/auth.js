@@ -338,7 +338,7 @@ router.get('/employee-sign-up', async (req, res) => {
 
 router.get('/decode-business-token', async (req, res) => {
     try {
-        let token = req.query.businessToken
+        let token = req.cookies.businessToken
         if (!token) {
             return res.status(401).json({ success: false, message: 'Token not found' })
         }

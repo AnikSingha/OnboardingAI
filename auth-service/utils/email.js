@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer')
 const accountManager = require('./accounts.js')
-const { createToken } = require('./token.js')
+const { createToken, createBusinessToken } = require('./token.js')
 require('dotenv').config()
 
 
@@ -84,5 +84,65 @@ async function sendResetPassword(email) {
     }
 }
 
+async function sendEmployeeSignUp(email, business) {
+    try {
+        let token = createBusinessToken(email, business);
+        let signUpLink = `https://api.onboardingai.org/auth/employee-sign-up?businessToken=${token}`;
 
-module.exports = { sendEmailLogin, sendResetPassword }
+        const mailOptions = {
+            from: 'onboardingaicontact@gmail.com',
+            to: email,
+            subject: `Invite from ${business} to join their OnboardAI Org`,
+            html: `
+                <div style="
+                    font-family: Arial, sans-serif; 
+                    background-color: #f8f9fa; 
+                    color: #333333; 
+                    padding: 20px; 
+                    border-radius: 8px; 
+                    border: 1px solid #e2e3e5; 
+                    max-width: 600px; 
+                    margin: auto;">
+                    <h2 style="text-align: center; color: #333333;">
+                        You've been invited to join ${business} on OnboardAI
+                    </h2>
+                    <p style="font-size: 16px; line-height: 1.5;">
+                        Hello, you have received an invitation to join ${business}'s organization on OnboardAI.
+                        Please click the button below to set up your account.
+                    </p>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <a href="${signUpLink}" style="text-decoration: none;">
+                            <button style="
+                                background-color: #4CAF50; 
+                                border: none; 
+                                color: white; 
+                                padding: 12px 24px; 
+                                font-size: 16px; 
+                                border-radius: 6px; 
+                                cursor: pointer; 
+                                text-transform: uppercase;">
+                                Create Account
+                            </button>
+                        </a>
+                    </div>
+                    <p style="font-size: 14px; color: #888888; text-align: center; margin-top: 20px;">
+                        If you did not request this invitation, please ignore this email.
+                    </p>
+                </div>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (err, info) => {
+            if (err) {
+                return false;
+            }
+        });
+        return true;
+
+    } catch (err) {
+        return false;
+    }
+}
+
+
+module.exports = { sendEmailLogin, sendResetPassword, sendEmployeeSignUp }

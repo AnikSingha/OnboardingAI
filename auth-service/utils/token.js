@@ -10,6 +10,11 @@ function createToken(name, email, business, role) {
     return jwt.sign(payload, secretKey, {algorithm, expiresIn})
 }
 
+function createBusinessToken(email, business) {
+    const payload = { email, business }
+    return jwt.sign(payload, secretKey, {algorithm, expiresIn})
+}
+
 function verifyToken(token) {
     try {
         const decoded = jwt.verify(token, secretKey, { algorithms: [algorithm] });
@@ -21,5 +26,6 @@ function verifyToken(token) {
 
 module.exports = {
     createToken,
-    verifyToken
+    verifyToken,
+    createBusinessToken
 }

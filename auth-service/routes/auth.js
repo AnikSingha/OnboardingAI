@@ -1,9 +1,9 @@
 const express = require('express')
 const accountManager = require('../utils/accounts.js')
 const businessManager = require('../utils/businessManager.js')
-const { createToken, verifyToken } = require('../utils/token.js')
+const { createToken, verifyToken, createBusinessToken } = require('../utils/token.js')
 const { verifyOTP, genQRCode } = require('../utils/otp.js')
-const { sendEmailLogin, sendResetPassword } = require('../utils/email.js')
+const { sendEmailLogin, sendResetPassword, sendEmployeeSignUp } = require('../utils/email.js')
 
 const router = express.Router({ strict: false });
 
@@ -257,7 +257,7 @@ router.post('/forgot-password/', async (req, res) => {
 router.get('/reset-password', async (req, res) => {
     const { token } = req.query
     if (!token) {
-        return res.status(400).json({ success: false, message: 'email missing from request body' })
+        return res.status(400).json({ success: false, message: 'token missing' })
     }
 
     let result = verifyToken(token)
@@ -293,5 +293,48 @@ router.post('/change-password', async (req, res) => {
         return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
     }
 })
+
+
+router.post('/send-employee-sign-up-email/', async (req, res) => {
+    const { email, business } = req.body
+
+    if (!email || !business) {
+        return res.status(400).json({ success: false, message: 'email or business missing from request body' })
+    }
+
+    try {
+        const result = await sendEmployeeSignUp(email, business)
+
+        if (result) {
+            return res.status(200).json({ success: true, message: 'Employee sign up email sent successfully' })
+        } else {
+            return res.status(500).json({ success: false, message: 'Failed to send email' })
+        }
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
+
+
+router.get('/employee-sign-up', async (req, res) => {
+    const { businessToken } = req.query
+    if (!businessToken) {
+        return res.status(400).json({ success: false, message: 'token missing' })
+    }
+
+    let result = verifyToken(businessToken)
+    if (!result.valid) {
+        return res.status(403).json({success: false, message: 'Unauthorized'})
+    }
+    try {
+        const token = createBusinessToken(result.decoded.email, result.decoded.business)
+        res.cookie('businessToken', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
+
+        return res.redirect('https://www.onboardingai.org/employee-sign-up')
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
+
 
 module.exports = router

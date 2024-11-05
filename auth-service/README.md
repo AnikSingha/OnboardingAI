@@ -366,6 +366,36 @@ This section describes the authentication-related API routes under `/auth`. Thes
     }
     ``` 
 
+### 11. `/send-employee-sign-up-email`
+
+- **Method**: `POST`
+- **Description**: Sends an employee sign-up email to the specified email address associated with a business.
+- **Request Body**:
+  - `email`: Employee's email address
+  - `business`: Name or identifier of the business
+- **Response**:
+  - **Status `200`**: 
+    ```json
+    {
+      "success": true,
+      "message": "Employee sign up email sent successfully"
+    }
+    ```
+  - **Status `400`**: 
+    ```json
+    {
+      "success": false,
+      "message": "email or business missing from request body"
+    }
+    ```
+  - **Status `500`**: 
+    ```json
+    {
+      "success": false,
+      "message": "Internal server error: [error message]"
+    }
+    ```
+
 # Business API Routes
 
 This section describes the business-related API routes under `/business`. These routes handle employee management and business name updates for authorized users.

@@ -336,5 +336,22 @@ router.get('/employee-sign-up', async (req, res) => {
     }
 })
 
+router.get('/decode-business-token', async (req, res) => {
+    try {
+        let token = req.cookies.token
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Token not found' })
+        }
 
+        const { valid: isValid, decoded } = verifyToken(token);
+
+        if (isValid) {
+            return res.status(200).json({ success: true, message: 'Token is valid', decoded })
+        } else {
+            return res.status(403).json({ success: false, message: 'Invalid token' })
+        }
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
 module.exports = router

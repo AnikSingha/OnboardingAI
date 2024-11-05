@@ -178,25 +178,67 @@ class BusinessManager {
 
     async updateEmployeeEmail(business_name, employeeEmail, newEmail) {
         try {
-            let client = await connectToDatabase()
-            let businessCollection = client.db('auth').collection('businesses')
+            const client = await connectToDatabase();
+            const businessCollection = client.db('auth').collection('businesses');
     
-            let exists = await this.businessExists(business_name)
+            const exists = await this.businessExists(business_name);
             if (!exists) {
-                return false
+                return false;
             }
-
+    
             const result = await businessCollection.updateOne(
-                { business_name: business_name, employees: employeeEmail },
-                { $set: { "employees.$": newEmail } }
+                { business_name: business_name, "employees.email": employeeEmail },
+                { $set: { "employees.$.email": newEmail } }
             );
     
             return result.modifiedCount > 0;
         } catch (err) {
-            return false
+            console.error("Error updating employee email:", err);
+            return false;
         }
     }
     
+    async updateEmployeeName(business_name, employeeEmail, newName) {
+        try {
+            const client = await connectToDatabase();
+            const businessCollection = client.db('auth').collection('businesses');
+    
+            const exists = await this.businessExists(business_name);
+            if (!exists) {
+                return false;
+            }
+    
+            const result = await businessCollection.updateOne(
+                { business_name: business_name, "employees.email": employeeEmail },
+                { $set: { "employees.$.name": newName } }
+            );
+    
+            return result.modifiedCount > 0;
+        } catch (err) {
+            console.error("Error updating employee name:", err);
+            return false;
+        }
+    }
+    
+
+    async addEmployeeToBusiness(business_name, name, email) {
+        try {
+            const client = await connectToDatabase();
+            const businessCollection = client.db('auth').collection('businesses');
+    
+            const employee = { name, email, role: "Employee" };
+
+            const res = await businessCollection.updateOne(
+                { business_name: business_name },
+                { $push: { employees: employee } }
+            );
+    
+            return res.modifiedCount > 0;
+        } catch (err) {
+            console.error("Error adding employee:", err);
+            return false;
+        }
+    } 
 
 }
 

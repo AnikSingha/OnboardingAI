@@ -35,10 +35,12 @@ router.put('/update-name', async (req, res) => {
             return res.status(403).json({success: false, message: 'Unauthorized'})
         }
 
-        const success = await accountManager.updateUserName(email, name)
+        const { name: uname, business_name: ubusiness_name, role: urole } = await accountManager.getUserInfo(email)
 
-        if (success) {
-            const { name: uname, business_name: ubusiness_name, role: urole } = await accountManager.getUserInfo(email)
+        const success = await accountManager.updateUserName(email, name)
+        const businessSuccess = await businessManager.updateEmployeeName(ubusiness_name, email, name)
+
+        if (success && businessSuccess) {
             const token = createToken(uname, email, ubusiness_name, urole)
             res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
             return res.status(200).json({ success: true, message: 'Name successfully updated' })

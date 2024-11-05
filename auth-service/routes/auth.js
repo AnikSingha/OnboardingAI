@@ -33,7 +33,7 @@ router.post('/business-sign-up', async (req, res) => {
         }
 
         let createUserSuccess = await accountManager.addUser(name, email, password, business_name, 'Owner')
-        let createBusinessSuccess = await businessManager.createBusiness(business_name, [email], [])
+        let createBusinessSuccess = await businessManager.createBusiness(business_name, [{name, email, role: "Owner"}], [])
 
         if (!createUserSuccess || !createBusinessSuccess){
             return res.status(500).json({ success: false, message: `Internal server error` })
@@ -65,7 +65,8 @@ router.post('/sign-up', async (req, res) => {
         }
 
         const success = await accountManager.addUser(name, email, password, business_name, role)
-        if (success) {
+        const businessSucess = await businessManager.addEmployeeToBusiness(business_name, name, email)
+        if (success && businessSucess) {
             const token = createToken(name, email, business_name, role)
             res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
             return res.status(201).json({ success: true, message: 'Success' })

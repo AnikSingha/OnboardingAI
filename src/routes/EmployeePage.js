@@ -44,6 +44,11 @@ export default function EmployeePage() {
     e.preventDefault();
     
     try {
+      console.log('Sending request with:', {
+        email: inviteEmail,
+        business: business
+      });
+
       const response = await fetch('https://api.onboardingai.org/business/send-employee-sign-up-email', {
         method: 'POST',
         headers: {
@@ -56,7 +61,17 @@ export default function EmployeePage() {
         credentials: 'include'
       });
 
-      const data = await response.json();
+      console.log('Response status:', response.status);
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        throw new Error('Server returned an invalid response');
+      }
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to send invitation');
@@ -66,6 +81,7 @@ export default function EmployeePage() {
       setShowModal(false);
       setInviteEmail('');
     } catch (err) {
+      console.error('Error details:', err);
       setAlertMessage({ type: 'error', text: err.message });
     }
   };

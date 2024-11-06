@@ -34,7 +34,8 @@ class AccountManager {
                 password: hashedPassword,
                 business_name: business,
                 role,
-                OTPSecret
+                OTPSecret,
+                twoFactorAuth: false
             }
 
             let res = await userCollection.insertOne(newUser) // add new user
@@ -203,6 +204,46 @@ class AccountManager {
             return result.acknowledged
         } catch (err) {
             return false
+        }
+    }
+    
+    async hasTwoFactor(email) {
+        try {
+            let client = await connectToDatabase();
+            let userCollection = client.db('auth').collection('users');
+    
+            let user = await userCollection.findOne({ email: email });
+            
+            return user ? user.twoFactorAuth === true : false;
+        } catch (err) {
+            console.error("Error checking two-factor authentication:", err);
+            return false;
+        }
+    }
+    
+    async toggleTwoFactor(email) {
+        try {
+            let client = await connectToDatabase();
+            let userCollection = client.db('auth').collection('users');
+    
+            let user = await userCollection.findOne({ email: email });
+            
+            if (!user) {
+                console.error("User not found.");
+                return false;
+            }
+    
+            let updatedTwoFactorAuth = !user.twoFactorAuth;
+    
+            let result = await userCollection.updateOne(
+                { email: email },
+                { $set: { twoFactorAuth: updatedTwoFactorAuth } }
+            );
+    
+            return result.modifiedCount > 0;
+        } catch (err) {
+            console.error("Error toggling two-factor authentication:", err);
+            return false;
         }
     }
     

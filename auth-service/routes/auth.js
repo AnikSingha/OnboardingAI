@@ -355,4 +355,53 @@ router.get('/decode-business-token', async (req, res) => {
         return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
     }
 })
+
+router.get('/has-two-factor', async (req, res) => {
+    try {
+        const token = req.cookies.token
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Token not found' })
+        }
+
+        const { valid: isValid, decoded } = verifyToken(token)
+
+        if (!isValid) {
+            return res.status(403).json({ success: false, message: 'Invalid token' })
+        }
+
+        const hasTwoFactorAuth = await accountManager.hasTwoFactor(decoded.email)
+        
+        if (hasTwoFactorAuth) 
+            return res.status(200).json({ success: true, message: 'Two-factor auth is enabled for this account', twoFactorAuthEnabled: true })
+        else 
+            return res.status(200).json({ success: true, message: 'Two-factor auth is disabled for this account', twoFactorAuthEnabled: false });
+
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
+    }
+})
+
+router.post('/toggle-two-factor', async (req, res) => {
+    try {
+        const token = req.cookies.token;
+        if (!token) return res.status(401).json({ success: false, message: 'Token not found' });
+
+        const { valid: isValid, decoded } = verifyToken(token);
+        if (!isValid) {
+            return res.status(403).json({ success: false, message: 'Invalid token' });
+        }
+        
+        const toggled = await accountManager.toggleTwoFactor(decoded.email);
+
+        if (toggled) 
+            return res.status(200).json({ success: true, message: 'Two-factor authentication status has been toggled successfully' });
+        else 
+            return res.status(400).json({ success: false, message: 'Unable to toggle two-factor authentication' });
+            
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` });
+    }
+});
+
+
 module.exports = router

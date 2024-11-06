@@ -1,18 +1,41 @@
-import React from 'react'
+import { useState, useEffect, useContext } from 'react'
+import { AuthContext } from '../AuthContext'
 import { Button } from "../components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader } from "../components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
 import { Plus } from "lucide-react"
 import Layout from '../components/Layout'
 
 export default function EmployeePage() {
-  const employees = [
-    { id: 1, name: "Dr. Sarah Johnson", position: "Dentist", email: "sarah.johnson@smiledental.com" },
-    { id: 2, name: "Mike Davis", position: "Dental Hygienist", email: "mike.davis@smiledental.com" },
-    { id: 3, name: "Emily Chen", position: "Dental Assistant", email: "emily.chen@smiledental.com" },
-    { id: 4, name: "Lisa Brown", position: "Office Manager", email: "lisa.brown@smiledental.com" },
-    { id: 5, name: "Tom Wilson", position: "Receptionist", email: "tom.wilson@smiledental.com" },
-  ]
+  const [employees, setEmployees] = useState([]);
+  const { business, loading } = useContext(AuthContext)
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      if (!loading) {
+        try {
+          const response = await fetch(`https://api.onboardingai.org/business/get-employees?business_name=${business}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include'
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch employees');
+          }
+
+          const data = await response.json();
+          setEmployees(data.employees);
+        } catch (error) {
+          console.error('Error fetching employees:', error);
+        }
+      };
+    }
+
+    fetchEmployees();
+  }, [loading]); 
 
   return (
     <Layout>
@@ -27,7 +50,6 @@ export default function EmployeePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Employee List</CardTitle>
             <CardDescription>Manage your dental practice staff</CardDescription>
           </CardHeader>
           <CardContent>
@@ -42,9 +64,9 @@ export default function EmployeePage() {
               </TableHeader>
               <TableBody>
                 {employees.map((employee) => (
-                  <TableRow key={employee.id}>
+                  <TableRow key={employee.email}>
                     <TableCell className="font-medium">{employee.name}</TableCell>
-                    <TableCell>{employee.position}</TableCell>
+                    <TableCell>{employee.role}</TableCell>
                     <TableCell>{employee.email}</TableCell>
                     <TableCell>
                       <Button variant="outline" size="sm">

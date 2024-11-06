@@ -44,7 +44,7 @@ export default function EmployeePage() {
     e.preventDefault();
     
     try {
-      const response = await fetch('https://api.onboardingai.org/send-employee-sign-up-email', {
+      const response = await fetch('https://api.onboardingai.org/business/send-employee-sign-up-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

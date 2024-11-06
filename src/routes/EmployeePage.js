@@ -49,9 +49,6 @@ export default function EmployeePage() {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardDescription>Manage your dental practice staff</CardDescription>
-          </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>

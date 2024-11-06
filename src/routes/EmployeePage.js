@@ -95,6 +95,74 @@ export default function EmployeePage() {
     return true;
   };
 
+  const handleSaveRole = async () => {
+    try {
+      const response = await fetch('https://api.onboardingai.org/business/update-employee-role', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: editingEmployee.email,
+          role: editingEmployee.newRole,
+          business_name: business
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update role');
+      }
+
+      // Update the local employees state with the new role
+      setEmployees(employees.map(emp => 
+        emp.email === editingEmployee.email 
+          ? { ...emp, role: editingEmployee.newRole }
+          : emp
+      ));
+
+      setAlertMessage({ type: 'success', text: 'Role updated successfully!' });
+      setEditingEmployee(null);
+    } catch (err) {
+      setAlertMessage({ type: 'error', text: err.message });
+    }
+  };
+
+  const handleTerminate = async (email) => {
+    if (!window.confirm('Are you sure you want to terminate this employee?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('https://api.onboardingai.org/business/terminate-employee', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          business_name: business
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to terminate employee');
+      }
+
+      // Remove the terminated employee from the local state
+      setEmployees(employees.filter(emp => emp.email !== email));
+      setAlertMessage({ type: 'success', text: 'Employee terminated successfully' });
+      setEditingEmployee(null);
+    } catch (err) {
+      setAlertMessage({ type: 'error', text: err.message });
+    }
+  };
+
   return (
     <Layout>
       <div className="p-8">
@@ -233,6 +301,7 @@ export default function EmployeePage() {
                               <Button 
                                 variant="outline" 
                                 size="sm"
+                                onClick={handleSaveRole}
                                 className="text-green-600 hover:text-green-800"
                               >
                                 Save
@@ -241,6 +310,7 @@ export default function EmployeePage() {
                                 <Button 
                                   variant="outline" 
                                   size="sm"
+                                  onClick={() => handleTerminate(employee.email)}
                                   className="text-red-600 hover:text-red-800"
                                 >
                                   Terminate

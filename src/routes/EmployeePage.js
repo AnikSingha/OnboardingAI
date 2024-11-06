@@ -71,7 +71,7 @@ export default function EmployeePage() {
     }
   };
 
-  const canAddEmployees = role === 'owner';
+  const canAddEmployees = role === 'Owner';
 
   const handleEditClick = (employee) => {
     setEditingEmployee({

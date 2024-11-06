@@ -11,7 +11,7 @@ export default function EmployeePage() {
   const [showModal, setShowModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
-  const { business, loading } = useContext(AuthContext);
+  const { business, loading, user, role } = useContext(AuthContext);
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -70,6 +70,8 @@ export default function EmployeePage() {
     }
   };
 
+  const canAddEmployees = role === 'Owner';
+
   return (
     <Layout>
       <div className="p-8">
@@ -84,15 +86,17 @@ export default function EmployeePage() {
         )}
 
         <div className="flex justify-between items-center mb-6">
-          <Button 
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-            onClick={() => setShowModal(true)}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add Employee
-          </Button>
+          {canAddEmployees ? (
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => setShowModal(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Employee
+            </Button>
+          ) : null}
         </div>
 
-        {showModal && (
+        {showModal && canAddEmployees && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
@@ -155,7 +159,7 @@ export default function EmployeePage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Position</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead></TableHead> {}
+                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -165,9 +169,11 @@ export default function EmployeePage() {
                     <TableCell>{employee.role}</TableCell>
                     <TableCell>{employee.email}</TableCell>
                     <TableCell>
-                      <Button variant="outline" size="sm">
-                        Edit
-                      </Button>
+                      {canAddEmployees && (
+                        <Button variant="outline" size="sm">
+                          Edit
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

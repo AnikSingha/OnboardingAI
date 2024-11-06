@@ -84,6 +84,17 @@ export default function EmployeePage() {
     setEditingEmployee(null);
   };
 
+  const isRoleChangeAllowed = (employee, newRole) => {
+    if (employee.role === 'Owner' && newRole !== 'Owner') {
+      const ownerCount = employees.filter(emp => 
+        emp.role === 'Owner' && emp.email !== employee.email
+      ).length;
+      
+      return ownerCount > 0;
+    }
+    return true;
+  };
+
   return (
     <Layout>
       <div className="p-8">
@@ -182,14 +193,24 @@ export default function EmployeePage() {
                       {editingEmployee?.email === employee.email ? (
                         <select
                           value={editingEmployee.newRole}
-                          onChange={(e) => setEditingEmployee({
-                            ...editingEmployee,
-                            newRole: e.target.value
-                          })}
+                          onChange={(e) => {
+                            const newRole = e.target.value;
+                            if (!isRoleChangeAllowed(employee, newRole)) {
+                              setAlertMessage({
+                                type: 'error',
+                                text: 'Cannot change role: At least one Owner must remain'
+                              });
+                              return;
+                            }
+                            setEditingEmployee({
+                              ...editingEmployee,
+                              newRole: newRole
+                            });
+                          }}
                           className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                          <option value="employee">Employee</option>
-                          <option value="admin">Admin</option>
+                          <option value="Employee">Employee</option>
+                          <option value="Owner">Owner</option>
                         </select>
                       ) : (
                         employee.role
@@ -216,13 +237,15 @@ export default function EmployeePage() {
                               >
                                 Save
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                Terminate
-                              </Button>
+                              {employee.role !== 'Owner' && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-800"
+                                >
+                                  Terminate
+                                </Button>
+                              )}
                             </>
                           ) : (
                             <Button 

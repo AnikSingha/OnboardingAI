@@ -11,6 +11,7 @@ export default function EmployeePage() {
   const [showModal, setShowModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
+  const [editingEmployee, setEditingEmployee] = useState(null);
   const { business, loading, user, role } = useContext(AuthContext);
 
   useEffect(() => {
@@ -70,7 +71,18 @@ export default function EmployeePage() {
     }
   };
 
-  const canAddEmployees = role === 'Owner';
+  const canAddEmployees = role === 'owner';
+
+  const handleEditClick = (employee) => {
+    setEditingEmployee({
+      ...employee,
+      newRole: employee.role // Track the new role separately
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEmployee(null);
+  };
 
   return (
     <Layout>
@@ -159,20 +171,69 @@ export default function EmployeePage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Position</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {employees.map((employee) => (
                   <TableRow key={employee.email}>
                     <TableCell className="font-medium">{employee.name}</TableCell>
-                    <TableCell>{employee.role}</TableCell>
+                    <TableCell>
+                      {editingEmployee?.email === employee.email ? (
+                        <select
+                          value={editingEmployee.newRole}
+                          onChange={(e) => setEditingEmployee({
+                            ...editingEmployee,
+                            newRole: e.target.value
+                          })}
+                          className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="employee">Employee</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      ) : (
+                        employee.role
+                      )}
+                    </TableCell>
                     <TableCell>{employee.email}</TableCell>
                     <TableCell>
                       {canAddEmployees && (
-                        <Button variant="outline" size="sm">
-                          Edit
-                        </Button>
+                        <div className="flex gap-2">
+                          {editingEmployee?.email === employee.email ? (
+                            <>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={handleCancelEdit}
+                                className="text-gray-600 hover:text-gray-800"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="text-green-600 hover:text-green-800"
+                              >
+                                Save
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                Terminate
+                              </Button>
+                            </>
+                          ) : (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditClick(employee)}
+                            >
+                              Edit
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>

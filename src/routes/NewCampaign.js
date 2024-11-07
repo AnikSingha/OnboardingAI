@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Textarea } from "../components/ui/textarea"
@@ -7,8 +7,59 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Label } from "../components/ui/label"
 import { DatePicker } from "../components/ui/date-picker"
 import Layout from '../components/Layout'
+import { useNavigate } from 'react-router-dom'
 
 export default function NewCampaign() {
+  const navigate = useNavigate()
+
+  // State to manage all form inputs
+  const [campaignData, setCampaignData] = useState({
+    name: '',
+    description: '',
+    startDate: '',
+    endDate: '',
+    targetAudience: '',
+    callScript: '',
+    successCriteria: ''
+  })
+
+  // Load saved draft when the component mounts
+  useEffect(() => {
+    const savedDraft = localStorage.getItem('campaignDraft')
+    if (savedDraft) {
+      setCampaignData(JSON.parse(savedDraft))
+    }
+  }, [])
+
+  // Handle input change
+  const handleInputChange = (e) => {
+    const { id, value } = e.target
+    setCampaignData({
+      ...campaignData,
+      [id]: value
+    })
+  }
+
+  // Handle date change for DatePicker
+  const handleDateChange = (id, value) => {
+    setCampaignData({
+      ...campaignData,
+      [id]: value
+    })
+  }
+
+  // Save as Draft
+  const saveDraft = () => {
+    localStorage.setItem('campaignDraft', JSON.stringify(campaignData))
+    navigate('/campaigns')
+  }
+
+  // Launch Campaign
+  const launchCampaign = () => {
+    localStorage.removeItem('campaignDraft')
+    navigate('/campaigns')
+  }
+
   return (
     <Layout>
       <div className="p-8">
@@ -22,29 +73,51 @@ export default function NewCampaign() {
           <CardContent>
             <form className="space-y-6">
               <div>
-                <Label htmlFor="campaign-name">Campaign Name</Label>
-                <Input id="campaign-name" placeholder="Enter campaign name" />
+                <Label htmlFor="name">Campaign Name</Label>
+                <Input
+                  id="name"
+                  value={campaignData.name}
+                  onChange={handleInputChange}
+                  placeholder="Enter campaign name"
+                />
               </div>
               
               <div>
-                <Label htmlFor="campaign-description">Campaign Description</Label>
-                <Textarea id="campaign-description" placeholder="Describe your campaign" />
+                <Label htmlFor="description">Campaign Description</Label>
+                <Textarea
+                  id="description"
+                  value={campaignData.description}
+                  onChange={handleInputChange}
+                  placeholder="Describe your campaign"
+                />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="start-date">Start Date</Label>
-                  <DatePicker id="start-date" />
+                  <Label htmlFor="startDate">Start Date</Label>
+                  <DatePicker
+                    id="startDate"
+                    value={campaignData.startDate}
+                    onChange={(date) => handleDateChange('startDate', date)}
+                  />
                 </div>
                 <div>
-                  <Label htmlFor="end-date">End Date</Label>
-                  <DatePicker id="end-date" />
+                  <Label htmlFor="endDate">End Date</Label>
+                  <DatePicker
+                    id="endDate"
+                    value={campaignData.endDate}
+                    onChange={(date) => handleDateChange('endDate', date)}
+                  />
                 </div>
               </div>
               
               <div>
-                <Label htmlFor="target-audience">Target Audience</Label>
-                <Select id="target-audience">
+                <Label htmlFor="targetAudience">Target Audience</Label>
+                <Select
+                  id="targetAudience"
+                  value={campaignData.targetAudience}
+                  onChange={handleInputChange}
+                >
                   <option value="all-contacts">All Contacts</option>
                   <option value="new-customers">New Customers</option>
                   <option value="repeat-customers">Repeat Customers</option>
@@ -53,18 +126,29 @@ export default function NewCampaign() {
               </div>
               
               <div>
-                <Label htmlFor="call-script">Call Script</Label>
-                <Textarea id="call-script" placeholder="Enter your AI call script" rows={6} />
+                <Label htmlFor="callScript">Call Script</Label>
+                <Textarea
+                  id="callScript"
+                  value={campaignData.callScript}
+                  onChange={handleInputChange}
+                  placeholder="Enter your AI call script"
+                  rows={6}
+                />
               </div>
               
               <div>
-                <Label htmlFor="success-criteria">Success Criteria</Label>
-                <Input id="success-criteria" placeholder="e.g., Appointment scheduled, Survey completed" />
+                <Label htmlFor="successCriteria">Success Criteria</Label>
+                <Input
+                  id="successCriteria"
+                  value={campaignData.successCriteria}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Appointment scheduled, Survey completed"
+                />
               </div>
               
               <div className="flex justify-end space-x-4">
-                <Button variant="outline">Save as Draft</Button>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">Launch Campaign</Button>
+                <Button variant="outline" onClick={saveDraft}>Save as Draft</Button>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={launchCampaign}>Launch Campaign</Button>
               </div>
             </form>
           </CardContent>
@@ -73,3 +157,4 @@ export default function NewCampaign() {
     </Layout>
   )
 }
+

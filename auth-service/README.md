@@ -396,6 +396,51 @@ This section describes the authentication-related API routes under `/auth`. Thes
     }
     ```
 
+### 12. `/toggle-two-factor`
+
+- **Method**: `POST`
+- **Description**: Toggles the status of two-factor authentication for the account associated with the provided token.
+- **Note**: This endpoint is used to turn two-factor on and off. Will turn on two-factor if currently off, otherwise it will turn it on
+- **Request**:
+  - Requires a `token` cookie for authentication.
+
+- **Response**:
+  - **Status `200`**:
+    ```json
+    {
+      "success": true,
+      "message": "Two-factor authentication status has been toggled successfully"
+    }
+    ```
+  - **Status `400`**:
+    ```json
+    {
+      "success": false,
+      "message": "Unable to toggle two-factor authentication"
+    }
+    ```
+  - **Status `401`**:
+    ```json
+    {
+      "success": false,
+      "message": "Token not found"
+    }
+    ```
+  - **Status `403`**:
+    ```json
+    {
+      "success": false,
+      "message": "Invalid token"
+    }
+    ```
+  - **Status `500`**:
+    ```json
+    {
+      "success": false,
+      "message": "Internal server error: [error message]"
+    }
+    ```
+
 # Business API Routes
 
 This section describes the business-related API routes under `/business`. These routes handle employee management and business name updates for authorized users.

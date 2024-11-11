@@ -13,6 +13,8 @@ export default function ContactsPage() {
   const [newContact, setNewContact] = useState({ name: '', number: '' });
   const [csvFile, setCsvFile] = useState(null);
   const { business } = useContext(AuthContext);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState({ success: 0, failed: 0, total: 0 });
 
   useEffect(() => {
     fetchContacts();
@@ -65,21 +67,53 @@ export default function ContactsPage() {
 
   const processCsvFile = () => {
     if (!csvFile) return;
-
+    setIsProcessing(true);
+    
     Papa.parse(csvFile, {
+      header: true,
+      skipEmptyLines: true,
       complete: async (results) => {
+        const total = results.data.length;
+        let success = 0;
+        let failed = 0;
+        
         for (const row of results.data) {
           if (row.name && row.number) {
-            await handleAddContact({
-              name: row.name,
-              number: row.number
-            });
+            try {
+              const response = await fetch('https://api.onboardingai.org/leads', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  name: row.name,
+                  number: row.number
+                })
+              });
+              
+              if (response.ok) {
+                success++;
+              } else {
+                failed++;
+              }
+            } catch (error) {
+              failed++;
+            }
+            
+            setUploadStatus({ success, failed, total });
           }
         }
+        
+        await fetchContacts();
+        setIsProcessing(false);
         setCsvFile(null);
+        document.getElementById('csvInput').value = '';
+        alert(`Upload complete!\nSuccessful: ${success}\nFailed: ${failed}`);
       },
-      header: true,
-      skipEmptyLines: true
+      error: (error) => {
+        console.error('Error parsing CSV:', error);
+        setIsProcessing(false);
+        alert('Error processing CSV file');
+      }
     });
   };
 
@@ -150,10 +184,24 @@ export default function ContactsPage() {
                 id="csvInput"
               />
               <label htmlFor="csvInput">
-                <Button as="span">Upload CSV</Button>
+                <Button as="span" disabled={isProcessing}>
+                  Upload CSV
+                </Button>
               </label>
               {csvFile && (
-                <Button onClick={processCsvFile}>Process CSV</Button>
+                <Button 
+                  onClick={processCsvFile} 
+                  disabled={isProcessing}
+                >
+                  {isProcessing 
+                    ? `Processing ${uploadStatus.success + uploadStatus.failed}/${uploadStatus.total}` 
+                    : 'Process CSV'}
+                </Button>
+              )}
+              {isProcessing && (
+                <span className="text-sm text-gray-500">
+                  Success: {uploadStatus.success} | Failed: {uploadStatus.failed}
+                </span>
               )}
             </div>
           </div>

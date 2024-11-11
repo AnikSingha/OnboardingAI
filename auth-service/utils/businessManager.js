@@ -238,8 +238,57 @@ class BusinessManager {
             console.error("Error adding employee:", err);
             return false;
         }
-    } 
-
+    }
+      async getLeads(business_name) {
+          try {
+              const client = await connectToDatabase();
+              const businessCollection = client.db('auth').collection('businesses');
+  
+              const business = await businessCollection.findOne(
+                  { business_name },
+                  { projection: { leads: 1, _id: 0 } }
+              );
+  
+              return business?.leads || [];
+          } catch (err) {
+              console.error("Error getting leads:", err);
+              return [];
+          }
+      }
+  
+      async addLeads(business_name, leads) {
+          try {
+              const client = await connectToDatabase();
+              const businessCollection = client.db('auth').collection('businesses');
+  
+              const result = await businessCollection.updateOne(
+                  { business_name },
+                  { $push: { leads: { $each: leads } } }
+              );
+  
+              return result.modifiedCount > 0;
+          } catch (err) {
+              console.error("Error adding leads:", err);
+              return false;
+          }
+      }
+  
+      async deleteLead(business_name, leadId) {
+          try {
+              const client = await connectToDatabase();
+              const businessCollection = client.db('auth').collection('businesses');
+  
+              const result = await businessCollection.updateOne(
+                  { business_name },
+                  { $pull: { leads: { _id: leadId } } }
+              );
+  
+              return result.modifiedCount > 0;
+          } catch (err) {
+              console.error("Error deleting lead:", err);
+              return false;
+          }
+      }
 }
 
 module.exports = new BusinessManager()

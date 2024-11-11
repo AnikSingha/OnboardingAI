@@ -58,6 +58,7 @@ app.use(checkToken);
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/business', businessRoutes);
+app.use('/leads', leadsRoutes);
 
 app.listen(3000, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:3000/`);

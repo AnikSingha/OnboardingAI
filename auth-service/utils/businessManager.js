@@ -239,56 +239,52 @@ class BusinessManager {
             return false;
         }
     }
-      async getLeads(business_name) {
-          try {
-              const client = await connectToDatabase();
-              const businessCollection = client.db('auth').collection('businesses');
+    async getLeads() {
+      try {
+          const client = await connectToDatabase();
+          const leadsCollection = client.db('auth').collection('leads');
   
-              const business = await businessCollection.findOne(
-                  { business_name },
-                  { projection: { leads: 1, _id: 0 } }
-              );
+          const leads = await leadsCollection.find().toArray();
   
-              return business?.leads || [];
-          } catch (err) {
-              console.error("Error getting leads:", err);
-              return [];
-          }
+          return leads;
+      } catch (err) {
+          console.error("Error getting leads:", err);
+          return [];
       }
+  }
   
-      async addLeads(business_name, leads) {
-        try {
-            const client = await connectToDatabase();
-            const businessCollection = client.db('auth').collection('businesses');
- 
-            const result = await businessCollection.updateOne(
-                { business_name },
-                { $push: { leads: { $each: leads } } } // Assuming you want to add leads to an array
-            );
- 
-            return result.modifiedCount > 0; // Return true if leads were added
-        } catch (err) {
-            console.error("Error adding leads:", err);
-            return false;
-        }
-    }
+  async addLead(number, name) {
+      try {
+          const client = await connectToDatabase();
+          const leadsCollection = client.db('auth').collection('leads');
   
-      async deleteLead(business_name, leadId) {
-          try {
-              const client = await connectToDatabase();
-              const businessCollection = client.db('auth').collection('businesses');
+          const newLead = {
+              _number: number,
+              name: name
+          };
   
-              const result = await businessCollection.updateOne(
-                  { business_name },
-                  { $pull: { leads: { _id: leadId } } }
-              );
+          const result = await leadsCollection.insertOne(newLead);
   
-              return result.modifiedCount > 0;
-          } catch (err) {
-              console.error("Error deleting lead:", err);
-              return false;
-          }
+          return result.acknowledged;
+      } catch (err) {
+          console.error("Error adding lead:", err);
+          return false;
       }
+  }
+  
+  async deleteLead(leadId) {
+      try {
+          const client = await connectToDatabase();
+          const leadsCollection = client.db('auth').collection('leads');
+  
+          const result = await leadsCollection.deleteOne({ _id: new ObjectId(leadId) });
+  
+          return result.deletedCount > 0;
+      } catch (err) {
+          console.error("Error deleting lead:", err);
+          return false;
+      }
+  }
 }
 
 module.exports = new BusinessManager()

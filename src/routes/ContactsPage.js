@@ -24,12 +24,16 @@ export default function ContactsPage() {
   const fetchContacts = async () => {
     try {
       const response = await fetch('https://api.onboardingai.org/leads', {
-        credentials: 'include'
+        credentials: 'include',
       });
-
+      console.log("fetchContacts response:", response);
+  
       if (response.ok) {
         const data = await response.json();
+        console.log("Contacts data:", data);
         setContacts(data.leads || []);
+      } else {
+        console.error("Failed to fetch contacts:", response.statusText);
       }
     } catch (error) {
       console.error("Error fetching contacts:", error);

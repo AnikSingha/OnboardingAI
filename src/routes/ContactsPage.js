@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Plus, Phone, Mail, Trash } from "lucide-react";
 import Layout from '../components/Layout';
-import { AuthContext } from '../contexts/AuthContext';
+import { AuthContext } from '../AuthContext';
 import Papa from 'papaparse';
 
 export default function ContactsPage() {

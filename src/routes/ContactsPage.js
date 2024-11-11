@@ -33,21 +33,30 @@ export default function ContactsPage() {
   };
 
   const handleAddContact = async (contact) => {
-    try {
-      const response = await fetch('https://api.onboardingai.org/leads', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(contact),
-      });
-      if (response.ok) {
-        fetchContacts();
-        setNewContact({ name: '', number: '' });
-      }
-    } catch (error) {
-      console.error("Error adding contact:", error);
+  try {
+    if (!contact.name || !contact.number) {
+      alert('Please fill in both name and phone number');
+      return;
     }
-  };
+    
+    const response = await fetch('https://api.onboardingai.org/leads', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(contact),
+    });
+    
+    if (response.ok) {
+      fetchContacts();
+      setNewContact({ name: '', number: '' });
+    } else {
+      alert('Failed to add contact');
+    }
+  } catch (error) {
+    console.error("Error adding contact:", error);
+    alert('Error adding contact');
+  }
+};
 
   const handleCsvUpload = (event) => {
     const file = event.target.files[0];
@@ -116,7 +125,13 @@ export default function ContactsPage() {
                 value={newContact.number}
                 onChange={(e) => setNewContact({ ...newContact, number: e.target.value })}
               />
-              <Button onClick={() => handleAddContact(newContact)}>Add Contact</Button>
+              <Button onClick={() => {
+                if (newContact.name && newContact.number) {
+                  handleAddContact(newContact);
+                } else {
+                  alert('Please fill in both name and phone number');
+                }
+              }}>Add Contact</Button>
             </div>
             <div className="flex gap-2">
               <input

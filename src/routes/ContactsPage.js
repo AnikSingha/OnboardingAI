@@ -7,76 +7,87 @@ import Papa from 'papaparse';
 export default function ContactsPage() {
   const [contacts, setContacts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [file, setFile] = useState(null);
+  const [newContact, setNewContact] = useState({ name: '', number: '' });
+  const [csvFile, setCsvFile] = useState(null);
   const { business } = useContext(AuthContext);
 
-  // Fetch contacts from server
   useEffect(() => {
-    const fetchContacts = async () => {
-      try {
-        const response = await fetch('https://api.onboardingai.org/leads', { credentials: 'include' });
-        if (response.ok) {
-          const data = await response.json();
-          setContacts(data.leads || []);
-        } else {
-          console.error("Failed to fetch contacts:", response.statusText);
-        }
-      } catch (error) {
-        console.error("Error fetching contacts:", error);
-      }
-    };
     fetchContacts();
   }, []);
 
-  // Add a new contact
-  const handleAddContact = async (newContact) => {
+  const fetchContacts = async () => {
+    try {
+      const response = await fetch('https://api.onboardingai.org/leads', { 
+        credentials: 'include' 
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setContacts(data.leads || []);
+      }
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
+    }
+  };
+
+  const handleAddContact = async (contact) => {
     try {
       const response = await fetch('https://api.onboardingai.org/leads', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leads: [{ ...newContact, dateAdded: new Date().toISOString() }] }),
+        body: JSON.stringify(contact),
       });
-      if (response.ok) fetchContacts();
+      if (response.ok) {
+        fetchContacts();
+        setNewContact({ name: '', number: '' });
+      }
     } catch (error) {
       console.error("Error adding contact:", error);
     }
   };
 
-  // Delete a contact by ID
+  const handleCsvUpload = (event) => {
+    const file = event.target.files[0];
+    setCsvFile(file);
+  };
+
+  const processCsvFile = () => {
+    if (!csvFile) return;
+
+    Papa.parse(csvFile, {
+      complete: async (results) => {
+        for (const row of results.data) {
+          if (row.name && row.number) {
+            await handleAddContact({
+              name: row.name,
+              number: row.number
+            });
+          }
+        }
+        setCsvFile(null);
+      },
+      header: true,
+      skipEmptyLines: true
+    });
+  };
+
   const handleDeleteContact = async (contactId) => {
     try {
-      const response = await fetch(`https://api.onboardingai.org/leads/${contactId}`, { method: 'DELETE', credentials: 'include' });
-      if (response.ok) fetchContacts();
+      const response = await fetch(`https://api.onboardingai.org/leads/${contactId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (response.ok) {
+        fetchContacts();
+      }
     } catch (error) {
       console.error("Error deleting contact:", error);
     }
   };
 
-  // Handle CSV file upload and parse
-  const handleFileUpload = () => {
-    if (!file) return;
-
-    Papa.parse(file, {
-      complete: async (results) => {
-        const leads = results.data.map(row => ({
-          name: row.name || 'Unknown',
-          email: row.email || '',
-          phone: row.phone || '',
-          notes: row.notes || '',
-          dateAdded: new Date().toISOString()
-        }));
-        await handleAddContact(leads);
-        setFile(null);
-      },
-      header: true
-    });
-  };
-
   const filteredContacts = contacts.filter(contact =>
     contact.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.phone?.includes(searchTerm)
+    contact._number?.includes(searchTerm)
   );
 
   return (
@@ -90,13 +101,35 @@ export default function ContactsPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <div className="flex gap-2">
-            <Button onClick={() => handleAddContact(newContact)}>Add Contact</Button>
-            <input type="file" accept=".csv" onChange={(e) => setFile(e.target.files[0])} className="hidden" id="fileInput" />
-            <label htmlFor="fileInput">
-              <Button>Upload CSV</Button>
-            </label>
-            {file && <Button onClick={handleFileUpload}>Process CSV</Button>}
+          <div className="flex gap-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Name"
+                value={newContact.name}
+                onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+              />
+              <Input
+                placeholder="Phone Number"
+                value={newContact.number}
+                onChange={(e) => setNewContact({ ...newContact, number: e.target.value })}
+              />
+              <Button onClick={() => handleAddContact(newContact)}>Add Contact</Button>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleCsvUpload}
+                style={{ display: 'none' }}
+                id="csvInput"
+              />
+              <label htmlFor="csvInput">
+                <Button as="span">Upload CSV</Button>
+              </label>
+              {csvFile && (
+                <Button onClick={processCsvFile}>Process CSV</Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -109,9 +142,7 @@ export default function ContactsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Notes</TableHead>
+                  <TableHead>Phone Number</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -119,11 +150,15 @@ export default function ContactsPage() {
                 {filteredContacts.map((contact) => (
                   <TableRow key={contact._id}>
                     <TableCell>{contact.name}</TableCell>
-                    <TableCell>{contact.phone}</TableCell>
-                    <TableCell>{contact.email}</TableCell>
-                    <TableCell>{contact.notes}</TableCell>
+                    <TableCell>{contact._number}</TableCell>
                     <TableCell>
-                      <Button variant="outline" size="sm" onClick={() => handleDeleteContact(contact._id)}>Delete</Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleDeleteContact(contact._id)}
+                      >
+                        Delete
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

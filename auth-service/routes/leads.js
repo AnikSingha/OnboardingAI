@@ -29,22 +29,22 @@ router.get('/', async (req, res) => {
 
 // Route to add leads
 router.post('/', async (req, res) => {
-    const { leads } = req.body;
+  const { leads } = req.body;
 
-    if (!leads || !Array.isArray(leads)) {
-        return res.status(400).json({ success: false, message: 'Invalid leads data' });
-    }
+  if (!leads || !Array.isArray(leads)) {
+      return res.status(400).json({ success: false, message: 'Invalid leads data' });
+  }
 
-    try {
-        const success = await businessManager.addLeads(req.business_name, leads);
-        if (success) {
-            return res.status(201).json({ success: true, message: 'Leads added successfully' });
-        } else {
-            return res.status(500).json({ success: false, message: 'Failed to add leads' });
-        }
-    } catch (err) {
-        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` });
-    }
+  try {
+      const success = await businessManager.addLeads(req.business_name, leads);
+      if (success) {
+          return res.status(201).json({ success: true, message: 'Leads added successfully' });
+      } else {
+          return res.status(500).json({ success: false, message: 'Failed to add leads' });
+      }
+  } catch (err) {
+      return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` });
+  }
 });
 
 // Route to delete a lead by ID

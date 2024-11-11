@@ -257,21 +257,21 @@ class BusinessManager {
       }
   
       async addLeads(business_name, leads) {
-          try {
-              const client = await connectToDatabase();
-              const businessCollection = client.db('auth').collection('businesses');
-  
-              const result = await businessCollection.updateOne(
-                  { business_name },
-                  { $push: { leads: { $each: leads } } }
-              );
-  
-              return result.modifiedCount > 0;
-          } catch (err) {
-              console.error("Error adding leads:", err);
-              return false;
-          }
-      }
+        try {
+            const client = await connectToDatabase();
+            const businessCollection = client.db('auth').collection('businesses');
+ 
+            const result = await businessCollection.updateOne(
+                { business_name },
+                { $push: { leads: { $each: leads } } } // Assuming you want to add leads to an array
+            );
+ 
+            return result.modifiedCount > 0; // Return true if leads were added
+        } catch (err) {
+            console.error("Error adding leads:", err);
+            return false;
+        }
+    }
   
       async deleteLead(business_name, leadId) {
           try {

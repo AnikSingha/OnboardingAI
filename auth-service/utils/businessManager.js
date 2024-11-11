@@ -1,5 +1,6 @@
 const connectToDatabase = require('../db.js')
 const accountManager = require('./accounts.js')
+const { ObjectId } = require('mongodb');
 
 class BusinessManager {
 
@@ -273,18 +274,25 @@ class BusinessManager {
   }
   
   async deleteLead(leadId) {
-      try {
-          const client = await connectToDatabase();
-          const leadsCollection = client.db('auth').collection('leads');
-  
-          const result = await leadsCollection.deleteOne({ _id: new ObjectId(leadId) });
-  
-          return result.deletedCount > 0;
-      } catch (err) {
-          console.error("Error deleting lead:", err);
-          return false;
-      }
-  }
+        try {
+            const client = await connectToDatabase();
+            const leadsCollection = client.db('auth').collection('leads');
+            
+            // Ensure valid ObjectId
+            if (!ObjectId.isValid(leadId)) {
+                return false;
+            }
+
+            const result = await leadsCollection.deleteOne({ 
+                _id: new ObjectId(leadId)
+            });
+
+            return result.deletedCount > 0;
+        } catch (err) {
+            console.error("Error deleting lead:", err);
+            return false;
+        }
+    }
 }
 
 module.exports = new BusinessManager()

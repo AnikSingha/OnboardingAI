@@ -84,23 +84,26 @@ export default function ContactsPage() {
   };
 
   const handleDeleteContact = async (contactId) => {
-    try {
-      const response = await fetch(`https://api.onboardingai.org/leads/${contactId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      
-      if (response.ok) {
-        fetchContacts();
-      } else {
-        const data = await response.json();
-        alert(data.message || 'Failed to delete contact');
+  try {
+    const response = await fetch(`https://api.onboardingai.org/leads/${contactId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
       }
-    } catch (error) {
-      console.error("Error deleting contact:", error);
-      alert('Error deleting contact');
+    });
+    
+    if (response.ok) {
+      fetchContacts();
+    } else {
+      const data = await response.json();
+      alert(data.message || 'Failed to delete contact');
     }
-  };
+  } catch (error) {
+    console.error("Error deleting contact:", error);
+    alert('Error deleting contact');
+  }
+};
 
   const filteredContacts = contacts.filter(contact =>
     contact.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

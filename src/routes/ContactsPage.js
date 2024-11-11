@@ -89,11 +89,16 @@ export default function ContactsPage() {
         method: 'DELETE',
         credentials: 'include'
       });
+      
       if (response.ok) {
         fetchContacts();
+      } else {
+        const data = await response.json();
+        alert(data.message || 'Failed to delete contact');
       }
     } catch (error) {
       console.error("Error deleting contact:", error);
+      alert('Error deleting contact');
     }
   };
 
@@ -169,15 +174,15 @@ export default function ContactsPage() {
                   <TableRow key={contact._id}>
                     <TableCell>{contact.name}</TableCell>
                     <TableCell>{contact._number}</TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleDeleteContact(contact._id)}
-                      >
-                        Delete
-                      </Button>
-                    </TableCell>
+                   <TableCell>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleDeleteContact(contact._id)}
+                    >
+                      Delete
+                    </Button>
+                  </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

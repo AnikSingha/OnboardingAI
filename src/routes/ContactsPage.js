@@ -177,32 +177,33 @@ export default function ContactsPage() {
             </div>
             <div className="flex gap-2">
               <input
-                type="file"
-                accept=".csv"
-                onChange={handleCsvUpload}
-                style={{ display: 'none' }}
-                id="csvInput"
-              />
-              <label htmlFor="csvInput">
-                <Button as="span" disabled={isProcessing}>
-                  Upload CSV
-                </Button>
-              </label>
-              {csvFile && (
-                <Button 
-                  onClick={processCsvFile} 
-                  disabled={isProcessing}
-                >
-                  {isProcessing 
-                    ? `Processing ${uploadStatus.success + uploadStatus.failed}/${uploadStatus.total}` 
-                    : 'Process CSV'}
-                </Button>
-              )}
-              {isProcessing && (
-                <span className="text-sm text-gray-500">
-                  Success: {uploadStatus.success} | Failed: {uploadStatus.failed}
-                </span>
-              )}
+              type="file"
+              accept=".csv"
+              onChange={handleCsvUpload}
+              className="hidden"
+              id="csvInput"
+            />
+            <Button
+              onClick={() => document.getElementById('csvInput').click()}
+              disabled={isProcessing}
+            >
+              Upload CSV
+            </Button>
+            {csvFile && (
+              <Button 
+                onClick={processCsvFile} 
+                disabled={isProcessing}
+              >
+                {isProcessing 
+                  ? `Processing ${uploadStatus.success + uploadStatus.failed}/${uploadStatus.total}` 
+                  : 'Process CSV'}
+              </Button>
+            )}
+            {isProcessing && (
+              <span className="text-sm text-gray-500">
+                Success: {uploadStatus.success} | Failed: {uploadStatus.failed}
+              </span>
+            )}
             </div>
           </div>
         </div>

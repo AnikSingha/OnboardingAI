@@ -1,92 +1,129 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { Plus, Phone, Mail } from "lucide-react";
+import { Plus, Phone, Mail, Trash } from "lucide-react";
 import Layout from '../components/Layout';
-import Papa from 'papaparse'; // Import PapaParse for CSV parsing
-import axios from 'axios'; // Import axios for making HTTP requests
+import { AuthContext } from '../contexts/AuthContext';
+import Papa from 'papaparse';
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [file, setFile] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newContact, setNewContact] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    notes: ''
+  });
+  const { business } = useContext(AuthContext);
 
-  // Fetch contacts from the database
   const fetchContacts = async () => {
     try {
-      const token = localStorage.getItem('token'); // Retrieve the JWT from localStorage
-      const response = await axios.get('/api/contacts', {
-        headers: {
-          Authorization: `Bearer ${token}`, // Include the token in the request
-        },
+      const response = await fetch('https://api.onboardingai.org/leads', {
+        credentials: 'include'
       });
 
-      if (response.status === 200) {
-        setContacts(response.data); // Update the contacts state with fetched data
+      if (response.ok) {
+        const data = await response.json();
+        setContacts(data.leads || []);
       }
     } catch (error) {
       console.error("Error fetching contacts:", error);
-      alert("Failed to fetch contacts.");
     }
   };
 
-  const handleFileChange = (event) => {
-    setFile(event.target.files[0]);
+  const handleAddContact = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('https://api.onboardingai.org/leads', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          leads: [{
+            ...newContact,
+            dateAdded: new Date().toISOString()
+          }]
+        }),
+      });
+
+      if (response.ok) {
+        setShowAddModal(false);
+        setNewContact({ name: '', email: '', phone: '', notes: '' });
+        fetchContacts();
+      }
+    } catch (error) {
+      console.error("Error adding contact:", error);
+    }
   };
 
-  const handleUpload = () => {
-    if (!file) {
-      alert("Please select a CSV file to upload.");
-      return;
+  const handleDeleteContact = async (contactId) => {
+    try {
+      const response = await fetch(`https://api.onboardingai.org/leads/${contactId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        fetchContacts();
+      }
+    } catch (error) {
+      console.error("Error deleting contact:", error);
     }
+  };
+
+  const handleFileUpload = async () => {
+    if (!file) return;
 
     Papa.parse(file, {
-      header: true,
-      complete: (results) => {
-        const leads = results.data.map((lead) => {
-          const name = lead.name || "Unnamed Lead"; // Default value if name is missing
-          return {
-            name,
-            phone: lead.phone || "", // Default to empty string if phone is missing
-            email: lead.email || "", // Default to empty string if email is missing
-          };
-        });
+      complete: async (results) => {
+        const leads = results.data
+          .filter(row => row.name || row.email || row.phone)
+          .map(row => ({
+            name: row.name || 'Unknown',
+            email: row.email || '',
+            phone: row.phone || '',
+            notes: row.notes || '',
+            dateAdded: new Date().toISOString()
+          }));
 
-        // Save leads to the database
-        saveLeadsToDatabase(leads);
+        try {
+          const response = await fetch('https://api.onboardingai.org/leads', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ leads }),
+          });
+
+          if (response.ok) {
+            setFile(null);
+            fetchContacts();
+          }
+        } catch (error) {
+          console.error("Error uploading leads:", error);
+        }
       },
-      error: (error) => {
-        console.error("Error parsing CSV:", error);
-      },
+      header: true
     });
   };
 
-  const saveLeadsToDatabase = async (leads) => {
-    try {
-      const token = localStorage.getItem('token'); // Retrieve the JWT from localStorage
-
-      // Send leads to your backend API to save in MongoDB
-      const response = await axios.post('/api/leads', { leads }, {
-        headers: {
-          Authorization: `Bearer ${token}`, // Include the token in the request
-        },
-      });
-
-      if (response.status === 200) {
-        alert("Leads uploaded successfully!");
-        fetchContacts(); // Fetch updated contacts after upload
-      }
-    } catch (error) {
-      console.error("Error saving leads to database:", error);
-      alert("Failed to upload leads.");
-    }
-  };
-
-  // Fetch contacts when the component mounts
   useEffect(() => {
     fetchContacts();
   }, []);
+
+  const filteredContacts = contacts.filter(contact => 
+    contact.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    contact.phone?.includes(searchTerm)
+  );
 
   return (
     <Layout>
@@ -94,14 +131,34 @@ export default function ContactsPage() {
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Contacts</h1>
         
         <div className="flex justify-between items-center mb-6">
-          <Input className="max-w-sm" placeholder="Search contacts..." />
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleUpload}>
-            <Plus className="mr-2 h-4 w-4" /> Upload Leads
-          </Button>
-          <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" id="fileInput" />
-          <label htmlFor="fileInput" className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded">
-            Select CSV
-          </label>
+          <Input 
+            className="max-w-sm" 
+            placeholder="Search contacts..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <div className="flex gap-2">
+            <Button onClick={() => setShowAddModal(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Add Contact
+            </Button>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(e) => setFile(e.target.files[0])}
+              className="hidden"
+              id="fileInput"
+            />
+            <label htmlFor="fileInput">
+              <Button as="span">
+                Upload CSV
+              </Button>
+            </label>
+            {file && (
+              <Button onClick={handleFileUpload}>
+                Process CSV
+              </Button>
+            )}
+          </div>
         </div>
 
         <Card>
@@ -116,22 +173,34 @@ export default function ContactsPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Notes</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contacts.map((contact, index) => (
+                {filteredContacts.map((contact, index) => (
                   <TableRow key={index}>
                     <TableCell className="font-medium">{contact.name}</TableCell>
                     <TableCell>{contact.phone}</TableCell>
                     <TableCell>{contact.email}</TableCell>
+                    <TableCell>{contact.notes}</TableCell>
                     <TableCell>
-                      <Button variant="outline" size="sm">
-                        <Phone className="mr-2 h-4 w-4" /> Call
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Mail className="mr-2 h-4 w-4" /> Email
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm">
+                          <Phone className="mr-2 h-4 w-4" /> Call
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Mail className="mr-2 h-4 w-4" /> Email
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleDeleteContact(contact._id)}
+                          className="text-red-600"
+                        >
+                          <Trash className="mr-2 h-4 w-4" /> Delete
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -140,6 +209,55 @@ export default function ContactsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Add Contact Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Add New Contact</h2>
+            <form onSubmit={handleAddContact} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Name</label>
+                <Input
+                  value={newContact.name}
+                  onChange={(e) => setNewContact({...newContact, name: e.target.value})}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <Input
+                  type="email"
+                  value={newContact.email}
+                  onChange={(e) => setNewContact({...newContact, email: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Phone</label>
+                <Input
+                  value={newContact.phone}
+                  onChange={(e) => setNewContact({...newContact, phone: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Notes</label>
+                <Input
+                  value={newContact.notes}
+                  onChange={(e) => setNewContact({...newContact, notes: e.target.value})}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowAddModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Add Contact
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

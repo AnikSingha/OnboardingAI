@@ -6,7 +6,8 @@ expressWs(router);
 const { callLeads, twilioStreamWebhook } = require('../twilioService.js');
 
 router.post('/call-leads', async (req, res) => {
-  console.log("Lead Call Initiated");
+  console.log("Route hit: /call-leads");
+  console.log("Request body:", req.body);
   try {
     await callLeads(req, res);
   } catch (error) {

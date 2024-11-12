@@ -79,6 +79,7 @@ app.use('/user', userRoutes);
 app.use('/business', businessRoutes);
 app.use('/leads', leadsRoutes);
 app.use('/', callerRoutes);
+console.log('Available routes:', app._router.stack.map(r => r.route?.path).filter(Boolean));
 
 
 app.listen(PORT, '0.0.0.0', () => {

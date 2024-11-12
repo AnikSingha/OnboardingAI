@@ -1,7 +1,8 @@
-const express = require('express');
+const express = require('express-ws');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { verifyToken } = require('./utils/token.js');
+const expressWs = require('express-ws');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
@@ -10,6 +11,7 @@ const leadsRoutes = require('./routes/leads');
 const callerRoutes = require('../ai-caller/routes/caller');
 
 const app = express();
+const wsInstance = expressWs(app);
 
 app.use(express.json());
 app.use(cookieParser());

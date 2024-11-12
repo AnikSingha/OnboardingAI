@@ -52,19 +52,16 @@ export default function SettingsPage() {
   const [showQRCode, setShowQRCode] = useState(false);
   const [qrCode, setQRCode] = useState('');
 
-  const handleToggleTwoFactorAuth = () => {
-    setTwoFactorAuth((prev) => {
-      const newValue = !prev;
-      if (newValue && !qrCode) {
-        // Simulate QR code generation
-        const generatedQRCode = 'https://example.com/qrcode.png'; // Replace with actual QR code generation logic
-        setQRCode(generatedQRCode);
-        setShowQRCode(true);
-      } else {
-        setShowQRCode(false);
-      }
-      return newValue;
-    });
+  const handleToggleTwoFactorAuth = (enable) => {
+    setTwoFactorAuth(enable);
+    if (enable && !qrCode) {
+      // Simulate QR code generation
+      const generatedQRCode = 'https://example.com/qrcode.png'; // Replace with actual QR code generation logic
+      setQRCode(generatedQRCode);
+      setShowQRCode(true);
+    } else {
+      setShowQRCode(false);
+    }
   };
 
   useEffect(() => {
@@ -340,17 +337,28 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label htmlFor="two-factor-auth">Enable Two-Factor Authentication</Label>
-                <Switch 
-                  id="two-factor-auth" 
-                  checked={twoFactorAuth}
-                  onCheckedChange={handleToggleTwoFactorAuth}
-                />
+                <div>
+                  <p className="font-medium mb-2">Status: {twoFactorAuth ? 'Enabled' : 'Disabled'}</p>
+                  {twoFactorAuth ? (
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => handleToggleTwoFactorAuth(false)}
+                    >
+                      Disable 2FA
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={() => handleToggleTwoFactorAuth(true)}
+                    >
+                      Enable 2FA
+                    </Button>
+                  )}
+                </div>
               </div>
               {showQRCode && (
-                <div>
-                  <p>Scan this QR code with your authentication app:</p>
-                  <img src={qrCode} alt="QR Code for Two-Factor Authentication" />
+                <div className="mt-4">
+                  <p className="mb-2">Scan this QR code with your authentication app:</p>
+                  <img src={qrCode} alt="QR Code for Two-Factor Authentication" className="border p-2 rounded" />
                 </div>
               )}
             </CardContent>

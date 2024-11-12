@@ -1,4 +1,6 @@
+require('dotenv').config();
 const express = require('express');
+const expressWs = require('express-ws');
 const cookieParser = require('cookie-parser');
 const { verifyToken } = require('./utils/token.js');
 const cors = require('cors');
@@ -8,18 +10,25 @@ const userRoutes = require('./routes/user');
 const businessRoutes = require('./routes/business');
 const leadsRoutes = require('./routes/leads');
 
+const { callLeads, twilioStreamWebhook } = require('../ai-caller/twilioService');
+const connectToMongoDB = require('../ai-caller/database');
+
 const app = express();
+expressWs(app); // Enable WebSocket on the app
+
+
+const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cookieParser());
 
 const corsOptions = {
-    origin: ['https://www.onboardingai.org', 'https://test.onboardingai.org'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    credentials: true,
-    optionsSuccessStatus: 204
+  origin: ['https://onboardingai.org', 'https://api.onboardingai.org'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+  optionsSuccessStatus: 204
 };
 
-app.use(cors(corsOptions));
+connectToMongoDB();
 
 const openPaths = new Set([
     '/auth/forgot-password',
@@ -33,7 +42,10 @@ const openPaths = new Set([
     '/auth/reset-password',
     '/auth/decode-business-token',
     '/auth/employee-sign-up'
+
 ]);
+
+app.use(cors(corsOptions));
 
 function checkToken(req, res, next) {
     if (openPaths.has(req.path)) {
@@ -61,6 +73,25 @@ app.use('/user', userRoutes);
 app.use('/business', businessRoutes);
 app.use('/leads', leadsRoutes);
 
-app.listen(3000, '0.0.0.0', () => {
+
+app.post('/call-leads', (req, res) => {
+  try {
+      callLeads(req.body);
+      res.status(200).json({ success: true, message: 'Calls initiated' });
+  } catch (error) {
+      res.status(500).json({ success: false, message: `Error initiating calls: ${error.message}` });
+  }
+});
+
+app.post('/twilio-stream', twilioStreamWebhook);
+
+app.ws('/media', (ws, req) => {
+  ws.on('message', (msg) => {
+    console.log('Received WebSocket message:', msg);
+  });
+  ws.on('close', () => console.log('WebSocket closed'));
+});
+
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:3000/`);
 });

@@ -3,7 +3,7 @@ import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const MONGO_URI = process.env.MONGO_URI;
+const MONGO_URI = process.env.DB_URI;
 const client = new MongoClient(MONGO_URI, {
   tls: true,
   tlsAllowInvalidCertificates: true,

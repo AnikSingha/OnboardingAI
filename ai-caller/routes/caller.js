@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const VoiceResponse = require('twilio').twiml.VoiceResponse;
+const { handleWebSockets } = require('../twilioService');
 
 router.post('/', async (req, res) => {
   try {
@@ -46,19 +47,24 @@ router.post('/', async (req, res) => {
 // Add the webhook endpoints
 router.post('/twilio-stream', (req, res) => {
   console.log('Twilio webhook hit');
+  const phoneNumber = req.query.phoneNumber || req.body.to;
+  
   const twiml = new VoiceResponse();
-  twiml.pause({ length: 2 });
-  twiml.say('Hello, this is a test call from OnboardAI.');
-  twiml.pause({ length: 1 });
+  twiml.connect().stream({
+    url: `wss://${req.headers.host}/media`,
+    track: 'both'
+  }).parameter({
+    name: 'phoneNumber',
+    value: phoneNumber
+  });
   
   console.log('TwiML generated:', twiml.toString());
   res.type('text/xml');
   res.send(twiml.toString());
 });
 
-router.post('/call-status', (req, res) => {
-  console.log('Call status update:', req.body);
-  res.sendStatus(200);
+router.ws('/media', (ws, req) => {
+  handleWebSockets(ws, req);
 });
 
 module.exports = router;

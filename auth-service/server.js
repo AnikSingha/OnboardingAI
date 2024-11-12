@@ -39,7 +39,8 @@ const openPaths = new Set([
   '/call-leads/twilio-stream',
   '/call-leads/call-status',
   '/twilio-stream',
-  '/media'
+  '/media',
+  '/call-leads/media'
 ]);
 
 function checkToken(req, res, next) {

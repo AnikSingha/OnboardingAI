@@ -5,3 +5,4 @@ error.log
 greeting_audio.mulaw
 test_tts_output.mp3
 .vscode
+test.js

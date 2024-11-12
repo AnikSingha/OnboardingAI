@@ -53,17 +53,18 @@ export default function SettingsPage() {
   const [qrCode, setQRCode] = useState('');
 
   const handleToggleTwoFactorAuth = () => {
-    const newValue = !twoFactorAuth;
-    setTwoFactorAuth(newValue);
-
-    if (newValue && !qrCode) {
-      // Simulate QR code generation
-      const generatedQRCode = 'https://example.com/qrcode.png'; // Replace with actual QR code generation logic
-      setQRCode(generatedQRCode);
-      setShowQRCode(true);
-    } else {
-      setShowQRCode(false);
-    }
+    setTwoFactorAuth((prev) => {
+      const newValue = !prev;
+      if (newValue && !qrCode) {
+        // Simulate QR code generation
+        const generatedQRCode = 'https://example.com/qrcode.png'; // Replace with actual QR code generation logic
+        setQRCode(generatedQRCode);
+        setShowQRCode(true);
+      } else {
+        setShowQRCode(false);
+      }
+      return newValue;
+    });
   };
 
   useEffect(() => {

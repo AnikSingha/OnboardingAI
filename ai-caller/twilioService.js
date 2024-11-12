@@ -11,33 +11,37 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
 
 const twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-const client = new MongoClient(process.env.MONGO_URI, {
+const client = new MongoClient(process.env.DB_URI, {
   tls: true,
   tlsAllowInvalidCertificates: true,
 });
 
 // Function to initiate calls to leads
 export const callLeads = async (req, res) => {
+  const { name, number } = req.body; // Extract name and number from the request body
+
+  if (!name || !number) {
+    return res.status(400).send('Name and number are required');
+  }
+
   try {
     await client.connect();
     const database = client.db('auth');
     const leadsCollection = database.collection('leads');
 
-    const leads = await leadsCollection.find({}).toArray();
-    const phoneNumbers = leads.map(lead => lead._number);
-
-    console.log('Leads to be called:', phoneNumbers);
-
-    for (const number of phoneNumbers) {
-      if (number) {
-        await makeCall(number);
-      }
+    // Optionally, you can check if the lead exists in the database
+    const lead = await leadsCollection.findOne({ _number: number });
+    if (!lead) {
+      return res.status(404).send('Lead not found');
     }
 
-    res.status(200).send('Calls initiated successfully to all leads.');
+    console.log(`Calling lead: ${name} at ${number}`);
+    await makeCall(number); // Call the specific number
+
+    res.status(200).send(`Call initiated successfully to ${name}`);
   } catch (error) {
-    console.error('Error calling leads:', error);
-    res.status(500).send('Error calling leads');
+    console.error('Error calling lead:', error);
+    res.status(500).send('Error calling lead');
   } finally {
     await client.close();
   }

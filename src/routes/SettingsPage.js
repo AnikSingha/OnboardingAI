@@ -54,6 +54,40 @@ export default function SettingsPage() {
 
   const [isToggling2FA, setIsToggling2FA] = useState(false);
 
+  const fetchQRCode = async () => {
+    try {
+      console.log('Fetching QR code...');
+      const response = await fetch('https://api.onboardingai.org/auth/otp/qr-code', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      console.log('QR code response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('QR code fetch failed. Status:', response.status, 'Error:', errorText);
+        throw new Error(`Failed to fetch QR code: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('QR code fetch response received');
+
+      if (!data.success) {
+        console.error('QR code fetch unsuccessful:', data.message);
+        throw new Error(data.message);
+      }
+
+      return data.QRCode;
+    } catch (error) {
+      console.error('Error fetching QR code:', error);
+      throw error;
+    }
+  };
+
   const handleToggleTwoFactorAuth = async (enable) => {
     setIsToggling2FA(true);
     try {
@@ -86,12 +120,23 @@ export default function SettingsPage() {
       setTwoFactorAuth(data.enabled);
       console.log('2FA status set to:', data.enabled);
       
-      if (data.enabled && data.qrCode) {
-        console.log('QR code received, showing QR code section');
-        setQRCode(data.qrCode);
-        setShowQRCode(true);
+      if (data.enabled) {
+        console.log('2FA enabled, fetching QR code');
+        try {
+          const qrCodeData = await fetchQRCode();
+          setQRCode(qrCodeData);
+          setShowQRCode(true);
+          console.log('QR code successfully set');
+        } catch (qrError) {
+          console.error('Failed to fetch QR code:', qrError);
+          setAlertMessage({ 
+            type: 'error', 
+            text: 'Two-factor authentication enabled, but failed to fetch QR code'
+          });
+          return;
+        }
       } else {
-        console.log('No QR code needed, hiding QR code section');
+        console.log('2FA disabled, hiding QR code section');
         setShowQRCode(false);
       }
 

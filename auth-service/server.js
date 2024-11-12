@@ -26,6 +26,13 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));  // Enable pre-flight for all routes
+
+app.use(express.json());
+app.use(cookieParser());
+
+app.use(checkToken);
+
 
 const openPaths = new Set([
     '/auth/forgot-password',
@@ -48,26 +55,36 @@ const openPaths = new Set([
 
 
 function checkToken(req, res, next) {
-  if (openPaths.has(req.path)) {
-        return next();
-    }
+  // Always allow OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
 
-    const token = req.cookies.token;
+  const isOpenPath = Array.from(openPaths).some(path => 
+    req.path.startsWith(path)
+  );
 
-    if (!token) {
-        return res.status(401).json({ success: false, message: 'No token provided' });
-    }
+  if (isOpenPath) {
+    return next();
+  }
 
-    const result = verifyToken(token);
-    if (!result.valid) {
-        return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error });
-    }
+  const token = req.cookies.token;
+  
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'No token provided' });
+  }
 
-    next();
+  const result = verifyToken(token);
+  if (!result.valid) {
+    return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error });
+  }
+
+  next();
 }
 
 connectToMongoDB();
-app.use(checkToken);
+
+
 
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);

@@ -13,10 +13,22 @@ const callerRoutes = require('../ai-caller/routes/caller');
 
 const app = express();
 const server = http.createServer(app);
-const wsInstance = expressWs(app);
+const wsInstance = expressWs(app, server);
 
 const corsOptions = {
-  origin: ['https://www.onboardingai.org', 'https://test.onboardingai.org'],
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'https://www.onboardingai.org',
+      'https://test.onboardingai.org',
+      'https://api.onboardingai.org'
+    ];
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
   optionsSuccessStatus: 204,
@@ -30,20 +42,27 @@ const corsOptions = {
     'Sec-WebSocket-Version',
     'Sec-WebSocket-Extensions'
   ],
-  exposedHeaders: ['set-cookie', 'Upgrade']  
+  exposedHeaders: ['Set-Cookie', 'Upgrade']
 };
 
+// Apply CORS before any other middleware
 app.use(cors(corsOptions));
+app.use(express.json());
+app.use(cookieParser());
 
-// Websocket CORS handling
+// WebSocket CORS handling - simplified and fixed
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (corsOptions.origin.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
+  if (origin && typeof corsOptions.origin === 'function') {
+    corsOptions.origin(origin, (err, allowed) => {
+      if (allowed) {
+        res.header('Access-Control-Allow-Origin', origin);
+      }
+    });
   }
+  res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', corsOptions.methods.join(','));
   res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders.join(','));
-  res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Expose-Headers', corsOptions.exposedHeaders.join(','));
   
   if (req.method === 'OPTIONS') {
@@ -51,7 +70,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-
 
 const openPaths = new Set([
   '/auth/forgot-password',
@@ -70,10 +88,6 @@ const openPaths = new Set([
   '/call-leads/call-status',
   '/call-leads/media'
 ]);
-
-app.use(express.json());
-app.use(cookieParser());
-
 
 function checkToken(req, res, next) {
   if (req.method === 'OPTIONS') {
@@ -99,6 +113,7 @@ function checkToken(req, res, next) {
 
 app.use(checkToken);
 
+// Routes
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/business', businessRoutes);
@@ -106,6 +121,6 @@ app.use('/leads', leadsRoutes);
 app.use('/call-leads', callerRoutes);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running at http://localhost:${PORT}/`);
 });

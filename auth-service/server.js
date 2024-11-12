@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require('express');
 const expressWs = require('express-ws');
 const cookieParser = require('cookie-parser');
@@ -9,8 +8,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const businessRoutes = require('./routes/business');
 const leadsRoutes = require('./routes/leads');
-const callerRoutes = require('../ai-caller/routes/caller');
-const { connectToMongoDB } = require('../ai-caller/database');
+const callerRoutes = require('../ai-caller/routes/caller');  // Make sure path is correct
 
 const app = express();
 expressWs(app);
@@ -71,12 +69,11 @@ function checkToken(req, res, next) {
 connectToMongoDB();
 app.use(checkToken);
 
-
-app.use('/', callerRoutes);
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/business', businessRoutes);
 app.use('/leads', leadsRoutes);
+app.use('/call-leads', callerRoutes);
 console.log('Available routes:', app._router.stack.map(r => r.route?.path).filter(Boolean));
 
 

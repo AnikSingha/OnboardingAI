@@ -43,28 +43,33 @@ const openPaths = new Set([
     '/auth/reset-password',
     '/auth/decode-business-token',
     '/auth/employee-sign-up',
-    '/call-leads' // ruling out potential authentication issues
+    '/call-leads', // ruling out potential authentication issues
+    '/twilio-stream'
 
 ]);
 
 
 function checkToken(req, res, next) {
-    if (openPaths.has(req.path)) {
-        return next();
-    }
+  const isOpenPath = Array.from(openPaths).some(path => 
+      req.path === path || req.path.startsWith(`${path}/`)
+  );
 
-    const token = req.cookies.token;
-    
-    if (!token) {
-        return res.status(401).json({ success: false, message: 'No token provided' });
-    }
+  if (isOpenPath) {
+      return next();
+  }
 
-    const result = verifyToken(token);
-    if (!result.valid) {
-        return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error });
-    }
+  const token = req.cookies.token;
+  
+  if (!token) {
+      return res.status(401).json({ success: false, message: 'No token provided' });
+  }
 
-    next();
+  const result = verifyToken(token);
+  if (!result.valid) {
+      return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error });
+  }
+
+  next();
 }
 
 app.use(checkToken);

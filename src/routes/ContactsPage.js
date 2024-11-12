@@ -228,35 +228,41 @@ export default function ContactsPage() {
                     <TableCell>{contact._number}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={async () => {
-                            try {
-                              const response = await fetch('https://api.onboardingai.org/call-leads', {
-                                method: 'POST',
-                                credentials: 'include',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  name: contact.name,
-                                  number: contact._number
-                                }),
-                              });
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('https://ai-caller.onboardingai.org/call-leads', {
+                              method: 'POST',
+                              credentials: 'include',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                name: contact.name,
+                                number: contact._number
+                              }),
+                            });
 
+                            const responseText = await response.text();
+                            try {
+                              const data = JSON.parse(responseText);
                               if (response.ok) {
                                 alert(`Calling ${contact.name}...`);
                               } else {
-                                const data = await response.json();
                                 alert(data.message || 'Failed to initiate call');
                               }
                             } catch (error) {
-                              console.error("Error initiating call:", error);
-                              alert('Error initiating call');
+                              console.error('Response:', responseText);
+                              alert('Error processing server response');
                             }
-                          }}
-                        >
-                          Call
-                        </Button>
+                          } catch (error) {
+                            console.error("Error initiating call:", error);
+                            alert('Error initiating call');
+                          }
+                        }}
+                      >
+                        Call
+                      </Button>
                         <Button 
                           variant="outline" 
                           size="sm"

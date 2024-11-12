@@ -76,6 +76,7 @@ app.use('/leads', leadsRoutes);
 
 
 app.post('/call-leads', (req, res) => {
+  console.log("Lead Call Initiated");
   try {
       callLeads(req.body);
       res.status(200).json({ success: true, message: 'Calls initiated' });

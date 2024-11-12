@@ -51,7 +51,7 @@ export const callLeads = async (req, res) => {
 const makeCall = async (to) => {
   try {
     const call = await twilioClient.calls.create({
-      url: `https://${process.env.HOST}/twilio-stream?phoneNumber=${to}`,
+      url: `https://api.onboardingai.org/twilio-stream?phoneNumber=${to}`,
       to: to,
       from: TWILIO_PHONE_NUMBER,
     });

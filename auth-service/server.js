@@ -1,6 +1,7 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const expressWs = require('express-ws');
 const { verifyToken } = require('./utils/token.js');
 
 const authRoutes = require('./routes/auth');
@@ -10,18 +11,21 @@ const leadsRoutes = require('./routes/leads');
 const callerRoutes = require('../ai-caller/routes/caller');
 
 const app = express();
-
-app.use(express.json());
-app.use(cookieParser());
+const wsInstance = expressWs(app);
 
 const corsOptions = {
-    origin: ['https://www.onboardingai.org', 'https://test.onboardingai.org'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    credentials: true,
-    optionsSuccessStatus: 204
+  origin: ['https://www.onboardingai.org', 'https://test.onboardingai.org'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+  credentials: true,
+  optionsSuccessStatus: 204,
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  exposedHeaders: ['set-cookie'],
+  preflightContinue: false
 };
 
 app.use(cors(corsOptions));
+app.use(express.json());
+app.use(cookieParser());
 
 const openPaths = new Set([
     '/auth/forgot-password',
@@ -37,18 +41,20 @@ const openPaths = new Set([
     '/auth/employee-sign-up',
     '/call-leads',
     '/call-leads/twilio-stream',
-  '/call-leads/call-status',
-  '/twilio-stream',
-  '/media'
+    '/call-leads/call-status',
+    '/call-leads/media',
+    '/call-leads/ws',
+    '/twilio-stream',
+    '/media'
 ]);
 
 function checkToken(req, res, next) {
     if (req.method === 'OPTIONS') {
-    return next();
+        return next();
     }
 
     if (openPaths.has(req.path)) {
-    return next();
+        return next();
     }
 
     const token = req.cookies.token;
@@ -59,7 +65,7 @@ function checkToken(req, res, next) {
 
     const result = verifyToken(token);
     if (!result.valid) {
-    return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error });
+        return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error });
     }
 
     next();

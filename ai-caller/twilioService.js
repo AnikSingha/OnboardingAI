@@ -16,7 +16,7 @@ const client = new MongoClient(process.env.DB_URI, {
   tlsAllowInvalidCertificates: true,
 });
 
-// Function to initiate calls to leads
+/*
 const callLeads = async (req, res) => {
   const { name, number } = req.body;
 
@@ -24,7 +24,6 @@ const callLeads = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Name and number are required' });
   }
 
-  router.post('/call-leads', async (req, res) => {
   try {
     const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     
@@ -47,10 +46,11 @@ const callLeads = async (req, res) => {
     console.error('Error initiating call:', error);
     res.status(500).json({ success: false, error: error.message });
   }
-});
 };
+*/
 
 // Function to make a call using Twilio
+/*
 const makeCall = async (to) => {
   try {
     const call = await twilioClient.calls.create({
@@ -63,6 +63,7 @@ const makeCall = async (to) => {
     console.error(`Error initiating call to ${to}:`, error);
   }
 };
+*/
 
 // Twilio Stream Webhook
 const twilioStreamWebhook = (req, res) => {
@@ -267,7 +268,6 @@ const handleWebSocket = (ws, req) => {
 };
 
 module.exports = {
-  callLeads,
   twilioStreamWebhook,
   handleWebSocket
 };

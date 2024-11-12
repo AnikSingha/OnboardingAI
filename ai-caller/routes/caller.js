@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const VoiceResponse = require('twilio').twiml.VoiceResponse;
-const { handleWebSockets } = require('../twilioService');
+const { handleWebSocket } = require('../twilioService');
 
 router.post('/', async (req, res) => {
   try {
@@ -64,7 +64,7 @@ router.post('/twilio-stream', (req, res) => {
 });
 
 router.ws('/media', (ws, req) => {
-  handleWebSockets(ws, req);
+  handleWebSocket(ws, req);
 });
 
 module.exports = router;

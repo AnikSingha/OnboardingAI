@@ -88,6 +88,48 @@ export default function SettingsPage() {
     }
   };
 
+  const checkTwoFactorStatus = async () => {
+    try {
+      console.log('Checking 2FA status...');
+      const response = await fetch('https://api.onboardingai.org/auth/has-two-factor', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      console.log('2FA status check response:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('2FA status check failed:', errorText);
+        throw new Error(`Failed to check 2FA status: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('2FA status data:', data);
+
+      if (data.success) {
+        setTwoFactorAuth(data.twoFactorAuthEnabled);
+        console.log('2FA status updated:', data.twoFactorAuthEnabled);
+      } else {
+        console.error('2FA status check unsuccessful:', data.message);
+      }
+    } catch (error) {
+      console.error('Error checking 2FA status:', error);
+      setAlertMessage({
+        type: 'error',
+        text: 'Failed to check two-factor authentication status'
+      });
+    }
+  };
+
+  // Check 2FA status on component mount
+  useEffect(() => {
+    checkTwoFactorStatus();
+  }, []);
+
   const handleToggleTwoFactorAuth = async (enable) => {
     setIsToggling2FA(true);
     try {
@@ -145,6 +187,9 @@ export default function SettingsPage() {
         text: `Two-factor authentication has been ${data.enabled ? 'enabled' : 'disabled'}`
       });
       console.log('Success alert set');
+
+      // After successful toggle, check the status again
+      await checkTwoFactorStatus();
 
     } catch (error) {
       console.error('Detailed error in 2FA toggle:', {
@@ -446,7 +491,11 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium mb-2">Status: {twoFactorAuth ? 'Enabled' : 'Disabled'}</p>
+                  <p className="font-medium mb-2">
+                    Status: <span className={twoFactorAuth ? 'text-green-600' : 'text-yellow-600'}>
+                      {twoFactorAuth ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </p>
                   {twoFactorAuth ? (
                     <Button 
                       variant="destructive" 

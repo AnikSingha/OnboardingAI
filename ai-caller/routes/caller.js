@@ -92,7 +92,7 @@ router.post('/twilio-stream', (req, res) => {
   const twiml = new VoiceResponse();
   twiml.connect().stream({
     url: `wss://${req.headers.host}/call-leads/media`,
-    track: 'both'
+    track: 'inbound_track'
   }).parameter({
     name: 'phoneNumber',
     value: phoneNumber

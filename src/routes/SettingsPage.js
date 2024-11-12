@@ -154,15 +154,16 @@ export default function SettingsPage() {
       const data = await response.json();
       console.log('2FA toggle response data:', data);
 
-      if (!data) {
-        console.error('No data received from 2FA toggle');
-        throw new Error('No data received from server');
-      }
-
-      setTwoFactorAuth(data.enabled);
-      console.log('2FA status set to:', data.enabled);
+      // Check the updated 2FA status
+      const statusResponse = await fetch('https://api.onboardingai.org/auth/has-two-factor', {
+        credentials: 'include',
+      });
+      const statusData = await statusResponse.json();
       
-      if (data.enabled) {
+      setTwoFactorAuth(statusData.twoFactorAuthEnabled);
+      
+      // If 2FA was just enabled, fetch and show QR code
+      if (statusData.twoFactorAuthEnabled) {
         console.log('2FA enabled, fetching QR code');
         try {
           const qrCodeData = await fetchQRCode();
@@ -180,16 +181,14 @@ export default function SettingsPage() {
       } else {
         console.log('2FA disabled, hiding QR code section');
         setShowQRCode(false);
+        setQRCode('');
       }
 
       setAlertMessage({ 
         type: 'success', 
-        text: `Two-factor authentication has been ${data.enabled ? 'enabled' : 'disabled'}`
+        text: `Two-factor authentication has been ${statusData.twoFactorAuthEnabled ? 'enabled' : 'disabled'}`
       });
       console.log('Success alert set');
-
-      // After successful toggle, check the status again
-      await checkTwoFactorStatus();
 
     } catch (error) {
       console.error('Detailed error in 2FA toggle:', {
@@ -212,7 +211,6 @@ export default function SettingsPage() {
       console.log('Error alert set');
 
     } finally {
-      console.log('2FA toggle operation completed');
       setIsToggling2FA(false);
     }
   };

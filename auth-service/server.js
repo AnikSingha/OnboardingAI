@@ -15,59 +15,26 @@ const app = express();
 const server = http.createServer(app);
 const wsInstance = expressWs(app, server);
 
+// Simplified CORS configuration
 const corsOptions = {
-  origin: function(origin, callback) {
-    const allowedOrigins = [
-      'https://www.onboardingai.org',
-      'https://test.onboardingai.org',
-      'https://api.onboardingai.org'
-    ];
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  origin: true, // Allow all origins temporarily
   credentials: true,
-  optionsSuccessStatus: 204,
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'Cookie', 
-    'Upgrade', 
-    'Connection',
-    'Sec-WebSocket-Key',
-    'Sec-WebSocket-Version',
-    'Sec-WebSocket-Extensions'
-  ],
-  exposedHeaders: ['Set-Cookie', 'Upgrade']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', '*'],
+  exposedHeaders: ['Set-Cookie']
 };
 
 // Apply CORS before any other middleware
 app.use(cors(corsOptions));
+
+// Basic middleware
 app.use(express.json());
 app.use(cookieParser());
 
-// WebSocket CORS handling - simplified and fixed
+// Add headers to all responses
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin && typeof corsOptions.origin === 'function') {
-    corsOptions.origin(origin, (err, allowed) => {
-      if (allowed) {
-        res.header('Access-Control-Allow-Origin', origin);
-      }
-    });
-  }
   res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', corsOptions.methods.join(','));
-  res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders.join(','));
-  res.header('Access-Control-Expose-Headers', corsOptions.exposedHeaders.join(','));
-  
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
   next();
 });
 

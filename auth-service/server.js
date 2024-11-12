@@ -30,6 +30,8 @@ const corsOptions = {
 
 connectToMongoDB();
 
+app.use(cors(corsOptions));
+
 const openPaths = new Set([
     '/auth/forgot-password',
     '/auth/sign-up', 
@@ -45,7 +47,6 @@ const openPaths = new Set([
 
 ]);
 
-app.use(cors(corsOptions));
 
 function checkToken(req, res, next) {
     if (openPaths.has(req.path)) {

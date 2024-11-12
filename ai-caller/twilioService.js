@@ -24,26 +24,30 @@ const callLeads = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Name and number are required' });
   }
 
+  router.post('/call-leads', async (req, res) => {
   try {
-    await client.connect();
-    const database = client.db('auth');
-    const leadsCollection = database.collection('leads');
+    const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    
+    console.log('Initiating call to:', req.body.to);
 
-    const lead = await leadsCollection.findOne({ _number: number });
-    if (!lead) {
-      return res.status(404).json({ success: false, message: 'Lead not found' });
-    }
+    const call = await client.calls.create({
+      // Update these URLs to include the /call-leads prefix
+      url: 'https://api.onboardingai.org/call-leads/twilio-stream',
+      to: req.body.to,
+      from: req.body.from,
+      statusCallback: 'https://api.onboardingai.org/call-leads/call-status',
+      statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+      statusCallbackMethod: 'POST'
+    });
 
-    console.log(`Calling lead: ${name} at ${number}`);
-    await makeCall(number);
+    console.log('Call initiated with SID:', call.sid);
+    res.json({ success: true, callSid: call.sid });
 
-    return res.status(200).json({ success: true, message: `Call initiated successfully to ${name}` });
   } catch (error) {
-    console.error('Error calling lead:', error);
-    return res.status(500).json({ success: false, message: 'Error calling lead' });
-  } finally {
-    await client.close();
+    console.error('Error initiating call:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
+});
 };
 
 // Function to make a call using Twilio

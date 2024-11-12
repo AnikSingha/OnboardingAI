@@ -43,8 +43,9 @@ const openPaths = new Set([
     '/auth/employee-sign-up',
     '/call-leads', // ruling out potential authentication issues
     '/twilio-stream',
-    '/media'
-
+    '/media',
+    '/call-leads/twilio-stream',
+    '/call-leads/call-status'
 ]);
 
 

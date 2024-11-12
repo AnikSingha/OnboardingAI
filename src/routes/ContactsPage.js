@@ -233,7 +233,7 @@ export default function ContactsPage() {
                         size="sm"
                         onClick={async () => {
                           try {
-                            const response = await fetch('https://ai-caller.onboardingai.org/call-leads', {
+                            const response = await fetch('https://api.onboardingai.org/call-leads', {
                               method: 'POST',
                               credentials: 'include',
                               headers: { 'Content-Type': 'application/json' },

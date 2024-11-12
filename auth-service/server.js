@@ -14,7 +14,7 @@ const app = express();
 const wsInstance = expressWs(app);
 
 const corsOptions = {
-  origin: ['https://www.onboardingai.org', 'https://test.onboardingai.org'],
+  origin: ['https://www.onboardingai.org', 'https://test.onboardingai.org', 'https://api.onboardingai.org'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
   credentials: true,
   optionsSuccessStatus: 204,

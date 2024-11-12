@@ -72,7 +72,7 @@ const twilioStreamWebhook = (req, res) => {
   const response = `
     <Response>
       <Start>
-        <Stream url="wss://${req.headers.host}/call-leads/media" track="both">
+        <Stream url="wss://api.onboardingai.org/call-leads/media" track="both">
           <Parameter name="phoneNumber" value="${phoneNumber}" />
         </Stream>
       </Start>

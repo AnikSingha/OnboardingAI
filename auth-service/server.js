@@ -15,29 +15,30 @@ const app = express();
 const server = http.createServer(app);
 const wsInstance = expressWs(app, server);
 
-// Simplified CORS configuration
+// CORS configuration
 const corsOptions = {
-  origin: true, // Allow all origins temporarily
+  origin: ['https://www.onboardingai.org', 'https://test.onboardingai.org'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', '*'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   exposedHeaders: ['Set-Cookie']
 };
 
-// Apply CORS before any other middleware
+// Apply CORS middleware
 app.use(cors(corsOptions));
 
 // Basic middleware
 app.use(express.json());
 app.use(cookieParser());
 
-// Add headers to all responses
+// Global headers for all responses
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
   next();
 });
 
+// Open paths that don't require authentication
 const openPaths = new Set([
   '/auth/forgot-password',
   '/auth/sign-up', 
@@ -56,12 +57,9 @@ const openPaths = new Set([
   '/call-leads/media'
 ]);
 
+// Token verification middleware
 function checkToken(req, res, next) {
-  if (req.method === 'OPTIONS') {
-    return next();
-  }
-
-  if (openPaths.has(req.path)) {
+  if (req.method === 'OPTIONS' || openPaths.has(req.path)) {
     return next();
   }
 

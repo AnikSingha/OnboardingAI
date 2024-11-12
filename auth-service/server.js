@@ -1,48 +1,38 @@
+require('dotenv').config();
 const express = require('express');
-const cookieParser = require('cookie-parser');
-const cors = require('cors');
-const { verifyToken } = require('./utils/token.js');
 const expressWs = require('express-ws');
-const http = require('http');
+const cookieParser = require('cookie-parser');
+const { verifyToken } = require('./utils/token.js');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const businessRoutes = require('./routes/business');
 const leadsRoutes = require('./routes/leads');
 const callerRoutes = require('../ai-caller/routes/caller');
+const { connectToMongoDB } = require('../ai-caller/database');
 
 const app = express();
-const server = http.createServer(app);
-const wsInstance = expressWs(app, server);
+expressWs(app);
 
-// CORS configuration
-const corsOptions = {
-  origin: function(origin, callback) {
-    const allowedOrigins = ['https://www.onboardingai.org', 'https://test.onboardingai.org'];
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-  exposedHeaders: ['Set-Cookie']
-};
-
-// Apply CORS middleware
-app.use(cors(corsOptions));
-
-// Basic middleware
+const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cookieParser());
 
+const corsOptions = {
+  origin: ['https://onboardingai.org', 'https://api.onboardingai.org', 'https://www.onboardingai.org'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+  optionsSuccessStatus: 204
+};
 
-// Open paths that don't require authentication
+app.use(cors(corsOptions));
+
 const openPaths = new Set([
   '/auth/forgot-password',
-  '/auth/sign-up', 
+  '/auth/sign-up',
   '/auth/login',
   '/auth/login-link',
   '/auth/send-login-link',
@@ -52,19 +42,19 @@ const openPaths = new Set([
   '/auth/reset-password',
   '/auth/decode-business-token',
   '/auth/employee-sign-up',
-  '/call-leads',                  
-  '/call-leads/twilio-stream',    
-  '/call-leads/call-status',
-  '/call-leads/media'
+  '/call-leads',
+  '/twilio-stream',
+  '/media',
+  '/logs'
 ]);
 
-// Token verification middleware
 function checkToken(req, res, next) {
-  if (req.method === 'OPTIONS' || openPaths.has(req.path)) {
+  if (openPaths.has(req.path)) {
     return next();
   }
 
   const token = req.cookies.token;
+
   if (!token) {
     return res.status(401).json({ success: false, message: 'No token provided' });
   }
@@ -77,16 +67,28 @@ function checkToken(req, res, next) {
   next();
 }
 
+connectToMongoDB();
 app.use(checkToken);
 
-// Routes
+app.use('/', callerRoutes);
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/business', businessRoutes);
 app.use('/leads', leadsRoutes);
-app.use('/call-leads', callerRoutes);
+console.log('Available routes:', app._router.stack.map(r => r.route?.path).filter(Boolean));
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
+app.get('/logs', (req, res) => {
+  const logFilePath = path.join(__dirname, 'server.log');
+  res.setHeader('Content-Type', 'text/plain');
+
+  if (fs.existsSync(logFilePath)) {
+    const logStream = fs.createReadStream(logFilePath, { encoding: 'utf8' });
+    logStream.pipe(res);
+  } else {
+    res.status(404).send('Log file not found.');
+  }
+});
+
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running at http://localhost:${PORT}/`);
 });

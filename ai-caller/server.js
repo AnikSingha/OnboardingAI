@@ -18,8 +18,6 @@ app.use(express.urlencoded({ extended: true }));
 // Connect to MongoDB
 connectToMongoDB();
 
-// Endpoint to initiate calls to all leads
-app.post('/call-leads', callLeads);
 
 // Twilio Stream Webhook
 app.post('/twilio-stream', twilioStreamWebhook);

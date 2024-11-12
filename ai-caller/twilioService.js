@@ -18,10 +18,10 @@ const client = new MongoClient(process.env.DB_URI, {
 
 // Function to initiate calls to leads
 export const callLeads = async (req, res) => {
-  const { name, number } = req.body; // Extract name and number from the request body
+  const { name, number } = req.body;
 
   if (!name || !number) {
-    return res.status(400).send('Name and number are required');
+    return res.status(400).json({ success: false, message: 'Name and number are required' });
   }
 
   try {
@@ -29,19 +29,18 @@ export const callLeads = async (req, res) => {
     const database = client.db('auth');
     const leadsCollection = database.collection('leads');
 
-    // Optionally, you can check if the lead exists in the database
     const lead = await leadsCollection.findOne({ _number: number });
     if (!lead) {
-      return res.status(404).send('Lead not found');
+      return res.status(404).json({ success: false, message: 'Lead not found' });
     }
 
     console.log(`Calling lead: ${name} at ${number}`);
-    await makeCall(number); // Call the specific number
+    await makeCall(number);
 
-    res.status(200).send(`Call initiated successfully to ${name}`);
+    return res.status(200).json({ success: true, message: `Call initiated successfully to ${name}` });
   } catch (error) {
     console.error('Error calling lead:', error);
-    res.status(500).send('Error calling lead');
+    return res.status(500).json({ success: false, message: 'Error calling lead' });
   } finally {
     await client.close();
   }

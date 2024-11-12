@@ -21,13 +21,11 @@ app.use(express.json());
 app.use(cookieParser());
 
 const corsOptions = {
-  origin: ['https://onboardingai.org', 'https://api.onboardingai.org'],
+  origin: ['https://onboardingai.org', 'https://api.onboardingai.org', 'https://www.onboardingai.org'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
   optionsSuccessStatus: 204
 };
-
-connectToMongoDB();
 
 app.use(cors(corsOptions));
 
@@ -51,31 +49,29 @@ const openPaths = new Set([
 
 
 function checkToken(req, res, next) {
-  const isOpenPath = Array.from(openPaths).some(path => 
-      req.path === path || req.path.startsWith(`${path}/`)
-  );
+  if (openPaths.has(req.path)) {
+        return next();
+    }
 
-  if (isOpenPath) {
-      return next();
-  }
+    const token = req.cookies.token;
 
-  const token = req.cookies.token;
-  
-  if (!token) {
-      return res.status(401).json({ success: false, message: 'No token provided' });
-  }
+    if (!token) {
+        return res.status(401).json({ success: false, message: 'No token provided' });
+    }
 
-  const result = verifyToken(token);
-  if (!result.valid) {
-      return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error });
-  }
+    const result = verifyToken(token);
+    if (!result.valid) {
+        return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error });
+    }
 
-  next();
+    next();
 }
 
-app.use('/', callerRoutes);
+connectToMongoDB();
 app.use(checkToken);
 
+
+app.use('/', callerRoutes);
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/business', businessRoutes);

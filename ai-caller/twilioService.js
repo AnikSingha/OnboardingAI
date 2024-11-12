@@ -71,11 +71,12 @@ const twilioStreamWebhook = (req, res) => {
   
   const response = `
     <Response>
-      <Connect>
+      <Start>
         <Stream url="wss://${req.headers.host}/call-leads/media" track="both">
           <Parameter name="phoneNumber" value="${phoneNumber}" />
         </Stream>
-      </Connect>
+      </Start>
+      <Dial>${phoneNumber}</Dial>
     </Response>
   `;
   res.type('text/xml');

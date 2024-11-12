@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react'
+import React, { useState, useEffect, useContext, useRef } from 'react'
 import { AuthContext } from '../AuthContext'
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
@@ -53,6 +53,74 @@ export default function SettingsPage() {
   const [qrCode, setQRCode] = useState('');
 
   const [isToggling2FA, setIsToggling2FA] = useState(false);
+
+  const [verificationStep, setVerificationStep] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState(Array(6).fill(''));
+  const inputRefs = useRef([]);
+
+  const handleInputChange = (e, index) => {
+    let value = e.target.value;
+    if (!/^\d*$/.test(value)) return;
+
+    const newCode = [...twoFactorCode];
+    newCode[index] = value;
+    setTwoFactorCode(newCode);
+
+    if (value && index < twoFactorCode.length - 1) {
+      inputRefs.current[index + 1].focus();
+    }
+  };
+
+  const handleInputBackspace = (e, index) => {
+    if (e.key === 'Backspace' && !twoFactorCode[index] && index > 0) {
+      inputRefs.current[index - 1].focus();
+    }
+  };
+
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    const code = twoFactorCode.join('');
+
+    try {
+      const response = await fetch('https://api.onboardingai.org/auth/otp/verify-code', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email: user,
+          code 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Network response was not ok');
+      }
+
+      if (data.success) {
+        setVerificationStep(false);
+        setShowQRCode(false);
+        setAlertMessage({ 
+          type: 'success', 
+          text: 'Two-factor authentication has been successfully enabled'
+        });
+      } else {
+        setAlertMessage({ 
+          type: 'error', 
+          text: 'Invalid verification code. Please try again.'
+        });
+      }
+    } catch (err) {
+      console.error('Error verifying 2FA code:', err);
+      setAlertMessage({ 
+        type: 'error', 
+        text: `Failed to verify code: ${err.message}`
+      });
+    }
+  };
 
   const fetchQRCode = async () => {
     try {
@@ -169,6 +237,7 @@ export default function SettingsPage() {
           const qrCodeData = await fetchQRCode();
           setQRCode(qrCodeData);
           setShowQRCode(true);
+          setVerificationStep(true); // Show verification step
           console.log('QR code successfully set');
         } catch (qrError) {
           console.error('Failed to fetch QR code:', qrError);
@@ -181,7 +250,7 @@ export default function SettingsPage() {
       } else {
         console.log('2FA disabled, hiding QR code section');
         setShowQRCode(false);
-        setQRCode('');
+        setVerificationStep(false);
       }
 
       setAlertMessage({ 
@@ -498,14 +567,14 @@ export default function SettingsPage() {
                     <Button 
                       variant="destructive" 
                       onClick={() => handleToggleTwoFactorAuth(false)}
-                      disabled={isToggling2FA}
+                      disabled={isToggling2FA || verificationStep}
                     >
                       {isToggling2FA ? 'Disabling...' : 'Disable 2FA'}
                     </Button>
                   ) : (
                     <Button 
                       onClick={() => handleToggleTwoFactorAuth(true)}
-                      disabled={isToggling2FA}
+                      disabled={isToggling2FA || verificationStep}
                     >
                       {isToggling2FA ? 'Enabling...' : 'Enable 2FA'}
                     </Button>
@@ -516,6 +585,31 @@ export default function SettingsPage() {
                 <div className="mt-4">
                   <p className="mb-2">Scan this QR code with your authentication app:</p>
                   <img src={qrCode} alt="QR Code for Two-Factor Authentication" className="border p-2 rounded" />
+                  
+                  {verificationStep && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium mb-2">Enter the 6-digit code from your authenticator app to complete setup:</p>
+                      <form onSubmit={handleVerifyCode} className="flex flex-col items-center space-y-4">
+                        <div className="flex space-x-2">
+                          {twoFactorCode.map((digit, index) => (
+                            <input
+                              key={index}
+                              type="text"
+                              maxLength="1"
+                              value={digit}
+                              onChange={(e) => handleInputChange(e, index)}
+                              onKeyDown={(e) => handleInputBackspace(e, index)}
+                              ref={(el) => (inputRefs.current[index] = el)}
+                              className="w-10 h-10 text-center text-xl font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                            />
+                          ))}
+                        </div>
+                        <Button type="submit">
+                          Verify Code
+                        </Button>
+                      </form>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

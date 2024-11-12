@@ -4,6 +4,8 @@ const { v4: uuidv4 } = require('uuid');
 const { createClient, LiveTranscriptionEvents } = require('@deepgram/sdk');
 const { MongoClient } = require('mongodb');
 const dotenv = require('dotenv');
+const WebSocket = require('ws');
+const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 dotenv.config();
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
@@ -16,6 +18,38 @@ const client = new MongoClient(process.env.DB_URI, {
   tlsAllowInvalidCertificates: true,
 });
 
+const initializeStream = async (phoneNumber) => {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(`wss://api.onboardingai.org/call-leads/media`);
+    
+    ws.on('open', () => {
+      console.log('WebSocket connection established for:', phoneNumber);
+      
+      // Initialize Deepgram
+      const dgLive = deepgram.listen.live({
+        encoding: 'mulaw',
+        sample_rate: 8000,
+        channels: 1,
+        model: 'nova',
+        punctuate: true,
+        interim_results: true,
+      });
+
+      dgLive.on(LiveTranscriptionEvents.Open, () => {
+        console.log('Deepgram connection ready');
+        resolve({ ws, dgLive });
+      });
+
+      dgLive.on(LiveTranscriptionEvents.Error, (error) => {
+        reject(error);
+      });
+    });
+
+    ws.on('error', (error) => {
+      reject(error);
+    });
+  });
+};
 /*
 const callLeads = async (req, res) => {
   const { name, number } = req.body;
@@ -285,5 +319,6 @@ const handleWebSocket = (ws, req) => {
 
 module.exports = {
   twilioStreamWebhook,
-  handleWebSocket
+  handleWebSocket,
+  initializeStream
 };

@@ -57,6 +57,8 @@ export default function SettingsPage() {
   const handleToggleTwoFactorAuth = async (enable) => {
     setIsToggling2FA(true);
     try {
+      console.log(`Attempting to ${enable ? 'enable' : 'disable'} 2FA...`);
+      
       const response = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
         method: 'POST',
         credentials: 'include',
@@ -65,17 +67,31 @@ export default function SettingsPage() {
         }
       });
 
+      console.log('2FA toggle response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to toggle 2FA');
+        const errorText = await response.text();
+        console.error('2FA toggle failed. Status:', response.status, 'Error:', errorText);
+        throw new Error(`Failed to toggle 2FA: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('2FA toggle response data:', data);
+
+      if (!data) {
+        console.error('No data received from 2FA toggle');
+        throw new Error('No data received from server');
+      }
+
       setTwoFactorAuth(data.enabled);
+      console.log('2FA status set to:', data.enabled);
       
       if (data.enabled && data.qrCode) {
+        console.log('QR code received, showing QR code section');
         setQRCode(data.qrCode);
         setShowQRCode(true);
       } else {
+        console.log('No QR code needed, hiding QR code section');
         setShowQRCode(false);
       }
 
@@ -83,13 +99,30 @@ export default function SettingsPage() {
         type: 'success', 
         text: `Two-factor authentication has been ${data.enabled ? 'enabled' : 'disabled'}`
       });
+      console.log('Success alert set');
+
     } catch (error) {
-      console.error('Error toggling 2FA:', error);
+      console.error('Detailed error in 2FA toggle:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+
+      let errorMessage = 'Failed to toggle two-factor authentication';
+      if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'Network error: Could not reach the server';
+      } else if (error.message.includes('JSON')) {
+        errorMessage = 'Server response was not in the expected format';
+      }
+
       setAlertMessage({ 
         type: 'error', 
-        text: 'Failed to toggle two-factor authentication'
+        text: errorMessage
       });
+      console.log('Error alert set');
+
     } finally {
+      console.log('2FA toggle operation completed');
       setIsToggling2FA(false);
     }
   };

@@ -13,17 +13,18 @@ const callerRoutes = require('../ai-caller/routes/caller');
 const app = express();
 const wsInstance = expressWs(app);
 
-app.use(express.json());
-app.use(cookieParser());
-
 const corsOptions = {
   origin: ['https://www.onboardingai.org', 'https://test.onboardingai.org'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 204,
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Upgrade', 'Connection'],
 };
 
 app.use(cors(corsOptions));
+app.use(express.json());
+app.use(cookieParser());
+
 
 const openPaths = new Set([
   '/auth/forgot-password',

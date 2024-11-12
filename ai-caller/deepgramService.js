@@ -1,10 +1,12 @@
 // deepgram.js
-import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
-import { LiveTranscriptionEvents, createClient } from '@deepgram/sdk';
-import OpenAI from 'openai';
-import { MongoClient } from 'mongodb';
-import dotenv from 'dotenv';
+const axios = require('axios');
+const { v4: uuidv4 } = require('uuid');
+const { LiveTranscriptionEvents, createClient } = require('@deepgram/sdk');
+const OpenAI = require('openai');
+const { MongoClient } = require('mongodb');
+const dotenv = require('dotenv');
+
+dotenv.config(); // Ensure dotenv is loaded
 
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 const openai = new OpenAI({
@@ -12,7 +14,7 @@ const openai = new OpenAI({
 });
 
 // Function to generate TTS audio buffer using Deepgram
-export const generateTTS = async (text) => {
+const generateTTS = async (text) => {
   if (!text || text.trim() === '') {
     throw new Error('Text for TTS cannot be null or empty');
   }
@@ -48,7 +50,7 @@ export const generateTTS = async (text) => {
 };
 
 // Function to process transcript with GPT-3
-export const processTranscript = async (transcript, isAskingForName = false) => {
+const processTranscript = async (transcript, isAskingForName = false) => {
   if (!transcript || transcript.trim() === '') {
     console.log('Received empty transcript.');
     return 'I did not catch that. Could you please repeat?';
@@ -89,4 +91,9 @@ export const processTranscript = async (transcript, isAskingForName = false) => 
     console.error('Error in processTranscript:', error.response ? error.response.data : error.message);
     return 'Sorry, I am unable to process your request at the moment.';
   }
+};
+
+module.exports = {
+  generateTTS,
+  processTranscript,
 };

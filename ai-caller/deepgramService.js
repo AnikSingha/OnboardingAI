@@ -96,4 +96,5 @@ const processTranscript = async (transcript, isAskingForName = false) => {
 module.exports = {
   generateTTS,
   processTranscript,
+  deepgram
 };

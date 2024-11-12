@@ -1,6 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const VoiceResponse = require('twilio').twiml.VoiceResponse;
+const { handleWebSocket } = require('../twilioService');
+
+// WebSocket endpoint for media streaming
+router.ws('/media', (ws, req) => {
+  console.log('WebSocket connection received');
+  handleWebSocket(ws, req);
+});
 
 // Initiate a call
 router.post('/', async (req, res) => {
@@ -15,7 +22,6 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Get the business's Twilio number
     const fromNumber = process.env.TWILIO_PHONE_NUMBER;
     if (!fromNumber) {
       console.error('Missing Twilio phone number configuration');
@@ -29,14 +35,6 @@ router.post('/', async (req, res) => {
     
     const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     
-    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-      console.error('Missing Twilio credentials');
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Twilio credentials not configured' 
-      });
-    }
-
     const call = await client.calls.create({
       url: 'https://api.onboardingai.org/call-leads/twilio-stream',
       to: number,
@@ -68,14 +66,18 @@ router.post('/call-status', (req, res) => {
 // TwiML webhook endpoint
 router.post('/twilio-stream', (req, res) => {
   console.log('Twilio webhook hit');
+  const phoneNumber = req.query.phoneNumber || req.body.to;
   
   const twiml = new VoiceResponse();
-  twiml.pause({ length: 2 });
-  twiml.say('Hello, this is a test call from OnboardAI.');
-  twiml.pause({ length: 1 });
+  twiml.connect().stream({
+    url: `wss://${req.headers.host}/call-leads/media`,
+    track: 'both'
+  }).parameter({
+    name: 'phoneNumber',
+    value: phoneNumber
+  });
   
   console.log('TwiML generated:', twiml.toString());
-  
   res.type('text/xml');
   res.send(twiml.toString());
 });

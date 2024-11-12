@@ -38,9 +38,10 @@ const openPaths = new Set([
   '/auth/reset-password',
   '/auth/decode-business-token',
   '/auth/employee-sign-up',
-  '/call-leads',                  // Base path for calls
-  '/call-leads/twilio-stream',    // TwiML webhook
-  '/call-leads/call-status'       // Status updates
+  '/call-leads',                  
+  '/call-leads/twilio-stream',    
+  '/call-leads/call-status',
+  '/call-leads/media'
 ]);
 
 function checkToken(req, res, next) {

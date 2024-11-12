@@ -47,6 +47,25 @@ export default function SettingsPage() {
     }
   });
 
+  // Two-Factor Authentication
+  const [twoFactorAuth, setTwoFactorAuth] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [qrCode, setQRCode] = useState('');
+
+  const handleToggleTwoFactorAuth = () => {
+    const newValue = !twoFactorAuth;
+    setTwoFactorAuth(newValue);
+
+    if (newValue && !qrCode) {
+      // Simulate QR code generation
+      const generatedQRCode = 'https://example.com/qrcode.png'; // Replace with actual QR code generation logic
+      setQRCode(generatedQRCode);
+      setShowQRCode(true);
+    } else {
+      setShowQRCode(false);
+    }
+  };
+
   useEffect(() => {
     setAccountInfo({
       name: name || '',
@@ -310,6 +329,29 @@ export default function SettingsPage() {
                 <Button onClick={handleUpgradePlan}>Upgrade Plan</Button>
                 <Button variant="outline" onClick={handleUpdatePayment}>Update Payment Method</Button>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Two-Factor Authentication</CardTitle>
+              <CardDescription>Enhance your account security</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="two-factor-auth">Enable Two-Factor Authentication</Label>
+                <Switch 
+                  id="two-factor-auth" 
+                  checked={twoFactorAuth}
+                  onCheckedChange={handleToggleTwoFactorAuth}
+                />
+              </div>
+              {showQRCode && (
+                <div>
+                  <p>Scan this QR code with your authentication app:</p>
+                  <img src={qrCode} alt="QR Code for Two-Factor Authentication" />
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

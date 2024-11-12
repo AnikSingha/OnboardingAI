@@ -467,6 +467,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
+          {/*}
           <Card>
             <CardHeader>
               <CardTitle>Notifications</CardTitle>
@@ -566,6 +567,7 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          */}
 
           <Card>
             <CardHeader>

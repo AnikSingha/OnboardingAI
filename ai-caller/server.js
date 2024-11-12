@@ -6,6 +6,7 @@ import express from 'express';
 import expressWs from 'express-ws';
 import { connectToMongoDB } from './database.js';
 import { callLeads, twilioStreamWebhook } from './twilioService.js';
+import cors from 'cors';
 
 const app = express();
 expressWs(app);
@@ -18,7 +19,19 @@ app.use(express.urlencoded({ extended: true }));
 // Connect to MongoDB
 connectToMongoDB();
 
+app.use(cors({
+  origin: ['https://onboardingai.org', 'https://api.onboardingai.org'],
+  credentials: true
+}));
 
+app.post('/call-leads', async (req, res) => {
+  console.log("Lead Call Initiated");
+  try {
+    await callLeads(req, res);
+  } catch (error) {
+    res.status(500).json({ success: false, message: `Error initiating calls: ${error.message}` });
+  }
+});
 // Twilio Stream Webhook
 app.post('/twilio-stream', twilioStreamWebhook);
 

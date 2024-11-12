@@ -74,6 +74,19 @@ app.use('/user', userRoutes);
 app.use('/business', businessRoutes);
 app.use('/leads', leadsRoutes);
 
+app.post('/call-leads', async (req, res) => {
+  console.log("Lead Call Initiated");
+  try {
+    await callLeads(req, res);
+  } catch (error) {
+    console.error('Error in call-leads endpoint:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: `Error initiating calls: ${error.message}` 
+    });
+  }
+});
+
 
 app.post('/twilio-stream', twilioStreamWebhook);
 

@@ -24,14 +24,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.post('/call-leads', async (req, res) => {
-  console.log("Lead Call Initiated");
-  try {
-    await callLeads(req, res);
-  } catch (error) {
-    res.status(500).json({ success: false, message: `Error initiating calls: ${error.message}` });
-  }
-});
+
 // Twilio Stream Webhook
 app.post('/twilio-stream', twilioStreamWebhook);
 

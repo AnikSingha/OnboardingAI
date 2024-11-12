@@ -44,7 +44,8 @@ const openPaths = new Set([
     '/auth/decode-business-token',
     '/auth/employee-sign-up',
     '/call-leads', // ruling out potential authentication issues
-    '/twilio-stream'
+    '/twilio-stream',
+    '/media'
 
 ]);
 
@@ -72,13 +73,13 @@ function checkToken(req, res, next) {
   next();
 }
 
+app.use('/', callerRoutes);
 app.use(checkToken);
 
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/business', businessRoutes);
 app.use('/leads', leadsRoutes);
-app.use('/', callerRoutes);
 console.log('Available routes:', app._router.stack.map(r => r.route?.path).filter(Boolean));
 
 

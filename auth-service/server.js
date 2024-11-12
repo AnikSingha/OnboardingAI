@@ -15,55 +15,54 @@ app.use(express.json());
 app.use(cookieParser());
 
 const corsOptions = {
-  origin: ['https://www.onboardingai.org', 'https://test.onboardingai.org'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true,
-  optionsSuccessStatus: 204
+    origin: ['https://www.onboardingai.org', 'https://test.onboardingai.org'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
+    optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
 
 const openPaths = new Set([
-  '/auth/forgot-password',
-  '/auth/sign-up', 
-  '/auth/login',
-  '/auth/login-link',
-  '/auth/send-login-link',
-  '/auth/business-sign-up',
-  '/auth/logout',
-  '/auth/decode-token',
-  '/auth/reset-password',
-  '/auth/decode-business-token',
-  '/auth/employee-sign-up',
-  '/call-leads',
-  '/call-leads/twilio-stream',
+    '/auth/forgot-password',
+    '/auth/sign-up', 
+    '/auth/login',
+    '/auth/login-link',
+    '/auth/send-login-link',
+    '/auth/business-sign-up',
+    '/auth/logout',
+    '/auth/decode-token',
+    '/auth/reset-password',
+    '/auth/decode-business-token',
+    '/auth/employee-sign-up',
+    '/call-leads',
+    '/call-leads/twilio-stream',
   '/call-leads/call-status',
   '/twilio-stream',
-  '/media',
-  '/call-leads/media'
+  '/media'
 ]);
 
 function checkToken(req, res, next) {
-  if (req.method === 'OPTIONS') {
+    if (req.method === 'OPTIONS') {
     return next();
-  }
+    }
 
-  if (openPaths.has(req.path)) {
+    if (openPaths.has(req.path)) {
     return next();
-  }
+    }
 
-  const token = req.cookies.token;
+    const token = req.cookies.token;
 
-  if (!token) {
+    if (!token) {
     return res.status(401).json({ success: false, message: 'No token provided' });
-  }
+    }
 
-  const result = verifyToken(token);
-  if (!result.valid) {
+    const result = verifyToken(token);
+    if (!result.valid) {
     return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error });
-  }
+    }
 
-  next();
+    next();
 }
 
 app.use(checkToken);
@@ -76,5 +75,5 @@ app.use('/call-leads', callerRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running at http://localhost:${PORT}/`);
+    console.log(`Server running at http://localhost:${PORT}/`);
 });

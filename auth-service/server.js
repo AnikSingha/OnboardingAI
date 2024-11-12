@@ -3,6 +3,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { verifyToken } = require('./utils/token.js');
 const expressWs = require('express-ws');
+const http = require('http');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
@@ -11,6 +12,7 @@ const leadsRoutes = require('./routes/leads');
 const callerRoutes = require('../ai-caller/routes/caller');
 
 const app = express();
+const server = http.createServer(app);
 const wsInstance = expressWs(app);
 
 const corsOptions = {
@@ -18,26 +20,37 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
   optionsSuccessStatus: 204,
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Upgrade', 'Connection'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'Cookie', 
+    'Upgrade', 
+    'Connection',
+    'Sec-WebSocket-Key',
+    'Sec-WebSocket-Version',
+    'Sec-WebSocket-Extensions'
+  ],
+  exposedHeaders: ['set-cookie', 'Upgrade']  
 };
 
 app.use(cors(corsOptions));
 
 // Websocket CORS handling
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', corsOptions.origin);
+  const origin = req.headers.origin;
+  if (corsOptions.origin.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Methods', corsOptions.methods.join(','));
   res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders.join(','));
   res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Expose-Headers', corsOptions.exposedHeaders.join(','));
   
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
   }
   next();
 });
-
-app.use(express.json());
-app.use(cookieParser());
 
 
 const openPaths = new Set([
@@ -57,6 +70,10 @@ const openPaths = new Set([
   '/call-leads/call-status',
   '/call-leads/media'
 ]);
+
+app.use(express.json());
+app.use(cookieParser());
+
 
 function checkToken(req, res, next) {
   if (req.method === 'OPTIONS') {

@@ -226,15 +226,47 @@ export default function ContactsPage() {
                   <TableRow key={contact._id}>
                     <TableCell>{contact.name}</TableCell>
                     <TableCell>{contact._number}</TableCell>
-                   <TableCell>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleDeleteContact(contact._id)}
-                    >
-                      Delete
-                    </Button>
-                  </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const response = await fetch('https://api.onboardingai.org/call-leads', {
+                                method: 'POST',
+                                credentials: 'include',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  name: contact.name,
+                                  number: contact._number
+                                }),
+                              });
+
+                              if (response.ok) {
+                                alert(`Calling ${contact.name}...`);
+                              } else {
+                                const data = await response.json();
+                                alert(data.message || 'Failed to initiate call');
+                              }
+                            } catch (error) {
+                              console.error("Error initiating call:", error);
+                              alert('Error initiating call');
+                            }
+                          }}
+                        >
+                          Call
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDeleteContact(contact._id)}
+                          className="text-red-600"
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

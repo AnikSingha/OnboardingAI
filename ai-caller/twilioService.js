@@ -76,7 +76,7 @@ const twilioStreamWebhook = (req, res) => {
           <Parameter name="phoneNumber" value="${phoneNumber}" />
         </Stream>
       </Connect>
-      <Dial>${phoneNumber}</Dial>
+      <Pause length="300"/>
     </Response>
   `;
   res.type('text/xml');

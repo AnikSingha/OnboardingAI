@@ -9,12 +9,11 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const businessRoutes = require('./routes/business');
 const leadsRoutes = require('./routes/leads');
-
-const { callLeads, twilioStreamWebhook } = require('../ai-caller/twilioService');
-const connectToMongoDB = require('../ai-caller/database');
+const callerRoutes = require('../ai-caller/routes/caller');
+const { connectToMongoDB } = require('../ai-caller/database');
 
 const app = express();
-expressWs(app); // Enable WebSocket on the app
+expressWs(app);
 
 
 const PORT = process.env.PORT || 3000;
@@ -43,7 +42,8 @@ const openPaths = new Set([
     '/auth/decode-token',
     '/auth/reset-password',
     '/auth/decode-business-token',
-    '/auth/employee-sign-up'
+    '/auth/employee-sign-up',
+    '/call-leads' // ruling out potential authentication issues
 
 ]);
 
@@ -73,29 +73,8 @@ app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/business', businessRoutes);
 app.use('/leads', leadsRoutes);
+app.use('/', callerRoutes);
 
-app.post('/call-leads', async (req, res) => {
-  console.log("Lead Call Initiated");
-  try {
-    await callLeads(req, res);
-  } catch (error) {
-    console.error('Error in call-leads endpoint:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: `Error initiating calls: ${error.message}` 
-    });
-  }
-});
-
-
-app.post('/twilio-stream', twilioStreamWebhook);
-
-app.ws('/media', (ws, req) => {
-  ws.on('message', (msg) => {
-    console.log('Received WebSocket message:', msg);
-  });
-  ws.on('close', () => console.log('WebSocket closed'));
-});
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:3000/`);

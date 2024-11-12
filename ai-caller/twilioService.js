@@ -1,10 +1,10 @@
-// twilio.js
-import twilio from 'twilio';
-import { generateTTS, processTranscript } from './deepgramService.js';
-import { v4 as uuidv4 } from 'uuid';
-import { createClient, LiveTranscriptionEvents } from '@deepgram/sdk';
-import { MongoClient } from 'mongodb';
-import dotenv from 'dotenv';
+const twilio = require('twilio');
+const { generateTTS, processTranscript } = require('./deepgramService.js');
+const { v4: uuidv4 } = require('uuid');
+const { createClient, LiveTranscriptionEvents } = require('@deepgram/sdk');
+const { MongoClient } = require('mongodb');
+const dotenv = require('dotenv');
+dotenv.config();
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
@@ -17,7 +17,7 @@ const client = new MongoClient(process.env.DB_URI, {
 });
 
 // Function to initiate calls to leads
-export const callLeads = async (req, res) => {
+const callLeads = async (req, res) => {
   const { name, number } = req.body;
 
   if (!name || !number) {
@@ -61,7 +61,7 @@ const makeCall = async (to) => {
 };
 
 // Twilio Stream Webhook
-export const twilioStreamWebhook = (req, res) => {
+const twilioStreamWebhook = (req, res) => {
   const phoneNumber = req.query.phoneNumber; // Extract phone number from query parameters
 
   const response = `
@@ -78,7 +78,7 @@ export const twilioStreamWebhook = (req, res) => {
 };
 
 // WebSocket handling for incoming audio from Twilio
-export const handleWebSocket = (ws, req) => {
+const handleWebSocket = (ws, req) => {
   let streamSid;
   let callSid;
   let dgLive;
@@ -260,4 +260,10 @@ export const handleWebSocket = (ws, req) => {
   ws.on('error', (error) => {
     console.error('WebSocket error:', error);
   });
+};
+
+module.exports = {
+  callLeads,
+  twilioStreamWebhook,
+  handleWebSocket
 };

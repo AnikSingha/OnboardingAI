@@ -1,6 +1,5 @@
-// mongodb.js
-import { MongoClient } from 'mongodb';
-import dotenv from 'dotenv';
+const { MongoClient } = require('mongodb');
+const dotenv = require('dotenv');
 dotenv.config();
 
 const MONGO_URI = process.env.DB_URI;
@@ -10,7 +9,7 @@ const client = new MongoClient(MONGO_URI, {
 });
 
 // Function to connect to MongoDB
-export const connectToMongoDB = async () => {
+const connectToMongoDB = async () => {
   try {
     await client.connect();
     console.log('Connected to MongoDB');
@@ -20,7 +19,7 @@ export const connectToMongoDB = async () => {
 };
 
 // Function to update lead information in MongoDB
-export const updateLeadInfo = async (phoneNumber, leadInfo) => {
+const updateLeadInfo = async (phoneNumber, leadInfo) => {
   try {
     const database = client.db('auth');
     const leadsCollection = database.collection('leads');
@@ -35,4 +34,10 @@ export const updateLeadInfo = async (phoneNumber, leadInfo) => {
   } catch (error) {
     console.error('Error updating lead information:', error);
   }
+};
+
+
+module.exports = {
+  connectToMongoDB,
+  updateLeadInfo
 };

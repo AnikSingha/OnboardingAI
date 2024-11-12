@@ -67,15 +67,16 @@ const makeCall = async (to) => {
 
 // Twilio Stream Webhook
 const twilioStreamWebhook = (req, res) => {
-  const phoneNumber = req.query.phoneNumber; // Extract phone number from query parameters
-
-  const response = `
+  const phoneNumber = req.query.phoneNumber;
+  
+  const response = `<?xml version="1.0" encoding="UTF-8"?>
     <Response>
       <Connect>
-        <Stream url="wss://${req.headers.host}/media">
+        <Stream url="wss://api.onboardingai.org/call-leads/media" track="inbound_track">
           <Parameter name="phoneNumber" value="${phoneNumber}" />
         </Stream>
       </Connect>
+      <Dial>${phoneNumber}</Dial>
     </Response>
   `;
   res.type('text/xml');

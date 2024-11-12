@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const VoiceResponse = require('twilio').twiml.VoiceResponse;
 
-// Basic call initiation endpoint
 router.post('/', async (req, res) => {
   try {
     const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -27,13 +26,11 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Status callback
 router.post('/call-status', (req, res) => {
   console.log('Call status update:', req.body);
   res.sendStatus(200);
 });
 
-// Twilio webhook
 router.post('/twilio-stream', (req, res) => {
   console.log('Twilio webhook hit');
   
@@ -48,4 +45,4 @@ router.post('/twilio-stream', (req, res) => {
   res.send(twiml.toString());
 });
 
-module.exports = router;  // Make sure to export the router
+module.exports = router;

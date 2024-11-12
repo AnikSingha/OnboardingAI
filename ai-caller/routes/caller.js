@@ -6,6 +6,14 @@ const expressWs = require('express-ws');
 const wsServer = expressWs(router);
 
 
+wsServer.getWss().on('error', (error) => {
+  console.error('WebSocket Server Error:', error);
+});
+
+wsServer.getWss().on('connection', (ws, req) => {
+  console.log('New WebSocket connection established');
+});
+
 wsServer.getWss().on('headers', (headers, req) => {
   const origin = req.headers.origin;
   if (origin === 'https://www.onboardingai.org' || origin === 'https://test.onboardingai.org') {
@@ -14,9 +22,11 @@ wsServer.getWss().on('headers', (headers, req) => {
   }
 });
 
-// WebSocket endpoint for media streaming
 router.ws('/media', (ws, req) => {
-  console.log('WebSocket connection received');
+  console.log('WebSocket connection received', {
+    query: req.query,
+    headers: req.headers
+  });
   handleWebSocket(ws, req);
 });
 

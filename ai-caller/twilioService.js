@@ -67,12 +67,12 @@ const makeCall = async (to) => {
 
 // Twilio Stream Webhook
 const twilioStreamWebhook = (req, res) => {
-  const phoneNumber = req.query.phoneNumber; // Extract phone number from query parameters
-
+  const phoneNumber = req.query.phoneNumber;
+  
   const response = `
     <Response>
       <Connect>
-        <Stream url="wss://${req.headers.host}/media">
+        <Stream url="wss://${req.headers.host}/call-leads/media?phoneNumber=${encodeURIComponent(phoneNumber)}">
           <Parameter name="phoneNumber" value="${phoneNumber}" />
         </Stream>
       </Connect>
@@ -92,7 +92,21 @@ const handleWebSocket = (ws, req) => {
   let interactionCount = 0;
   let callerName = '';
 
-  console.log('WebSocket connection established');
+  console.log('WebSocket connection established', {
+    phoneNumber,
+    query: req.query,
+    headers: req.headers
+  });
+  // Add heartbeat to prevent timeout
+  const pingInterval = setInterval(() => {
+    if (ws.readyState === ws.OPEN) {
+      ws.ping();
+    }
+  }, 30000);
+
+  ws.on('pong', () => {
+    console.log('Received pong from client');
+  });
 
   // Function to send audio frames to Twilio
   const sendAudioFrames = async (audioBuffer, ws, streamSid, index) => {
@@ -255,6 +269,7 @@ const handleWebSocket = (ws, req) => {
   });
 
   ws.on('close', () => {
+    clearInterval(pingInterval);
     console.log('WebSocket connection closed');
     if (dgLive) {
       dgLive.finish();

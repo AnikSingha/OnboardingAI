@@ -53,7 +53,7 @@ function checkToken(req, res, next) {
         return next();
     }
 
-    if (openPaths.has(req.path)) {
+    if (openPaths.has(req.path) || req.headers.upgrade === 'websocket') {
         return next();
     }
 

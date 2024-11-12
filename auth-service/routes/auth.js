@@ -40,7 +40,7 @@ router.post('/business-sign-up', async (req, res) => {
         }
         
         const token = createToken(name, email, business_name, 'Owner')
-        res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
+        res.cookie('token', token, { httpOnly: true, sameSite: 'none', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
 
         return res.status(201).json({ success: true, message: 'Success' })
     } catch (err) {
@@ -68,7 +68,7 @@ router.post('/sign-up', async (req, res) => {
         const businessSucess = await businessManager.addEmployeeToBusiness(business_name, name, email)
         if (success && businessSucess) {
             const token = createToken(name, email, business_name, role)
-            res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
+            res.cookie('token', token, { httpOnly: true, sameSite: 'none', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
             return res.status(201).json({ success: true, message: 'Success' })
         } else {
             return res.status(400).json({ success: false, message: 'User creation failed' })
@@ -98,7 +98,7 @@ router.post('/login', async (req, res) => {
         if (success) {
             const { name, business_name, role } = await accountManager.getUserInfo(email)
             const token = createToken(name, email, business_name, role)
-            res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
+            res.cookie('token', token, { httpOnly: true, sameSite: 'none', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
             return res.status(201).json({ success: true, message: 'Success' })
         } else {
             return res.status(401).json({ success: false, message: 'Invalid credentials' })
@@ -197,7 +197,7 @@ router.get('/login-link', async(req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error })
         }
         
-        res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
+        res.cookie('token', token, { httpOnly: true, sameSite: 'none', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
         return res.status(200).json({ success: true, message: 'Token accepted' });
         // return res.redirect('/')
 
@@ -228,7 +228,7 @@ router.post('/send-login-link', async(req, res) => {
 
 router.post('/logout', (req, res) => {
     try {
-        res.cookie('token', '', { httpOnly: true, sameSite: 'lax', secure: true, maxAge: 0, domain: '.onboardingai.org' })
+        res.cookie('token', '', { httpOnly: true, sameSite: 'none', secure: true, maxAge: 0, domain: '.onboardingai.org' })
         return res.status(200).json({ success: true, message: 'Logged out successfully' })
     } catch (err) {
         return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
@@ -267,7 +267,7 @@ router.get('/reset-password', async (req, res) => {
     }
     try {
         const token = createToken(result.decoded.name, result.decoded.email, result.decoded.business, result.decoded.role)
-        res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
+        res.cookie('token', token, { httpOnly: true, sameSite: 'none', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
 
         return res.redirect('https://www.onboardingai.org/reset-password')
     } catch (err) {
@@ -329,7 +329,7 @@ router.get('/employee-sign-up', async (req, res) => {
     }
     try {
         const token = createBusinessToken(result.decoded.email, result.decoded.business)
-        res.cookie('businessToken', token, { httpOnly: true, sameSite: 'lax', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
+        res.cookie('businessToken', token, { httpOnly: true, sameSite: 'none', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
 
         return res.redirect('https://www.onboardingai.org/employee-sign-up')
     } catch (err) {

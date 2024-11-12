@@ -2,6 +2,17 @@ const express = require('express');
 const router = express.Router();
 const VoiceResponse = require('twilio').twiml.VoiceResponse;
 const { handleWebSocket } = require('../twilioService');
+const expressWs = require('express-ws');
+const wsServer = expressWs(router);
+
+
+wsServer.getWss().on('headers', (headers, req) => {
+  const origin = req.headers.origin;
+  if (origin === 'https://www.onboardingai.org' || origin === 'https://test.onboardingai.org') {
+    headers.push('Access-Control-Allow-Origin: ' + origin);
+    headers.push('Access-Control-Allow-Credentials: true');
+  }
+});
 
 // WebSocket endpoint for media streaming
 router.ws('/media', (ws, req) => {

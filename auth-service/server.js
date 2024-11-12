@@ -17,7 +17,14 @@ const wsInstance = expressWs(app, server);
 
 // CORS configuration
 const corsOptions = {
-  origin: ['https://www.onboardingai.org', 'https://test.onboardingai.org'],
+  origin: function(origin, callback) {
+    const allowedOrigins = ['https://www.onboardingai.org', 'https://test.onboardingai.org'];
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
@@ -31,12 +38,6 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
-// Global headers for all responses
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  next();
-});
 
 // Open paths that don't require authentication
 const openPaths = new Set([

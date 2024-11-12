@@ -52,15 +52,45 @@ export default function SettingsPage() {
   const [showQRCode, setShowQRCode] = useState(false);
   const [qrCode, setQRCode] = useState('');
 
-  const handleToggleTwoFactorAuth = (enable) => {
-    setTwoFactorAuth(enable);
-    if (enable && !qrCode) {
-      // Simulate QR code generation
-      const generatedQRCode = 'https://example.com/qrcode.png'; // Replace with actual QR code generation logic
-      setQRCode(generatedQRCode);
-      setShowQRCode(true);
-    } else {
-      setShowQRCode(false);
+  const [isToggling2FA, setIsToggling2FA] = useState(false);
+
+  const handleToggleTwoFactorAuth = async (enable) => {
+    setIsToggling2FA(true);
+    try {
+      const response = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to toggle 2FA');
+      }
+
+      const data = await response.json();
+      setTwoFactorAuth(data.enabled);
+      
+      if (data.enabled && data.qrCode) {
+        setQRCode(data.qrCode);
+        setShowQRCode(true);
+      } else {
+        setShowQRCode(false);
+      }
+
+      setAlertMessage({ 
+        type: 'success', 
+        text: `Two-factor authentication has been ${data.enabled ? 'enabled' : 'disabled'}`
+      });
+    } catch (error) {
+      console.error('Error toggling 2FA:', error);
+      setAlertMessage({ 
+        type: 'error', 
+        text: 'Failed to toggle two-factor authentication'
+      });
+    } finally {
+      setIsToggling2FA(false);
     }
   };
 
@@ -343,14 +373,16 @@ export default function SettingsPage() {
                     <Button 
                       variant="destructive" 
                       onClick={() => handleToggleTwoFactorAuth(false)}
+                      disabled={isToggling2FA}
                     >
-                      Disable 2FA
+                      {isToggling2FA ? 'Disabling...' : 'Disable 2FA'}
                     </Button>
                   ) : (
                     <Button 
                       onClick={() => handleToggleTwoFactorAuth(true)}
+                      disabled={isToggling2FA}
                     >
-                      Enable 2FA
+                      {isToggling2FA ? 'Enabling...' : 'Enable 2FA'}
                     </Button>
                   )}
                 </div>

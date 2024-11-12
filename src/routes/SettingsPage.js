@@ -9,6 +9,7 @@ import Layout from '../components/Layout'
 import { X } from 'lucide-react' 
 import ConfirmationDialog from '../components/ConfirmationDialog'
 import { useNavigate } from 'react-router-dom';
+import { TwoFactorSetup } from '../components/TwoFactorSetup';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -402,6 +403,22 @@ export default function SettingsPage() {
     navigate('/reset-password');
   };
 
+  const handleVerificationSuccess = () => {
+    setVerificationStep(false);
+    setShowQRCode(false);
+    setAlertMessage({ 
+      type: 'success', 
+      text: 'Two-factor authentication has been successfully enabled'
+    });
+  };
+
+  const handleVerificationError = (errorMessage) => {
+    setAlertMessage({ 
+      type: 'error', 
+      text: errorMessage
+    });
+  };
+
   return (
     <Layout>
       <div className="p-8">
@@ -582,35 +599,12 @@ export default function SettingsPage() {
                 </div>
               </div>
               {showQRCode && (
-                <div className="mt-4">
-                  <p className="mb-2">Scan this QR code with your authentication app:</p>
-                  <img src={qrCode} alt="QR Code for Two-Factor Authentication" className="border p-2 rounded" />
-                  
-                  {verificationStep && (
-                    <div className="mt-4">
-                      <p className="text-sm font-medium mb-2">Enter the 6-digit code from your authenticator app to complete setup:</p>
-                      <form onSubmit={handleVerifyCode} className="flex flex-col items-center space-y-4">
-                        <div className="flex space-x-2">
-                          {twoFactorCode.map((digit, index) => (
-                            <input
-                              key={index}
-                              type="text"
-                              maxLength="1"
-                              value={digit}
-                              onChange={(e) => handleInputChange(e, index)}
-                              onKeyDown={(e) => handleInputBackspace(e, index)}
-                              ref={(el) => (inputRefs.current[index] = el)}
-                              className="w-10 h-10 text-center text-xl font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                            />
-                          ))}
-                        </div>
-                        <Button type="submit">
-                          Verify Code
-                        </Button>
-                      </form>
-                    </div>
-                  )}
-                </div>
+                <TwoFactorSetup 
+                  qrCode={qrCode}
+                  user={user}
+                  onSuccess={handleVerificationSuccess}
+                  onError={handleVerificationError}
+                />
               )}
             </CardContent>
           </Card>

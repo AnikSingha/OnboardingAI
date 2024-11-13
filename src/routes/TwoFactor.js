@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 export default function TwoFactorPage() {
   const [twoFactorCode, setTwoFactorCode] = useState(Array(6).fill(''))
   const [alertMessage, setAlertMessage] = useState('')
+  const [isVerifying, setIsVerifying] = useState(false)
   const navigate = useNavigate()
   const inputRefs = useRef([])
+  const { login } = useAuth()
 
   const handleInputChange = (e, index) => {
     let value = e.target.value
@@ -32,10 +35,18 @@ export default function TwoFactorPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     const code = twoFactorCode.join('')
+    
+    if (code.length !== 6) {
+      setAlertMessage('Please enter all 6 digits')
+      return
+    }
 
+    setIsVerifying(true)
     try {
+      console.log('Verifying 2FA code...')
       const response = await fetch('https://api.onboardingai.org/auth/verify-two-factor', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -43,15 +54,27 @@ export default function TwoFactorPage() {
       })
 
       const data = await response.json()
+      console.log('2FA verification response:', data)
 
       if (!response.ok) {
-        throw new Error(data.message || 'Network response was not ok')
+        throw new Error(data.message || 'Verification failed')
       }
 
-      // If successful, redirect to the dashboard
+      // Complete the login process
+      await login()
+      console.log('Login completed after 2FA verification')
+      
+      // Redirect to dashboard
       navigate('/dashboard')
     } catch (err) {
+      console.error('2FA verification error:', err)
       setAlertMessage(`Failed: ${err.message}`)
+      // Clear the code inputs on error
+      setTwoFactorCode(Array(6).fill(''))
+      // Focus the first input
+      inputRefs.current[0]?.focus()
+    } finally {
+      setIsVerifying(false)
     }
   }
 
@@ -59,7 +82,6 @@ export default function TwoFactorPage() {
     <div className="min-h-screen bg-[#E6E6FA] flex flex-col justify-center items-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-3xl p-12 shadow-lg">
-
           <div className="text-3xl font-bold mb-8 text-center">
             <div className="inline-block border-2 border-black rounded-xl px-4 py-2">
               <span className="text-[#4285F4]">Onboard</span>
@@ -68,14 +90,15 @@ export default function TwoFactorPage() {
           </div>
 
           {alertMessage && (
-                <div className="mb-4 p-4 rounded-lg text-white bg-red-500">
-                {alertMessage}
-                </div>
-            )}
+            <div className="mb-4 p-4 rounded-lg text-white bg-red-500">
+              {alertMessage}
+            </div>
+          )}
 
           <h1 className="text-3xl font-bold mb-2 text-center">Enter your code</h1>
-          <p className="text-center text-sm text-gray-600 mb-6">Enter the 6-digit code from your authenticator app</p>
-
+          <p className="text-center text-sm text-gray-600 mb-6">
+            Enter the 6-digit code from your authenticator app
+          </p>
 
           <form onSubmit={handleSubmit} className="flex flex-col items-center space-y-4">
             <div className="flex space-x-4 mb-6">
@@ -88,16 +111,18 @@ export default function TwoFactorPage() {
                   onChange={(e) => handleInputChange(e, index)}
                   onKeyDown={(e) => handleInputBackspace(e, index)}
                   ref={(el) => (inputRefs.current[index] = el)}
-                  className="w-12 h-12 text-center text-xl font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  disabled={isVerifying}
+                  className="w-12 h-12 text-center text-xl font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               ))}
             </div>
 
             <button
               type="submit"
-              className="w-full bg-gray-300 text-gray-700 px-4 py-2 rounded-full font-medium hover:bg-gray-400 transition-colors"
+              disabled={isVerifying || twoFactorCode.join('').length !== 6}
+              className="w-full bg-gray-300 text-gray-700 px-4 py-2 rounded-full font-medium hover:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Verify Code
+              {isVerifying ? 'Verifying...' : 'Verify Code'}
             </button>
           </form>
         </div>

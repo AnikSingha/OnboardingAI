@@ -12,6 +12,7 @@ const userRoutes = require('./routes/user');
 const businessRoutes = require('./routes/business');
 const leadsRoutes = require('./routes/leads');
 const callerRoutes = require('../ai-caller/routes/caller');
+const schedulesRoutes = require('./routes/schedules');
 const { connectToMongoDB } = require('../ai-caller/database');
 
 const app = express();
@@ -75,6 +76,7 @@ app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/business', businessRoutes);
 app.use('/leads', leadsRoutes);
+app.use('/schedules', schedulesRoutes);
 console.log('Available routes:', app._router.stack.map(r => r.route?.path).filter(Boolean));
 
 app.get('/logs', (req, res) => {

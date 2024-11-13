@@ -34,13 +34,14 @@ jobs:
       - name: Update code and deploy
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd OnboardingAI
+            echo "Installing npm packages..."
+            npm install
             echo "Changing directory to OnboardingAI/auth-service..."
-            cd OnboardingAI/auth-service
+            cd auth-service
             echo "Pulling latest code from repo..."
             git checkout auth
             git pull
-            echo "Installing npm packages..."
-            npm install
             echo "Terminating any previously running Node.js instances..."
             sudo pkill -f node || echo "No Node.js processes found."
             echo "Starting the Express server..."

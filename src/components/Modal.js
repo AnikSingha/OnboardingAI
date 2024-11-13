@@ -12,12 +12,15 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
+  
     // Combine the date, hour, minute, and am/pm to create a full Date object
     const combinedDateTime = new Date(`${date} ${hour}:${minute} ${ampm}`);
-
+  
+    // Log the data to check before submitting
+    console.log({ contact, number, date: combinedDateTime, campaign });
+  
     // Pass the combined Date object along with other form data
-    onSubmit({ contact, number, date: combinedDateTime, campaign });
+    onSubmit({ name: contact, number: number, date: combinedDateTime, campaign: campaign });
     onClose();
   };
 

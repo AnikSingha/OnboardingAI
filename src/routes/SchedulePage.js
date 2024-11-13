@@ -19,7 +19,7 @@ export default function SchedulePage() {
 
   const fetchCalls = async () => {
     try {
-      const response = await fetch('https://api.onboardingai.org/Schedule', {
+      const response = await fetch('https://api.onboardingai.org/schedules', {
         credentials: 'include',
       });
       if (response.ok) {
@@ -38,7 +38,7 @@ export default function SchedulePage() {
         return;
       }
 
-      const response = await fetch('https://api.onboardingai.org/Schedule', {
+      const response = await fetch('https://api.onboardingai.org/schedules', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -59,7 +59,7 @@ export default function SchedulePage() {
 
   const handleDeleteContact = async (callId) => {
     try {
-      const response = await fetch(`https://api.onboardingai.org/leads/${callId}`, {
+      const response = await fetch(`https://api.onboardingai.org/schedules/${callId}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -162,7 +162,3 @@ export default function SchedulePage() {
     </Layout>
   );
 }
-
-
-
-

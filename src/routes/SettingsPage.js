@@ -391,7 +391,8 @@ export default function SettingsPage() {
     navigate('/reset-password');
   };
 
-  const handleVerificationSuccess = () => {
+  const handleVerificationSuccess = async () => {
+    await checkTwoFactorStatus(); // Update the 2FA status
     setVerificationStep(false);
     setShowQRCode(false);
     setAlertMessage({ 

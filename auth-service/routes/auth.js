@@ -96,9 +96,12 @@ router.post('/login', async (req, res) => {
 
         const success = await accountManager.isValidPassword(email, password)
         if (success) {
-            const { name, business_name, role } = await accountManager.getUserInfo(email)
-            const token = createToken(name, email, business_name, role)
-            res.cookie('token', token, { httpOnly: true, sameSite: 'none', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
+            let twoFactorEnabled = accountManager.hasTwoFactor(email)
+            if (!twoFactorEnabled) {
+                const { name, business_name, role } = await accountManager.getUserInfo(email)
+                const token = createToken(name, email, business_name, role)
+                res.cookie('token', token, { httpOnly: true, sameSite: 'none', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
+            }
             return res.status(201).json({ success: true, message: 'Success' })
         } else {
             return res.status(401).json({ success: false, message: 'Invalid credentials' })
@@ -172,6 +175,9 @@ router.post('/otp/verify-code', async(req, res) => {
         const success = verifyOTP( code, OTPSecret)
 
         if (success) {
+            const { name, business_name, role } = await accountManager.getUserInfo(email)
+            const token = createToken(name, email, business_name, role)
+            res.cookie('token', token, { httpOnly: true, sameSite: 'none', secure: true,  maxAge: 86400000, domain: '.onboardingai.org' })
             return res.status(200).json({ success: true, message: 'The provided code is correct' })
         } else {
             return res.status(403).json({ success: false, message: 'The provided code is incorrect' })

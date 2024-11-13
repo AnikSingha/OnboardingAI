@@ -5,7 +5,7 @@ const { verifyToken } = require('../utils/token.js');
 const router = express.Router();
 
 // Get all schedules
-router.get('/get', async (req, res) => {
+router.get('/', async (req, res) => {
     const { valid, decoded } = verifyToken(req.cookies.token);
     
     if (!valid) {
@@ -21,7 +21,7 @@ router.get('/get', async (req, res) => {
 });
 
 // Add new schedule
-router.post('/add', async (req, res) => {
+router.post('/', async (req, res) => {
     const { valid, decoded } = verifyToken(req.cookies.token);
     
     if (!valid) {
@@ -46,7 +46,7 @@ router.post('/add', async (req, res) => {
 });
 
 // Delete schedule
-router.delete('/delete', async (req, res) => {
+router.delete('/:id', async (req, res) => {
     const { valid, decoded } = verifyToken(req.cookies.token);
     
     if (!valid) {

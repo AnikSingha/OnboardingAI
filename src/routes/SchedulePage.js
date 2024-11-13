@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
-import { Plus, Phone, Trash, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, ArrowUp, ArrowDown } from "lucide-react";
 import Layout from '../components/Layout';
 import Modal from '../components/Modal';
-import { AuthContext } from '../AuthContext';
 
 export default function SchedulePage() {
   const [calls, setCalls] = useState([]);
   const [newcalls, setNewCalls] = useState({ name: '', number: '', date: new Date(), campaign: '' });
   const [isModalOpen, setModalOpen] = useState(false);
   const [isAscending, setIsAscending] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     fetchCalls();
@@ -31,10 +31,39 @@ export default function SchedulePage() {
     }
   };
 
+  // Sorting method to toggle between ascending and descending based on date
+  const handleSort = () => {
+    const sortedCalls = [...calls].sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+
+      return isAscending ? dateA - dateB : dateB - dateA;
+    });
+
+    setCalls(sortedCalls);
+    setIsAscending(!isAscending); // Toggle the sorting order for next click
+  };
+
+  const checkForConflicts = (selectedDate) => {
+    const selectedTime = new Date(selectedDate).getTime();
+
+    // Check if any existing call has the same time
+    const conflict = calls.some(call => {
+      return new Date(call.date).getTime() === selectedTime;
+    });
+
+    return conflict;
+  };
+
   const handleAddContact = async (call) => {
     try {
       if (!call.name || !call.number || !call.date || !call.campaign) {
         alert('Please fill in required fields');
+        return;
+      }
+
+      if (checkForConflicts(call.date)) {
+        setErrorMessage('This time slot is already taken. Please choose a different time.');
         return;
       }
 
@@ -48,6 +77,7 @@ export default function SchedulePage() {
       if (response.ok) {
         fetchCalls();
         setNewCalls({ name: '', number: '', date: new Date(), campaign: '' });
+        setErrorMessage(''); // Clear the error message after successful submission
       } else {
         alert('Failed to add schedule');
       }
@@ -96,7 +126,15 @@ export default function SchedulePage() {
           <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Schedule Call
           </Button>
+
+          {/* Button to toggle sort */}
+          <Button className="bg-gray-600 hover:bg-gray-700 text-white" onClick={handleSort}>
+            Sort by Time {isAscending ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+          </Button>
         </div>
+
+        {/* Display error message if time conflict occurs */}
+        {errorMessage && <div className="bg-red-500 text-white p-4 mb-6 rounded">{errorMessage}</div>}
 
         <Card>
           <CardHeader>
@@ -124,11 +162,8 @@ export default function SchedulePage() {
                     <TableCell>{call.campaign}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                        >
-                          Call
+                        <Button variant="outline" size="sm">
+                          Calling 
                         </Button>
                         <Button 
                           variant="outline" 
@@ -143,7 +178,6 @@ export default function SchedulePage() {
                   </TableRow>
                 ))}
               </TableBody>
-
             </Table>
           </CardContent>
         </Card>
@@ -157,4 +191,7 @@ export default function SchedulePage() {
     </Layout>
   );
 }
+
+
+
 

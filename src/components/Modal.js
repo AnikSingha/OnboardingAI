@@ -8,11 +8,16 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
   const [hour, setHour] = useState('10');
   const [minute, setMinute] = useState('00');
   const [ampm, setAmpm] = useState('AM');
-  const [campaignId, setCampaignId] = useState(campaigns[0]?.id || '');
+  const [campaign, setCampaign] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit({ contact, number, date, campaignId });
+
+    // Combine the date, hour, minute, and am/pm to create a full Date object
+    const combinedDateTime = new Date(`${date} ${hour}:${minute} ${ampm}`);
+
+    // Pass the combined Date object along with other form data
+    onSubmit({ contact, number, date: combinedDateTime, campaign });
     onClose();
   };
 
@@ -23,11 +28,11 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
     setHour('10');
     setMinute('00');
     setAmpm('AM');
-    setCampaignId(campaigns[0]?.id || '');
+    setCampaign('');
     onClose();
   };
 
-  const isFormValid = contact && number && date && hour && minute && ampm && campaignId;
+  const isFormValid = contact && number && date && hour && minute && ampm && campaign;
 
   if (!isOpen) return null;
 
@@ -89,18 +94,13 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
           </div>
           <div className="mb-4">
             <label className="block mb-1">Campaign</label>
-            <select
-              value={campaignId}
-              onChange={(e) => setCampaignId(e.target.value)}
+            <input
+              type="text"
+              value={campaign}
+              onChange={(e) => setCampaign(e.target.value)}
               className="border rounded p-2 w-full"
               required
-            >
-              {campaigns.map((campaign) => (
-                <option key={campaign.id} value={campaign.id}>
-                  {campaign.name}
-                </option>
-              ))}
-            </select>
+            />
           </div>
           <div className="flex justify-between">
             <button type="button" onClick={handleClose} className="bg-gray-300 hover:bg-gray-400 rounded px-4 py-2">Cancel</button>
@@ -115,3 +115,6 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
 };
 
 export default Modal;
+
+
+

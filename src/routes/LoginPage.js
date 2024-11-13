@@ -34,7 +34,7 @@ export default function LoginPage() {
     };
 
     try {
-      const response = await fetch('https://api.onboardingai.org/auth/login', {
+      const loginResponse = await fetch('https://api.onboardingai.org/auth/login', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -43,16 +43,34 @@ export default function LoginPage() {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json()
+      const loginData = await loginResponse.json()
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Network response was not ok')
+      if (!loginResponse.ok) {
+        throw new Error(loginData.message || 'Network response was not ok')
+      }
+
+      // Check if user has 2FA enabled
+      const twoFactorResponse = await fetch('https://api.onboardingai.org/auth/has-two-factor', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const twoFactorData = await twoFactorResponse.json();
+      
+      if (twoFactorData.success && twoFactorData.twoFactorAuthEnabled) {
+        // If 2FA is enabled, redirect to 2FA page
+        navigate('/two-factor');
+        return;
       }
 
       await login()
       setAlertMessage('')
       navigate('/dashboard')
     } catch (err) {
+      console.error('Login error:', err);
       if (err.message === "Business already exists"){
         setAlertMessage(`Failed: This organization name is taken`)
       } else {

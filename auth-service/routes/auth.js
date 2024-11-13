@@ -96,7 +96,7 @@ router.post('/login', async (req, res) => {
 
         const success = await accountManager.isValidPassword(email, password)
         if (success) {
-            let twoFactorEnabled = accountManager.hasTwoFactor(email)
+            let twoFactorEnabled = await accountManager.hasTwoFactor(email)
             if (!twoFactorEnabled) {
                 const { name, business_name, role } = await accountManager.getUserInfo(email)
                 const token = createToken(name, email, business_name, role)

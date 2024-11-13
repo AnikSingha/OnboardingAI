@@ -114,16 +114,30 @@ export default function SettingsPage() {
         }
       });
 
-      if (!enableResponse.ok) {
-        throw new Error('Failed to enable 2FA');
-      }
-
       const enableData = await enableResponse.json();
       console.log('Toggle 2FA response:', enableData);
 
+      if (!enableResponse.ok || !enableData.success) {
+        throw new Error('Failed to enable 2FA');
+      }
+
       // Check the updated 2FA status
       console.log('Checking updated 2FA status...');
-      await checkTwoFactorStatus();
+      const statusResponse = await fetch('https://api.onboardingai.org/auth/has-two-factor', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const statusData = await statusResponse.json();
+      console.log('2FA status data:', statusData);
+
+      if (statusData.success) {
+        setTwoFactorAuth(statusData.twoFactorAuthEnabled);
+        console.log('2FA status updated:', statusData.twoFactorAuthEnabled);
+      }
 
       // Update UI state
       setVerificationStep(false);

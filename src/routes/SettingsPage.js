@@ -83,6 +83,7 @@ export default function SettingsPage() {
     const code = twoFactorCode.join('');
 
     try {
+      // First verify the code
       const verifyResponse = await fetch('https://api.onboardingai.org/auth/otp/verify-code', {
         method: 'POST',
         credentials: 'include',
@@ -114,8 +115,10 @@ export default function SettingsPage() {
         throw new Error('Failed to enable 2FA');
       }
 
+      // Check the updated 2FA status
+      await checkTwoFactorStatus();
+
       // Update UI state
-      setTwoFactorAuth(true);
       setVerificationStep(false);
       setShowQRCode(false);
       setAlertMessage({ 

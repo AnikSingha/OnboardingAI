@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useRef, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../AuthContext'
+import { AuthContext } from '../AuthContext'
 
 export default function TwoFactorPage() {
   const [twoFactorCode, setTwoFactorCode] = useState(Array(6).fill(''))
@@ -8,7 +8,7 @@ export default function TwoFactorPage() {
   const [isVerifying, setIsVerifying] = useState(false)
   const navigate = useNavigate()
   const inputRefs = useRef([])
-  const { login } = useAuth()
+  const { login } = useContext(AuthContext)
 
   const handleInputChange = (e, index) => {
     let value = e.target.value

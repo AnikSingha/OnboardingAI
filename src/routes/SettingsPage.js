@@ -83,7 +83,7 @@ export default function SettingsPage() {
     const code = twoFactorCode.join('');
 
     try {
-      const response = await fetch('https://api.onboardingai.org/auth/otp/verify-code', {
+      const verifyResponse = await fetch('https://api.onboardingai.org/auth/otp/verify-code', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -95,30 +95,38 @@ export default function SettingsPage() {
         }),
       });
 
-      const data = await response.json();
+      const verifyData = await verifyResponse.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Network response was not ok');
+      if (!verifyResponse.ok || !verifyData.success) {
+        throw new Error(verifyData.message || 'Invalid verification code');
       }
 
-      if (data.success) {
-        setVerificationStep(false);
-        setShowQRCode(false);
-        setAlertMessage({ 
-          type: 'success', 
-          text: 'Two-factor authentication has been successfully enabled'
-        });
-      } else {
-        setAlertMessage({ 
-          type: 'error', 
-          text: 'Invalid verification code. Please try again.'
-        });
+      // If code is valid, then enable 2FA
+      const enableResponse = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!enableResponse.ok) {
+        throw new Error('Failed to enable 2FA');
       }
+
+      // Update UI state
+      setTwoFactorAuth(true);
+      setVerificationStep(false);
+      setShowQRCode(false);
+      setAlertMessage({ 
+        type: 'success', 
+        text: 'Two-factor authentication has been successfully enabled'
+      });
     } catch (err) {
       console.error('Error verifying 2FA code:', err);
       setAlertMessage({ 
         type: 'error', 
-        text: `Failed to verify code: ${err.message}`
+        text: err.message
       });
     }
   };
@@ -202,84 +210,51 @@ export default function SettingsPage() {
   const handleToggleTwoFactorAuth = async (enable) => {
     setIsToggling2FA(true);
     try {
-      console.log(`Attempting to ${enable ? 'enable' : 'disable'} 2FA...`);
-      
-      const response = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      console.log('2FA toggle response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('2FA toggle failed. Status:', response.status, 'Error:', errorText);
-        throw new Error(`Failed to toggle 2FA: ${response.status} ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('2FA toggle response data:', data);
-
-      // Check the updated 2FA status
-      const statusResponse = await fetch('https://api.onboardingai.org/auth/has-two-factor', {
-        credentials: 'include',
-      });
-      const statusData = await statusResponse.json();
-      
-      setTwoFactorAuth(statusData.twoFactorAuthEnabled);
-      
-      // If 2FA was just enabled, fetch and show QR code
-      if (statusData.twoFactorAuthEnabled) {
-        console.log('2FA enabled, fetching QR code');
+      if (enable) {
+        // Just fetch QR code when enabling
+        console.log('Fetching QR code for 2FA setup...');
         try {
           const qrCodeData = await fetchQRCode();
           setQRCode(qrCodeData);
           setShowQRCode(true);
-          setVerificationStep(true); // Show verification step
+          setVerificationStep(true);
           console.log('QR code successfully set');
         } catch (qrError) {
           console.error('Failed to fetch QR code:', qrError);
           setAlertMessage({ 
             type: 'error', 
-            text: 'Two-factor authentication enabled, but failed to fetch QR code'
+            text: 'Failed to fetch QR code for setup'
           });
-          return;
         }
       } else {
-        console.log('2FA disabled, hiding QR code section');
+        // Disable 2FA
+        console.log('Disabling 2FA...');
+        const response = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to disable 2FA');
+        }
+
+        setTwoFactorAuth(false);
         setShowQRCode(false);
         setVerificationStep(false);
+        setAlertMessage({ 
+          type: 'success', 
+          text: 'Two-factor authentication has been disabled'
+        });
       }
-
-      setAlertMessage({ 
-        type: 'success', 
-        text: `Two-factor authentication has been ${statusData.twoFactorAuthEnabled ? 'enabled' : 'disabled'}`
-      });
-      console.log('Success alert set');
-
     } catch (error) {
-      console.error('Detailed error in 2FA toggle:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
-
-      let errorMessage = 'Failed to toggle two-factor authentication';
-      if (error.message.includes('Failed to fetch')) {
-        errorMessage = 'Network error: Could not reach the server';
-      } else if (error.message.includes('JSON')) {
-        errorMessage = 'Server response was not in the expected format';
-      }
-
+      console.error('Error in 2FA toggle:', error);
       setAlertMessage({ 
         type: 'error', 
-        text: errorMessage
+        text: error.message 
       });
-      console.log('Error alert set');
-
     } finally {
       setIsToggling2FA(false);
     }

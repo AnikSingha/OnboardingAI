@@ -12,8 +12,7 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const formattedTime = `${hour}:${minute} ${ampm}`;
-    onSubmit({ contact, number, date, time: formattedTime, campaignId });
+    onSubmit({ contact, number, date, campaignId });
     onClose();
   };
 
@@ -116,7 +115,3 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
 };
 
 export default Modal;
-
-
-
-

@@ -84,6 +84,7 @@ export default function SettingsPage() {
 
     try {
       // First verify the code
+      console.log('Verifying code...');
       const verifyResponse = await fetch('https://api.onboardingai.org/auth/otp/verify-code', {
         method: 'POST',
         credentials: 'include',
@@ -97,12 +98,14 @@ export default function SettingsPage() {
       });
 
       const verifyData = await verifyResponse.json();
+      console.log('Verify response:', verifyData);
 
       if (!verifyResponse.ok || !verifyData.success) {
         throw new Error(verifyData.message || 'Invalid verification code');
       }
 
       // If code is valid, then enable 2FA
+      console.log('Code verified, toggling 2FA...');
       const enableResponse = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
         method: 'POST',
         credentials: 'include',
@@ -119,6 +122,7 @@ export default function SettingsPage() {
       console.log('Toggle 2FA response:', enableData);
 
       // Check the updated 2FA status
+      console.log('Checking updated 2FA status...');
       await checkTwoFactorStatus();
 
       // Update UI state

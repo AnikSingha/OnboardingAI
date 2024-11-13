@@ -297,26 +297,27 @@ class BusinessManager {
     async getSchedules() {
         try {
             const client = await connectToDatabase();
-            const schedulesCollection = client.db('auth').collection('Schedule');
+            const schedulesCollection = client.db('auth').collection('schedules');
     
             const schedules = await schedulesCollection.find().toArray();
     
             return schedules;
         } catch (err) {
-            console.error("Error getting leads:", err);
+            console.error("Error getting schedules:", err);  // Clarified error message
             return [];
         }
     }
     
-    async addSchedule(name, number,date,campaign) {
+    async addSchedule(name, number, date, campaign) {
         try {
             const client = await connectToDatabase();
-            const schedulesCollection = client.db('auth').collection('Schedule');
+            const schedulesCollection = client.db('auth').collection('schedules');
     
+            // Ensure that the date is either a Date object or a valid ISO string
             const newSchedule = {
                 name: name,
                 number: number,
-                date: date,
+                date: new Date(date),  // Make sure it's a Date object if it's not already
                 campaign: campaign,
             };
     
@@ -324,31 +325,31 @@ class BusinessManager {
     
             return result.acknowledged;
         } catch (err) {
-            console.error("Error adding schedule:", err);
+            console.error("Error adding schedule:", err);  // Clarified error message
             return false;
         }
     }
     
     async deleteSchedule(scheduleId) {
-          try {
-              const client = await connectToDatabase();
-              const schedulesCollection = client.db('auth').collection('Schedule');
-              
-              // Ensure valid ObjectId
-              if (!ObjectId.isValid(scheduleId)) {
-                  return false;
-              }
-  
-              const result = await schedulesCollection.deleteOne({ 
-                  _id: new ObjectId(scheduleId)
-              });
-  
-              return result.deletedCount > 0;
-          } catch (err) {
-              console.error("Error deleting lead:", err);
-              return false;
-          }
-      }
+        try {
+            const client = await connectToDatabase();
+            const schedulesCollection = client.db('auth').collection('schedules');
+    
+            // Ensure valid ObjectId
+            if (!ObjectId.isValid(scheduleId)) {
+                return false;
+            }
+    
+            const result = await schedulesCollection.deleteOne({
+                _id: new ObjectId(scheduleId),
+            });
+    
+            return result.deletedCount > 0;
+        } catch (err) {
+            console.error("Error deleting schedule:", err);  // Clarified error message
+            return false;
+        }
+    }
 }
 
 module.exports = new BusinessManager()

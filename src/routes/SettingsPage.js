@@ -122,22 +122,7 @@ export default function SettingsPage() {
       }
 
       // Check the updated 2FA status
-      console.log('Checking updated 2FA status...');
-      const statusResponse = await fetch('https://api.onboardingai.org/auth/has-two-factor', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      const statusData = await statusResponse.json();
-      console.log('2FA status data:', statusData);
-
-      if (statusData.success) {
-        setTwoFactorAuth(statusData.twoFactorAuthEnabled);
-        console.log('2FA status updated:', statusData.twoFactorAuthEnabled);
-      }
+      await checkTwoFactorStatus();
 
       // Update UI state
       setVerificationStep(false);
@@ -152,6 +137,10 @@ export default function SettingsPage() {
         type: 'error', 
         text: err.message
       });
+      // Clear the code inputs on error
+      setTwoFactorCode(Array(6).fill(''));
+      // Focus the first input
+      inputRefs.current[0]?.focus();
     }
   };
 
@@ -235,7 +224,7 @@ export default function SettingsPage() {
     setIsToggling2FA(true);
     try {
       if (enable) {
-        // Just fetch QR code when enabling
+        // Just show QR code and verification section
         console.log('Fetching QR code for 2FA setup...');
         try {
           const qrCodeData = await fetchQRCode();

@@ -67,29 +67,52 @@ export const TwoFactorSetup = ({ qrCode, user, onSuccess, onError }) => {
     const code = twoFactorCode.join('');
 
     try {
-      const response = await fetch('https://api.onboardingai.org/auth/otp/verify-code', {
+      // First verify the code
+      console.log('Verifying code...');
+      const verifyResponse = await fetch('https://api.onboardingai.org/auth/otp/verify-code', {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: user, code }),
+        body: JSON.stringify({ 
+          email: user,
+          code 
+        }),
       });
 
-      const data = await response.json();
+      const verifyData = await verifyResponse.json();
+      console.log('Verify response:', verifyData);
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Network response was not ok');
+      if (!verifyResponse.ok || !verifyData.success) {
+        throw new Error(verifyData.message || 'Invalid verification code');
       }
 
-      if (data.success) {
-        onSuccess();
-      } else {
-        onError('Invalid verification code. Please try again.');
+      // If code is valid, then enable 2FA
+      console.log('Code verified, toggling 2FA...');
+      const enableResponse = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const enableData = await enableResponse.json();
+      console.log('Toggle 2FA response:', enableData);
+
+      if (!enableResponse.ok || !enableData.success) {
+        throw new Error('Failed to enable 2FA');
       }
+
+      onSuccess();
     } catch (err) {
       console.error('Error verifying 2FA code:', err);
-      onError(`Failed to verify code: ${err.message}`);
+      onError(err.message);
+      // Clear the code inputs on error
+      setTwoFactorCode(Array(6).fill(''));
+      // Focus the first input
+      inputRefs.current[0]?.focus();
     }
   };
 

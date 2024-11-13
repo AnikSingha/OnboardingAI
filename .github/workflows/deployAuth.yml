@@ -34,10 +34,11 @@ jobs:
       - name: Update code and deploy
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd OnboardingAI
             echo "Installing npm packages..."
             npm install
             echo "Changing directory to OnboardingAI/auth-service..."
-            cd OnboardingAI/auth-service
+            cd auth-service
             echo "Pulling latest code from repo..."
             git checkout auth
             git pull

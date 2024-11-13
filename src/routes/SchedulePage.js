@@ -126,9 +126,7 @@ export default function SchedulePage() {
           <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Schedule Call
           </Button>
-
-          {/* Button to toggle sort */}
-          <Button className="bg-gray-600 hover:bg-gray-700 text-white" onClick={handleSort}>
+          <Button className="bg-white-600 hover:bg-gray-700 text-white" onClick={handleSort}>
             Sort by Time {isAscending ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
           </Button>
         </div>

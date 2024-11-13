@@ -8,7 +8,7 @@ export default function TwoFactorPage() {
   const [isVerifying, setIsVerifying] = useState(false)
   const navigate = useNavigate()
   const inputRefs = useRef([])
-  const { login } = useContext(AuthContext)
+  const { login, user } = useContext(AuthContext)
 
   const handleInputChange = (e, index) => {
     let value = e.target.value
@@ -44,13 +44,16 @@ export default function TwoFactorPage() {
     setIsVerifying(true)
     try {
       console.log('Verifying 2FA code...')
-      const response = await fetch('https://api.onboardingai.org/auth/verify-two-factor', {
+      const response = await fetch('https://api.onboardingai.org/auth/otp/verify-code', {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ 
+          email: user,
+          code 
+        }),
       })
 
       const data = await response.json()
@@ -60,18 +63,17 @@ export default function TwoFactorPage() {
         throw new Error(data.message || 'Verification failed')
       }
 
-      // Complete the login process
-      await login()
-      console.log('Login completed after 2FA verification')
-      
-      // Redirect to dashboard
-      navigate('/dashboard')
+      if (data.success) {
+        await login()
+        console.log('Login completed after 2FA verification')
+        navigate('/dashboard')
+      } else {
+        throw new Error('Invalid verification code')
+      }
     } catch (err) {
       console.error('2FA verification error:', err)
       setAlertMessage(`Failed: ${err.message}`)
-      // Clear the code inputs on error
       setTwoFactorCode(Array(6).fill(''))
-      // Focus the first input
       inputRefs.current[0]?.focus()
     } finally {
       setIsVerifying(false)

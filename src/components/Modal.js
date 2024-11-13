@@ -1,20 +1,34 @@
 import React, { useState } from 'react';
-import campaigns from '../routes/campaigns.json'; // Ensure the path is correct
+import campaigns from '../routes/campaigns.json';
 
 const Modal = ({ isOpen, onClose, onSubmit }) => {
   const [contact, setContact] = useState('');
+  const [number, setNumber] = useState('');
   const [date, setDate] = useState('');
-  const [hour, setHour] = useState('10'); // Default hour
-  const [minute, setMinute] = useState('00'); // Default minute
-  const [ampm, setAmpm] = useState('AM'); // Default AM/PM
-  const [campaignId, setCampaignId] = useState(campaigns[0]?.id || ''); // Default to first campaign if available
+  const [hour, setHour] = useState('10');
+  const [minute, setMinute] = useState('00');
+  const [ampm, setAmpm] = useState('AM');
+  const [campaignId, setCampaignId] = useState(campaigns[0]?.id || '');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const formattedTime = `${hour}:${minute} ${ampm}`;
-    onSubmit({ contact, date, time: formattedTime, campaignId });
+    onSubmit({ contact, number, date, time: formattedTime, campaignId });
     onClose();
   };
+
+  const handleClose = () => {
+    setContact('');
+    setNumber('');
+    setDate('');
+    setHour('10');
+    setMinute('00');
+    setAmpm('AM');
+    setCampaignId(campaigns[0]?.id || '');
+    onClose();
+  };
+
+  const isFormValid = contact && number && date && hour && minute && ampm && campaignId;
 
   if (!isOpen) return null;
 
@@ -31,6 +45,18 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
               onChange={(e) => setContact(e.target.value)}
               className="border rounded p-2 w-full"
               required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block mb-1">Number</label>
+            <input
+              type="text"
+              value={number}
+              onChange={(e) => setNumber(e.target.value)}
+              className="border rounded p-2 w-full"
+              required
+              pattern="^[0-9]{10}$"
+              title="Phone number should be 10 digits"
             />
           </div>
           <div className="mb-4">
@@ -70,7 +96,7 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
               className="border rounded p-2 w-full"
               required
             >
-              {campaigns.map((campaign) => (  // Changed to singular for clarity
+              {campaigns.map((campaign) => (
                 <option key={campaign.id} value={campaign.id}>
                   {campaign.name}
                 </option>
@@ -78,8 +104,10 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
             </select>
           </div>
           <div className="flex justify-between">
-            <button type="button" onClick={onClose} className="bg-gray-300 hover:bg-gray-400 rounded px-4 py-2">Cancel</button>
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2" style={{marginLeft:10}}>Add Call</button>
+            <button type="button" onClick={handleClose} className="bg-gray-300 hover:bg-gray-400 rounded px-4 py-2">Cancel</button>
+            <button type="submit" className={`bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2 ${isFormValid ? '' : 'opacity-50 cursor-not-allowed'}`} disabled={!isFormValid}>
+              Add Call
+            </button>
           </div>
         </form>
       </div>
@@ -88,4 +116,7 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
 };
 
 export default Modal;
+
+
+
 

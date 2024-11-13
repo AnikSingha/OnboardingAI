@@ -115,6 +115,9 @@ export default function SettingsPage() {
         throw new Error('Failed to enable 2FA');
       }
 
+      const enableData = await enableResponse.json();
+      console.log('Toggle 2FA response:', enableData);
+
       // Check the updated 2FA status
       await checkTwoFactorStatus();
 
@@ -244,7 +247,7 @@ export default function SettingsPage() {
           throw new Error('Failed to disable 2FA');
         }
 
-        setTwoFactorAuth(false);
+        await checkTwoFactorStatus(); // Check status after toggle
         setShowQRCode(false);
         setVerificationStep(false);
         setAlertMessage({ 

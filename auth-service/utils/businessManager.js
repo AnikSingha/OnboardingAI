@@ -293,6 +293,62 @@ class BusinessManager {
             return false;
         }
     }
+
+    async getSchedules() {
+        try {
+            const client = await connectToDatabase();
+            const schedulesCollection = client.db('auth').collection('Schedule');
+    
+            const schedules = await schedulesCollection.find().toArray();
+    
+            return schedules;
+        } catch (err) {
+            console.error("Error getting leads:", err);
+            return [];
+        }
+    }
+    
+    async addSchedule(name, number,date,campaign) {
+        try {
+            const client = await connectToDatabase();
+            const schedulesCollection = client.db('auth').collection('Schedule');
+    
+            const newSchedule = {
+                name: name,
+                number: number,
+                date: date,
+                campaign: campaign,
+            };
+    
+            const result = await schedulesCollection.insertOne(newSchedule);
+    
+            return result.acknowledged;
+        } catch (err) {
+            console.error("Error adding schedule:", err);
+            return false;
+        }
+    }
+    
+    async deleteSchedule(scheduleId) {
+          try {
+              const client = await connectToDatabase();
+              const schedulesCollection = client.db('auth').collection('Schedule');
+              
+              // Ensure valid ObjectId
+              if (!ObjectId.isValid(scheduleId)) {
+                  return false;
+              }
+  
+              const result = await schedulesCollection.deleteOne({ 
+                  _id: new ObjectId(scheduleId)
+              });
+  
+              return result.deletedCount > 0;
+          } catch (err) {
+              console.error("Error deleting lead:", err);
+              return false;
+          }
+      }
 }
 
 module.exports = new BusinessManager()

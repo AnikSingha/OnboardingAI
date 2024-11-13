@@ -24,7 +24,7 @@ export default function SchedulePage() {
       });
       if (response.ok) {
         const data = await response.json();
-        setCalls(data.Schedule || []);
+        setCalls(data.schedules || []);
       }
     } catch (error) {
       console.error("Error fetching schedule:", error);
@@ -42,7 +42,7 @@ export default function SchedulePage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newcalls),
+        body: JSON.stringify(call),
       });
 
       if (response.ok) {
@@ -77,16 +77,14 @@ export default function SchedulePage() {
     }
   };
 
-  const sortCalls = (calls) => {
-    return [...calls].sort((a, b) => {
-      const dateA = new Date(`${a.date} ${a.time}`);
-      const dateB = new Date(`${b.date} ${b.time}`);
-      return isAscending ? dateA - dateB : dateB - dateA;
-    });
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(); // Formats as 'MM/DD/YYYY'
   };
 
-  const toggleSortOrder = () => {
-    setIsAscending(!isAscending);
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); // Formats as 'HH:MM AM/PM'
   };
 
   return (
@@ -98,58 +96,55 @@ export default function SchedulePage() {
           <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Schedule Call
           </Button>
-
-          <Button variant="outline" onClick={toggleSortOrder}>
-            {isAscending ? (
-              <ArrowUp className="mr-2 h-4 w-4" />
-            ) : (
-              <ArrowDown className="mr-2 h-4 w-4" />
-            )}
-            {isAscending ? "Sort: Oldest First" : "Sort: Newest First"}
-          </Button>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Upcoming Calls</CardTitle>
-            <CardDescription>Your scheduled AI-powered calls</CardDescription>
           </CardHeader>
           <CardContent>
-            {calls.length === 0 ? (
-              <div className="text-center text-gray-500">No upcoming calls scheduled.</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Campaign</TableHead>
-                    <TableHead>Actions</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Phone Number</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Campaign</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {calls.map((call) => ( 
+                  <TableRow key={call._id}>
+                    <TableCell>{call.name}</TableCell>
+                    <TableCell>{call.number}</TableCell> 
+                    <TableCell>{formatDate(call.date)}</TableCell> 
+                    <TableCell>{formatTime(call.date)}</TableCell> 
+                    <TableCell>{call.campaign}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                        >
+                          Call
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDeleteContact(call._id)} 
+                          className="text-red-600"
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortCalls(calls).map((call) => (
-                    <TableRow key={call.id}>
-                      <TableCell className="font-medium">{call.contact}</TableCell>
-                      <TableCell>{call.date}</TableCell>
-                      <TableCell>{call.time}</TableCell>
-                      <TableCell>{call.campaign}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Phone className="mr-2 h-4 w-4" /> Start Call
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleDeleteContact(call.id)} className="text-red-600">
-                            <Trash className="mr-2 h-4 w-4" /> Delete
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+                ))}
+              </TableBody>
+
+            </Table>
           </CardContent>
         </Card>
 
@@ -162,3 +157,4 @@ export default function SchedulePage() {
     </Layout>
   );
 }
+

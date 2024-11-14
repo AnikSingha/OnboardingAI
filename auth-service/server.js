@@ -56,8 +56,8 @@ const openPaths = new Set([
   '/auth/decode-business-token',
   '/auth/employee-sign-up',
   '/call-leads',
-  '/twilio-stream',
-  '/media',
+  '/call-leads/twilio-stream',  // Updated path
+  '/call-leads/media',          // Updated path
   '/logs'
 ]);
 
@@ -87,7 +87,7 @@ connectToMongoDB();
 app.use(checkToken);
 
 // Mount routes
-app.use('/', callerRoutes);  // This includes the WebSocket endpoint
+app.use('/call-leads', callerRoutes);  // Changed from '/' to '/call-leads'
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/business', businessRoutes);

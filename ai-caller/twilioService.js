@@ -54,41 +54,26 @@ const handleWebSocket = (ws, req) => {
       const frame = audioBuffer.slice(i, i + frameSize);
       const frameBase64 = frame.toString('base64');
 
-      ws.send(
-        JSON.stringify({
-          event: 'media',
-          streamSid: streamSid,
-          media: {
-            payload: frameBase64,
-          },
-        }),
-        (error) => {
-          if (error) {
-            console.error('Error sending TTS audio frame to Twilio:', error);
-          }
+      ws.send(JSON.stringify({
+        event: 'media',
+        streamSid: streamSid,
+        media: {
+          payload: frameBase64
         }
-      );
+      }));
 
-      await new Promise((resolve) => setTimeout(resolve, frameDurationMs));
-    }
-
-    if (ws.readyState === ws.OPEN) {
-      const markLabel = uuidv4();
-      ws.send(
-        JSON.stringify({
-          event: 'mark',
-          streamSid: streamSid,
-          mark: {
-            name: markLabel,
-          },
-        })
-      );
+      await new Promise(resolve => setTimeout(resolve, frameDurationMs));
     }
   };
 
   ws.on('message', async (message) => {
     try {
       const data = JSON.parse(message);
+      console.log('Received WebSocket message:', {
+        event: data.event,
+        streamSid: data.start?.streamSid,
+        callSid: data.start?.callSid
+      });
       
       if (data.event === 'start') {
         console.log('Start event data:', JSON.stringify(data, null, 2));
@@ -99,25 +84,28 @@ const handleWebSocket = (ws, req) => {
           phoneNumber = data.start.customParameters.phoneNumber;
         }
 
-
-        await connectToMongoDB();
-        console.log(`Stream started: ${streamSid} for phone number: ${phoneNumber}`);
-
-        // Initialize Deepgram with callbacks
+        console.log('Initializing Deepgram...');
         dgLive = initializeDeepgram({
           onOpen: async () => {
             console.log('Deepgram Live Transcription connection opened.');
-            const initialMessage = 'Hello! May I know your name, please?';
-            console.log('Sending initial message to user:', initialMessage);
-            const ttsAudioBuffer = await generateTTS(initialMessage);
-            await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+            try {
+              const initialMessage = 'Hello! May I know your name, please?';
+              console.log('Generating TTS for initial message:', initialMessage);
+              const ttsAudioBuffer = await generateTTS(initialMessage);
+              console.log('TTS generated, buffer size:', ttsAudioBuffer.length);
+              await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+              console.log('Initial message sent successfully');
+            } catch (error) {
+              console.error('Error in initial message flow:', error);
+            }
           },
           onTranscript: async (transcript) => {
+            console.log('Received transcript:', transcript);
             if (transcript.trim()) {
-              console.log('Final Transcription:', transcript);
+              console.log('Processing transcript:', transcript);
               const response = await processTranscript(transcript, callerName);
               if (response) {
-                console.log('AI Response:', response);
+                console.log('Generating TTS for response:', response);
                 const ttsAudioBuffer = await generateTTS(response);
                 await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
               }
@@ -132,10 +120,13 @@ const handleWebSocket = (ws, req) => {
         });
 
       } else if (data.event === 'media') {
+        console.log('Received media event, payload size:', data.media.payload.length);
         const audioBufferData = Buffer.from(data.media.payload, 'base64');
         if (dgLive && dgLive.getReadyState() === 1) {
           dgLive.send(audioBufferData);
+          console.log('Sent audio data to Deepgram');
         } else {
+          console.log('Queuing audio data, Deepgram not ready');
           audioBufferQueue.push(audioBufferData);
         }
       } else if (data.event === 'stop') {

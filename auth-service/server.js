@@ -14,6 +14,7 @@ const leadsRoutes = require('./routes/leads');
 const callerRoutes = require('../ai-caller/routes/caller');
 const schedulesRoutes = require('./routes/schedules');
 const { connectToMongoDB } = require('../ai-caller/database');
+const { handleWebSocket } = require('../ai-caller/twilioService');
 
 const app = express();
 expressWs(app);
@@ -56,8 +57,9 @@ const openPaths = new Set([
   '/auth/decode-business-token',
   '/auth/employee-sign-up',
   '/call-leads',
-  '/call-leads/twilio-stream',  // Updated path
-  '/call-leads/media',          // Updated path
+  '/call-leads/twilio-stream',
+  '/call-leads/media',
+  '/call-leads/call-status',
   '/logs'
 ]);
 
@@ -87,12 +89,45 @@ connectToMongoDB();
 app.use(checkToken);
 
 // Mount routes
-app.use('/call-leads', callerRoutes);  // Changed from '/' to '/call-leads'
+app.use('/call-leads', callerRoutes);
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/business', businessRoutes);
 app.use('/leads', leadsRoutes);
 app.use('/schedules', schedulesRoutes);
+
+// WebSocket endpoint with ping
+app.ws('/call-leads/media', (ws, req) => {
+  console.log('WebSocket connection received at /call-leads/media');
+  
+  // Set up ping interval
+  const pingInterval = setInterval(() => {
+    if (ws.readyState === ws.OPEN) {
+      ws.ping();
+      console.log('Ping sent to client');
+    }
+  }, 30000);
+
+  // Handle pong responses
+  ws.on('pong', () => {
+    console.log('Received pong from client');
+  });
+
+  // Clean up on connection close
+  ws.on('close', () => {
+    console.log('WebSocket connection closed, clearing ping interval');
+    clearInterval(pingInterval);
+  });
+
+  // Handle errors
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
+    clearInterval(pingInterval);
+  });
+
+  // Pass to main WebSocket handler
+  handleWebSocket(ws, req);
+});
 
 // Logs endpoint
 app.get('/logs', (req, res) => {

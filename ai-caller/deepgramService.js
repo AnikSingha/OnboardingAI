@@ -1,4 +1,3 @@
-// deepgram.js
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const { LiveTranscriptionEvents, createClient } = require('@deepgram/sdk');
@@ -6,14 +5,40 @@ const OpenAI = require('openai');
 const { MongoClient } = require('mongodb');
 const dotenv = require('dotenv');
 
-dotenv.config(); // Ensure dotenv is loaded
+dotenv.config();
 
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Function to generate TTS audio buffer using Deepgram
+const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
+  const dgLive = deepgram.listen.live({
+    encoding: 'mulaw',
+    sample_rate: 8000,
+    channels: 1,
+    model: 'nova',
+    punctuate: true,
+    interim_results: true,
+    endpointing: 200,
+    utterance_end_ms: 1000,
+  });
+
+  dgLive.on(LiveTranscriptionEvents.Open, onOpen);
+
+  dgLive.on(LiveTranscriptionEvents.Transcript, async (transcription) => {
+    if (transcription.is_final) {
+      const transcript = transcription.channel.alternatives[0].transcript;
+      await onTranscript(transcript);
+    }
+  });
+
+  dgLive.on(LiveTranscriptionEvents.Error, onError);
+  dgLive.on(LiveTranscriptionEvents.Close, onClose);
+
+  return dgLive;
+};
+
 const generateTTS = async (text) => {
   if (!text || text.trim() === '') {
     throw new Error('Text for TTS cannot be null or empty');
@@ -49,52 +74,37 @@ const generateTTS = async (text) => {
   }
 };
 
-// Function to process transcript with GPT-3
-const processTranscript = async (transcript, isAskingForName = false) => {
-  if (!transcript || transcript.trim() === '') {
-    console.log('Received empty transcript.');
-    return 'I did not catch that. Could you please repeat?';
-  }
-
+const processTranscript = async (transcript, callerName) => {
   try {
-    let response;
-    if (isAskingForName) {
-      response = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an assistant that extracts specific information. Your job is to extract and return only the name from the given statement.',
-          },
-          {
-            role: 'user',
-            content: `Extract the name from this statement: "${transcript}"`,
-          },
-        ],
-      });
-    } else {
-      response = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a friendly assistant that helps users with general inquiries.',
-          },
-          { role: 'user', content: transcript },
-        ],
-      });
-    }
+    const messages = [
+      {
+        role: 'system',
+        content: `You are a friendly AI assistant making a phone call. Keep responses brief and conversational. 
+                 If you learn the caller's name, use it naturally in conversation. 
+                 Your goal is to have a natural, flowing conversation.`
+      },
+      {
+        role: 'user',
+        content: `Caller said: "${transcript}"`
+      }
+    ];
 
-    const assistantResponse = response.choices[0].message.content.trim();
-    return assistantResponse;
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: messages,
+      max_tokens: 100,
+      temperature: 0.7,
+    });
+
+    return completion.choices[0].message.content;
   } catch (error) {
-    console.error('Error in processTranscript:', error.response ? error.response.data : error.message);
-    return 'Sorry, I am unable to process your request at the moment.';
+    console.error('Error in processTranscript:', error);
+    throw error;
   }
 };
 
 module.exports = {
   generateTTS,
   processTranscript,
-  deepgram
+  initializeDeepgram
 };

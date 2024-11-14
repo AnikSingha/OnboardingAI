@@ -115,6 +115,13 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.post('/call-status', (req, res) => {
+  const callStatus = req.body.CallStatus;
+  const callSid = req.body.CallSid;
+  console.log('Call Status Update:', { callStatus, callSid });
+  res.sendStatus(200);
+});
+
 // WebSocket endpoint for media handling
 router.ws('/media', (ws, req) => {
   console.log('WebSocket connection received', {

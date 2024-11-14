@@ -128,7 +128,7 @@ app.ws('/call-leads/media', (ws, req) => {
 
 // Logs endpoint
 app.get('/logs', (req, res) => {
-  const logFilePath = path.join(__dirname, 'server.log');
+  const logFilePath = path.join(__dirname, 'output.log');
   res.setHeader('Content-Type', 'text/plain');
 
   if (fs.existsSync(logFilePath)) {

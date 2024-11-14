@@ -16,16 +16,19 @@ const handleWebSocket = (ws, req) => {
   let interactionCount = 0;
   let callerName = '';
 
-  console.log('WebSocket connection established', {
-    phoneNumber,
+  // Debug incoming request
+  console.log('WebSocket connection attempt:', {
+    url: req.url,
+    headers: req.headers,
     query: req.query,
-    headers: req.headers
+    method: req.method
   });
 
   // Add heartbeat to prevent timeout
   const pingInterval = setInterval(() => {
     if (ws.readyState === ws.OPEN) {
       ws.ping();
+      console.log('Ping sent to client');
     }
   }, 30000);
 
@@ -35,15 +38,20 @@ const handleWebSocket = (ws, req) => {
 
   // Function to send audio frames to Twilio
   const sendAudioFrames = async (audioBuffer, ws, streamSid, index) => {
+    console.log(`Attempting to send audio frames. Buffer size: ${audioBuffer.length}, Index: ${index}`);
     if (index === interactionCount && ws.readyState === ws.OPEN) {
       await sendBufferedAudio(audioBuffer, ws, streamSid);
       interactionCount++;
+      console.log(`Audio frames sent successfully. New interaction count: ${interactionCount}`);
+    } else {
+      console.log(`Skipping audio frames. Current index: ${index}, Interaction count: ${interactionCount}`);
     }
   };
 
   const sendBufferedAudio = async (audioBuffer, ws, streamSid) => {
     const frameSize = 160;
     const frameDurationMs = 20;
+    console.log(`Starting to send buffered audio. Total size: ${audioBuffer.length}`);
 
     for (let i = 0; i < audioBuffer.length; i += frameSize) {
       if (ws.readyState !== ws.OPEN) {
@@ -64,60 +72,76 @@ const handleWebSocket = (ws, req) => {
 
       await new Promise(resolve => setTimeout(resolve, frameDurationMs));
     }
+    console.log('Finished sending buffered audio');
   };
 
   ws.on('message', async (message) => {
     try {
+      console.log('Raw WebSocket message received:', message.toString());
       const data = JSON.parse(message);
-      console.log('Received WebSocket message:', {
+      console.log('Parsed WebSocket message:', {
         event: data.event,
-        streamSid: data.start?.streamSid,
-        callSid: data.start?.callSid
+        hasStart: !!data.start,
+        hasMedia: !!data.media,
+        streamSid: data.start?.streamSid
       });
       
       if (data.event === 'start') {
-        console.log('Start event data:', JSON.stringify(data, null, 2));
+        console.log('Processing start event...');
         streamSid = data.start.streamSid;
         callSid = data.start.callSid;
 
+        // Log parameters
+        console.log('Start event parameters:', {
+          streamSid,
+          callSid,
+          customParameters: data.start.customParameters
+        });
+
         if (data.start.customParameters && data.start.customParameters.phoneNumber) {
           phoneNumber = data.start.customParameters.phoneNumber;
+          console.log(`Phone number from parameters: ${phoneNumber}`);
         }
 
-        console.log('Initializing Deepgram...');
-        dgLive = initializeDeepgram({
-          onOpen: async () => {
-            console.log('Deepgram Live Transcription connection opened.');
-            try {
-              const initialMessage = 'Hello! May I know your name, please?';
-              console.log('Generating TTS for initial message:', initialMessage);
-              const ttsAudioBuffer = await generateTTS(initialMessage);
-              console.log('TTS generated, buffer size:', ttsAudioBuffer.length);
-              await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-              console.log('Initial message sent successfully');
-            } catch (error) {
-              console.error('Error in initial message flow:', error);
-            }
-          },
-          onTranscript: async (transcript) => {
-            console.log('Received transcript:', transcript);
-            if (transcript.trim()) {
-              console.log('Processing transcript:', transcript);
-              const response = await processTranscript(transcript, callerName);
-              if (response) {
-                console.log('Generating TTS for response:', response);
-                const ttsAudioBuffer = await generateTTS(response);
+        console.log('About to initialize Deepgram...');
+        try {
+          dgLive = initializeDeepgram({
+            onOpen: async () => {
+              console.log('Deepgram connection opened successfully');
+              try {
+                const initialMessage = 'Hello! May I know your name, please?';
+                console.log('Generating TTS for initial message:', initialMessage);
+                const ttsAudioBuffer = await generateTTS(initialMessage);
+                console.log('TTS generated, buffer size:', ttsAudioBuffer.length);
                 await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+                console.log('Initial message sent successfully');
+              } catch (error) {
+                console.error('Error in initial message flow:', error);
               }
+            },
+            onTranscript: async (transcript) => {
+              console.log('Received transcript:', transcript);
+              if (transcript.trim()) {
+                console.log('Processing transcript:', transcript);
+                const response = await processTranscript(transcript, callerName);
+                if (response) {
+                  console.log('Generating TTS for response:', response);
+                  const ttsAudioBuffer = await generateTTS(response);
+                  await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+                }
+              }
+            },
+            onError: (error) => {
+              console.error('Deepgram error:', error);
+            },
+            onClose: () => {
+              console.log('Deepgram Live Transcription connection closed.');
             }
-          },
-          onError: (error) => {
-            console.error('Deepgram error:', error);
-          },
-          onClose: () => {
-            console.log('Deepgram Live Transcription connection closed.');
-          }
-        });
+          });
+          console.log('Deepgram initialization completed');
+        } catch (error) {
+          console.error('Failed to initialize Deepgram:', error);
+        }
 
       } else if (data.event === 'media') {
         console.log('Received media event, payload size:', data.media.payload.length);
@@ -137,8 +161,14 @@ const handleWebSocket = (ws, req) => {
         ws.close();
       }
     } catch (error) {
-      console.error('Error processing WebSocket message:', error);
+      console.error('Error processing message:', error);
+      console.error('Message that caused error:', message.toString());
     }
+  });
+
+  // Add error handler
+  ws.on('error', (error) => {
+    console.error('WebSocket error occurred:', error);
   });
 
   ws.on('close', () => {
@@ -153,7 +183,13 @@ const handleWebSocket = (ws, req) => {
 
 const twilioStreamWebhook = (req, res) => {
   const phoneNumber = req.query.phoneNumber || req.body.to;
-  console.log('Twilio webhook hit');
+  console.log('Twilio webhook received:', {
+    phoneNumber,
+    query: req.query,
+    body: req.body,
+    method: req.method
+  });
+  
   const response = `<?xml version="1.0" encoding="UTF-8"?>
     <Response>
       <Connect>
@@ -166,6 +202,7 @@ const twilioStreamWebhook = (req, res) => {
   `;
   res.type('text/xml');
   res.send(response);
+  console.log('Twilio webhook response sent');
 };
 
 module.exports = {

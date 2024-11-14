@@ -82,9 +82,6 @@ function checkToken(req, res, next) {
   next();
 }
 
-// Connect to MongoDB before setting up routes
-connectToMongoDB();
-
 // Apply token checking middleware
 app.use(checkToken);
 

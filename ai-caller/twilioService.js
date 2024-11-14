@@ -99,6 +99,8 @@ const handleWebSocket = (ws, req) => {
           phoneNumber = data.start.customParameters.phoneNumber;
         }
 
+
+        await connectToMongoDB();
         console.log(`Stream started: ${streamSid} for phone number: ${phoneNumber}`);
 
         // Initialize Deepgram with callbacks

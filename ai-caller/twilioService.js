@@ -99,7 +99,7 @@ const makeCall = async (to) => {
 };
 */
 
-// Twilio Stream Webhook
+
 const twilioStreamWebhook = (req, res) => {
   const phoneNumber = req.query.phoneNumber;
   

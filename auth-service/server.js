@@ -31,6 +31,18 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Add WebSocket CORS headers
+app.use((req, res, next) => {
+  if (req.headers.upgrade === 'websocket') {
+    const origin = req.headers.origin;
+    if (origin === 'https://www.onboardingai.org' || origin === 'https://test.onboardingai.org') {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+  }
+  next();
+});
+
 const openPaths = new Set([
   '/auth/forgot-password',
   '/auth/sign-up',
@@ -68,17 +80,21 @@ function checkToken(req, res, next) {
   next();
 }
 
+// Connect to MongoDB before setting up routes
 connectToMongoDB();
+
+// Apply token checking middleware
 app.use(checkToken);
 
-app.use('/', callerRoutes);
+// Mount routes
+app.use('/', callerRoutes);  // This includes the WebSocket endpoint
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/business', businessRoutes);
 app.use('/leads', leadsRoutes);
 app.use('/schedules', schedulesRoutes);
-console.log('Available routes:', app._router.stack.map(r => r.route?.path).filter(Boolean));
 
+// Logs endpoint
 app.get('/logs', (req, res) => {
   const logFilePath = path.join(__dirname, 'server.log');
   res.setHeader('Content-Type', 'text/plain');

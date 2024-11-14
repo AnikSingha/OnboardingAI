@@ -1,19 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const VoiceResponse = require('twilio').twiml.VoiceResponse;
-const { handleWebSocket } = require('../twilioService');
 const expressWs = require('express-ws');
+const WebSocket = require('ws');
+const VoiceResponse = require('twilio').twiml.VoiceResponse;
+const { handleWebSocket, twilioStreamWebhook } = require('../twilioService');
+
+// Initialize WebSocket server
 const wsServer = expressWs(router);
 
-
-wsServer.getWss().on('error', (error) => {
-  console.error('WebSocket Server Error:', error);
-});
-
-wsServer.getWss().on('connection', (ws, req) => {
-  console.log('New WebSocket connection established');
-});
-
+// CORS headers for WebSocket
 wsServer.getWss().on('headers', (headers, req) => {
   const origin = req.headers.origin;
   if (origin === 'https://www.onboardingai.org' || origin === 'https://test.onboardingai.org') {
@@ -22,15 +17,7 @@ wsServer.getWss().on('headers', (headers, req) => {
   }
 });
 
-router.ws('/media', (ws, req) => {
-  console.log('WebSocket connection received', {
-    query: req.query,
-    headers: req.headers
-  });
-  handleWebSocket(ws, req);
-});
-
-// Initiate a call
+// Call initiation endpoint
 router.post('/', async (req, res) => {
   try {
     const { name, number } = req.body;
@@ -52,55 +39,92 @@ router.post('/', async (req, res) => {
       });
     }
 
-    console.log('Attempting to initiate call:', { to: number, from: fromNumber });
-    
-    const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    
-    const call = await client.calls.create({
-      url: 'https://api.onboardingai.org/call-leads/twilio-stream',
-      to: number,
-      from: fromNumber,
-      statusCallback: 'https://api.onboardingai.org/call-leads/call-status',
-      statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
-      statusCallbackMethod: 'POST'
+    // Initialize WebSocket before making the call
+    const ws = new WebSocket(`wss://api.onboardingai.org/call-leads/media`);
+
+    // Add error handler
+    ws.on('error', (error) => {
+      console.error('WebSocket error for:', number, error);
+      ws.close();
+      if (!res.headersSent) {
+        res.status(500).json({ 
+          success: false, 
+          error: 'WebSocket connection error' 
+        });
+      }
     });
 
-    console.log('Call initiated with SID:', call.sid);
-    res.json({ success: true, callSid: call.sid });
+    // Add connection timeout
+    const connectionTimeout = setTimeout(() => {
+      if (ws.readyState !== WebSocket.OPEN) {
+        ws.close();
+        console.error('WebSocket connection timeout for:', number);
+        if (!res.headersSent) {
+          res.status(500).json({ 
+            success: false, 
+            error: 'WebSocket connection timeout' 
+          });
+        }
+      }
+    }, 10000); // 10 second timeout
+
+    ws.on('open', async () => {
+      try {
+        clearTimeout(connectionTimeout); // Clear timeout on successful connection
+        console.log('WebSocket connection established for:', number);
+        
+        const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        
+        const call = await client.calls.create({
+          url: 'https://api.onboardingai.org/call-leads/twilio-stream',
+          to: number,
+          from: fromNumber,
+          statusCallback: 'https://api.onboardingai.org/call-leads/call-status',
+          statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+          statusCallbackMethod: 'POST'
+        });
+
+        ws.on('close', () => {
+          console.log(`Call ended for ${number}, closing WebSocket`);
+        });
+
+        console.log('Call initiated with SID:', call.sid);
+        res.json({ success: true, callSid: call.sid });
+      } catch (error) {
+        console.error('Error in WebSocket open handler:', error);
+        ws.close();
+        if (!res.headersSent) {
+          res.status(500).json({ 
+            success: false, 
+            error: error.message,
+            details: error.code || 'Unknown error code'
+          });
+        }
+      }
+    });
 
   } catch (error) {
     console.error('Error initiating call:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message,
-      details: error.code || 'Unknown error code'
-    });
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        details: error.code || 'Unknown error code'
+      });
+    }
   }
 });
 
-// Status callback endpoint
-router.post('/call-status', (req, res) => {
-  console.log('Call status update:', req.body);
-  res.sendStatus(200);
+// WebSocket endpoint for media handling
+router.ws('/media', (ws, req) => {
+  console.log('WebSocket connection received', {
+    query: req.query,
+    headers: req.headers
+  });
+  handleWebSocket(ws, req);
 });
 
-// TwiML webhook endpoint
-router.post('/twilio-stream', (req, res) => {
-  console.log('Twilio webhook hit');
-  const phoneNumber = req.query.phoneNumber || req.body.to;
-  
-  const twiml = new VoiceResponse();
-  twiml.connect().stream({
-    url: `wss://${req.headers.host}/call-leads/media`,
-    track: 'inbound_track'
-  }).parameter({
-    name: 'phoneNumber',
-    value: phoneNumber
-  });
-  
-  console.log('TwiML generated:', twiml.toString());
-  res.type('text/xml');
-  res.send(twiml.toString());
-});
+// Twilio webhook endpoint
+router.post('/twilio-stream', twilioStreamWebhook);
 
 module.exports = router;

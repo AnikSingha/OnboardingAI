@@ -364,18 +364,8 @@ router.get('/decode-business-token', async (req, res) => {
 
 router.get('/has-two-factor', async (req, res) => {
     try {
-        const token = req.cookies.token
-        if (!token) {
-            return res.status(401).json({ success: false, message: 'Token not found' })
-        }
-
-        const { valid: isValid, decoded } = verifyToken(token)
-
-        if (!isValid) {
-            return res.status(403).json({ success: false, message: 'Invalid token' })
-        }
-
-        const hasTwoFactorAuth = await accountManager.hasTwoFactor(decoded.email)
+        const { email } = req.body
+        const hasTwoFactorAuth = await accountManager.hasTwoFactor(email)
         
         if (hasTwoFactorAuth) 
             return res.status(200).json({ success: true, message: 'Two-factor auth is enabled for this account', twoFactorAuthEnabled: true })

@@ -56,11 +56,12 @@ const openPaths = new Set([
   '/auth/reset-password',
   '/auth/decode-business-token',
   '/auth/employee-sign-up',
+  '/auth/has-two-factor',
   '/call-leads',
   '/call-leads/twilio-stream',
   '/call-leads/media',
   '/call-leads/call-status',
-  '/logs'
+  '/logs',
 ]);
 
 function checkToken(req, res, next) {

@@ -182,7 +182,7 @@ export default function SettingsPage() {
     try {
       console.log('Checking 2FA status...');
       const response = await fetch('https://api.onboardingai.org/auth/has-two-factor', {
-        method: 'GET',
+        method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',

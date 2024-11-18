@@ -77,12 +77,12 @@ export default function LoginPage() {
   useEffect(() => {
     if (checkedForTwoFactor) {
       if (isTwoFactorEnabled) {
-        navigate('/two-factor');
+        navigate(`/two-factor?email=${btoa(formData.email)}`);
       } else {
         navigate('/dashboard');
       }
     }
-  }, [checkedForTwoFactor, navigate, isTwoFactorEnabled]);
+  }, [checkedForTwoFactor, navigate, isTwoFactorEnabled, formData.email]);
 
   return (
     <div className="min-h-screen bg-[#E6E6FA] flex flex-col">

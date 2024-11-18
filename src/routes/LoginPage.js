@@ -49,14 +49,17 @@ export default function LoginPage() {
         throw new Error(loginData.message || 'Network response was not ok');
       }
 
-      // Check if user has 2FA enabled
       const twoFactorResponse = await fetch('https://api.onboardingai.org/auth/has-two-factor', {
-        method: 'GET',
+        method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({
+          email: formData.email
+        })
       });
+      
 
       const twoFactorData = await twoFactorResponse.json();
       

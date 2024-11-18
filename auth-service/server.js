@@ -57,6 +57,7 @@ const openPaths = new Set([
   '/auth/decode-business-token',
   '/auth/employee-sign-up',
   '/auth/has-two-factor',
+  '/auth/otp/verify-code',
   '/call-leads',
   '/call-leads/twilio-stream',
   '/call-leads/media',

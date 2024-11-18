@@ -89,6 +89,7 @@ export default function LoginPage() {
     };
   
     handleLogin();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkedForTwoFactor, navigate, isTwoFactorEnabled, formData.email]);
   
   return (

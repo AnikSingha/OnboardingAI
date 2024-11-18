@@ -186,7 +186,10 @@ export default function SettingsPage() {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({
+          email: user
+        })
       });
 
       console.log('2FA status check response:', response.status);

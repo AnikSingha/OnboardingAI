@@ -362,7 +362,7 @@ router.get('/decode-business-token', async (req, res) => {
     }
 })
 
-router.get('/has-two-factor', async (req, res) => {
+router.post('/has-two-factor', async (req, res) => {
     try {
         const { email } = req.body
         const hasTwoFactorAuth = await accountManager.hasTwoFactor(email)

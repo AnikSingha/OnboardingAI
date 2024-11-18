@@ -4,7 +4,7 @@ import { ChevronDown, Eye, EyeOff, ArrowLeft, User } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
-  const { login } = useContext(AuthContext);
+  const { login, loading } = useContext(AuthContext);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -75,15 +75,22 @@ export default function LoginPage() {
   };
 
   useEffect(() => {
-    if (checkedForTwoFactor) {
-      if (isTwoFactorEnabled) {
-        navigate(`/two-factor?email=${btoa(formData.email)}`);
-      } else {
-        navigate('/dashboard');
+    const handleLogin = async () => {
+      if (checkedForTwoFactor) {
+        if (isTwoFactorEnabled) {
+          navigate(`/two-factor?email=${btoa(formData.email)}`);
+        } else {
+          await login();
+          if (!loading){
+            navigate('/dashboard');
+          }
+        }
       }
-    }
+    };
+  
+    handleLogin();
   }, [checkedForTwoFactor, navigate, isTwoFactorEnabled, formData.email]);
-
+  
   return (
     <div className="min-h-screen bg-[#E6E6FA] flex flex-col">
       {/* Top Bar */}

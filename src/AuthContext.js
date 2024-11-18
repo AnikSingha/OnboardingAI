@@ -8,10 +8,9 @@ export const AuthProvider = ({ children }) => {
     const [name, setName] = useState(null)
     const [business, setBusiness] = useState(null)
     const [role, setRole] = useState(null)
-    const [loading, setLoading] = useState(false)
+    const [loading, setLoading] = useState(true)
 
     const login = async () => {
-        setLoading(true)
 
         try {
             const response = await fetch("https://api.onboardingai.org/auth/decode-token", {

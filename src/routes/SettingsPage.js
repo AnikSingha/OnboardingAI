@@ -432,15 +432,34 @@ export default function SettingsPage() {
               <CardDescription>Manage your account details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" name="name" value={accountInfo.name} onChange={handleAccountInfoChange} />
+              <div className="grid grid-cols-1 gap-4">
+                <div className="w-full">
+                  <Label htmlFor="name">Name</Label>
+                  <Input 
+                    id="name" 
+                    name="name" 
+                    value={accountInfo.name} 
+                    onChange={handleAccountInfoChange}
+                    className="w-full min-w-0" 
+                  />
+                </div>
+                <div className="w-full">
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email" 
+                    name="email" 
+                    type="email" 
+                    value={accountInfo.email} 
+                    onChange={handleAccountInfoChange}
+                    className="w-full min-w-0"
+                  />
+                </div>
+                <div className="w-full">
+                  <Button onClick={handleUpdateAccount} className="w-full sm:w-auto">
+                    Update Account
+                  </Button>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" value={accountInfo.email} onChange={handleAccountInfoChange} />
-              </div>
-              <Button onClick={handleUpdateAccount}>Update Account</Button>
             </CardContent>
           </Card>
 

@@ -1,9 +1,12 @@
-import React, { useState } from 'react'
+import React, { useState, useContext } from 'react'
+import { AuthContext } from '../AuthContext';
 import { Eye, EyeOff } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const { login, loading } = useContext(AuthContext);
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -51,10 +54,14 @@ export default function LoginPage() {
 
       if (!response.ok) {
         throw new Error(data.message || 'Network response was not ok')
+      } else{
+        await login()
       }
 
       setAlertMessage('');
-      navigate('/dashboard')
+      if (!loading){
+        navigate('/dashboard')
+      }
     } catch (err) {
       if (err.message === "Business already exists"){
         setAlertMessage(`Failed: This organization name is taken`)

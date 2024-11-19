@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react'
+import React, { useState, useEffect, useContext, useRef } from 'react'
 import { AuthContext } from '../AuthContext'
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
@@ -9,6 +9,7 @@ import Layout from '../components/Layout'
 import { X } from 'lucide-react' 
 import ConfirmationDialog from '../components/ConfirmationDialog'
 import { useNavigate } from 'react-router-dom';
+import { TwoFactorSetup } from '../components/TwoFactorSetup';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -46,6 +47,234 @@ export default function SettingsPage() {
       storageLimit: '5 GB'
     }
   });
+
+  // Two-Factor Authentication
+  const [twoFactorAuth, setTwoFactorAuth] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [qrCode, setQRCode] = useState('');
+
+  const [isToggling2FA, setIsToggling2FA] = useState(false);
+
+  const [verificationStep, setVerificationStep] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState(Array(6).fill(''));
+  const inputRefs = useRef([]);
+
+  const handleInputChange = (e, index) => {
+    let value = e.target.value;
+    if (!/^\d*$/.test(value)) return;
+
+    const newCode = [...twoFactorCode];
+    newCode[index] = value;
+    setTwoFactorCode(newCode);
+
+    if (value && index < twoFactorCode.length - 1) {
+      inputRefs.current[index + 1].focus();
+    }
+  };
+
+  const handleInputBackspace = (e, index) => {
+    if (e.key === 'Backspace' && !twoFactorCode[index] && index > 0) {
+      inputRefs.current[index - 1].focus();
+    }
+  };
+
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    const code = twoFactorCode.join('');
+
+    try {
+      // First verify the code
+      console.log('Verifying code...');
+      const verifyResponse = await fetch('https://api.onboardingai.org/auth/otp/verify-code', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email: user,
+          code 
+        }),
+      });
+
+      const verifyData = await verifyResponse.json();
+      console.log('Verify response:', verifyData);
+
+      if (!verifyResponse.ok || !verifyData.success) {
+        throw new Error(verifyData.message || 'Invalid verification code');
+      }
+
+      // If code is valid, then enable 2FA
+      console.log('Code verified, toggling 2FA...');
+      const enableResponse = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const enableData = await enableResponse.json();
+      console.log('Toggle 2FA response:', enableData);
+
+      if (!enableResponse.ok || !enableData.success) {
+        throw new Error('Failed to enable 2FA');
+      }
+
+      // Check the updated 2FA status
+      await checkTwoFactorStatus();
+
+      // Update UI state
+      setVerificationStep(false);
+      setShowQRCode(false);
+      setAlertMessage({ 
+        type: 'success', 
+        text: 'Two-factor authentication has been successfully enabled'
+      });
+    } catch (err) {
+      console.error('Error verifying 2FA code:', err);
+      setAlertMessage({ 
+        type: 'error', 
+        text: err.message
+      });
+      // Clear the code inputs on error
+      setTwoFactorCode(Array(6).fill(''));
+      // Focus the first input
+      inputRefs.current[0]?.focus();
+    }
+  };
+
+  const fetchQRCode = async () => {
+    try {
+      console.log('Fetching QR code...');
+      const response = await fetch('https://api.onboardingai.org/auth/otp/qr-code', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      console.log('QR code response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('QR code fetch failed. Status:', response.status, 'Error:', errorText);
+        throw new Error(`Failed to fetch QR code: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('QR code fetch response received');
+
+      if (!data.success) {
+        console.error('QR code fetch unsuccessful:', data.message);
+        throw new Error(data.message);
+      }
+
+      return data.QRCode;
+    } catch (error) {
+      console.error('Error fetching QR code:', error);
+      throw error;
+    }
+  };
+
+  const checkTwoFactorStatus = async () => {
+    try {
+      console.log('Checking 2FA status...');
+      const response = await fetch('https://api.onboardingai.org/auth/has-two-factor', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: user
+        })
+      });
+
+      console.log('2FA status check response:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('2FA status check failed:', errorText);
+        throw new Error(`Failed to check 2FA status: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('2FA status data:', data);
+
+      if (data.success) {
+        setTwoFactorAuth(data.twoFactorAuthEnabled);
+        console.log('2FA status updated:', data.twoFactorAuthEnabled);
+      } else {
+        console.error('2FA status check unsuccessful:', data.message);
+      }
+    } catch (error) {
+      console.error('Error checking 2FA status:', error);
+      setAlertMessage({
+        type: 'error',
+        text: 'Failed to check two-factor authentication status'
+      });
+    }
+  };
+
+  // Check 2FA status on component mount
+  useEffect(() => {
+    checkTwoFactorStatus();
+  }, []);
+
+  const handleToggleTwoFactorAuth = async (enable) => {
+    setIsToggling2FA(true);
+    try {
+      if (enable) {
+        // Just show QR code and verification section
+        console.log('Fetching QR code for 2FA setup...');
+        try {
+          const qrCodeData = await fetchQRCode();
+          setQRCode(qrCodeData);
+          setShowQRCode(true);
+          setVerificationStep(true);
+          console.log('QR code successfully set');
+        } catch (qrError) {
+          console.error('Failed to fetch QR code:', qrError);
+          setAlertMessage({ 
+            type: 'error', 
+            text: 'Failed to fetch QR code for setup'
+          });
+        }
+      } else {
+        // Disable 2FA
+        console.log('Disabling 2FA...');
+        const response = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to disable 2FA');
+        }
+
+        await checkTwoFactorStatus(); // Check status after toggle
+        setShowQRCode(false);
+        setVerificationStep(false);
+        setAlertMessage({ 
+          type: 'success', 
+          text: 'Two-factor authentication has been disabled'
+        });
+      }
+    } catch (error) {
+      console.error('Error in 2FA toggle:', error);
+      setAlertMessage({ 
+        type: 'error', 
+        text: error.message 
+      });
+    } finally {
+      setIsToggling2FA(false);
+    }
+  };
 
   useEffect(() => {
     setAccountInfo({
@@ -165,6 +394,23 @@ export default function SettingsPage() {
     navigate('/reset-password');
   };
 
+  const handleVerificationSuccess = async () => {
+    await checkTwoFactorStatus(); // Update the 2FA status
+    setVerificationStep(false);
+    setShowQRCode(false);
+    setAlertMessage({ 
+      type: 'success', 
+      text: 'Two-factor authentication has been successfully enabled'
+    });
+  };
+
+  const handleVerificationError = (errorMessage) => {
+    setAlertMessage({ 
+      type: 'error', 
+      text: errorMessage
+    });
+  };
+
   return (
     <Layout>
       <div className="p-8">
@@ -213,6 +459,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
+          {/*}
           <Card>
             <CardHeader>
               <CardTitle>Notifications</CardTitle>
@@ -310,6 +557,49 @@ export default function SettingsPage() {
                 <Button onClick={handleUpgradePlan}>Upgrade Plan</Button>
                 <Button variant="outline" onClick={handleUpdatePayment}>Update Payment Method</Button>
               </div>
+            </CardContent>
+          </Card>
+          */}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Two-Factor Authentication</CardTitle>
+              <CardDescription>Enhance your account security</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium mb-2">
+                    Status: <span className={twoFactorAuth ? 'text-green-600' : 'text-yellow-600'}>
+                      {twoFactorAuth ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </p>
+                  {twoFactorAuth ? (
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => handleToggleTwoFactorAuth(false)}
+                      disabled={isToggling2FA || verificationStep}
+                    >
+                      {isToggling2FA ? 'Disabling...' : 'Disable 2FA'}
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={() => handleToggleTwoFactorAuth(true)}
+                      disabled={isToggling2FA || verificationStep}
+                    >
+                      {isToggling2FA ? 'Enabling...' : 'Enable 2FA'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {showQRCode && (
+                <TwoFactorSetup 
+                  qrCode={qrCode}
+                  user={user}
+                  onSuccess={handleVerificationSuccess}
+                  onError={handleVerificationError}
+                />
+              )}
             </CardContent>
           </Card>
         </div>

@@ -1,32 +1,32 @@
-import React, { useState } from 'react'
-import { useContext } from 'react'
-import { AuthContext } from '../AuthContext'
+import { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../AuthContext';
 import { ChevronDown, Eye, EyeOff, ArrowLeft, User } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
-  const { login } = useContext(AuthContext)
-  const [showPassword, setShowPassword] = useState(false)
+  const { login, loading } = useContext(AuthContext);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     rememberMe: false
-  })
-
-  const [alertMessage, setAlertMessage] = useState('')
-  const navigate = useNavigate()
+  });
+  const [alertMessage, setAlertMessage] = useState('');
+  const [checkedForTwoFactor, setCheckedForTwoFactor] = useState(false);
+  const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
+  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target
-    setAlertMessage('')
+    const { name, value, type, checked } = e.target;
+    setAlertMessage('');
     setFormData(prevState => ({
       ...prevState,
       [name]: type === 'checkbox' ? checked : value
-    }))
-  }
+    }));
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     const payload = {
       email: formData.email,
@@ -43,42 +43,55 @@ export default function LoginPage() {
         body: JSON.stringify(payload),
       });
 
-      const loginData = await loginResponse.json()
+      const loginData = await loginResponse.json();
 
       if (!loginResponse.ok) {
-        throw new Error(loginData.message || 'Network response was not ok')
+        throw new Error(loginData.message || 'Network response was not ok');
       }
 
-      // Check if user has 2FA enabled
       const twoFactorResponse = await fetch('https://api.onboardingai.org/auth/has-two-factor', {
-        method: 'GET',
+        method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({
+          email: formData.email
+        })
       });
+      
 
       const twoFactorData = await twoFactorResponse.json();
       
       if (twoFactorData.success && twoFactorData.twoFactorAuthEnabled) {
-        // If 2FA is enabled, redirect to 2FA page
-        navigate('/two-factor');
-        return;
+        setIsTwoFactorEnabled(true);
       }
 
-      await login()
-      setAlertMessage('')
-      navigate('/dashboard')
+      setCheckedForTwoFactor(true);
     } catch (err) {
       console.error('Login error:', err);
-      if (err.message === "Business already exists"){
-        setAlertMessage(`Failed: This organization name is taken`)
-      } else {
-        setAlertMessage(`Failed: ${err.message}`)
-      }
+      setAlertMessage(`Failed: ${err.message}`);
     }
-  }
+  };
 
+  useEffect(() => {
+    const handleLogin = async () => {
+      if (checkedForTwoFactor) {
+        if (isTwoFactorEnabled) {
+          navigate(`/two-factor?email=${btoa(formData.email)}`);
+        } else {
+          await login();
+          if (!loading){
+            navigate('/dashboard');
+          }
+        }
+      }
+    };
+  
+    handleLogin();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkedForTwoFactor, navigate, isTwoFactorEnabled, formData.email]);
+  
   return (
     <div className="min-h-screen bg-[#E6E6FA] flex flex-col">
       {/* Top Bar */}

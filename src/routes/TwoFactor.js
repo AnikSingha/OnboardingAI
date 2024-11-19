@@ -1,5 +1,5 @@
 import React, { useState, useRef, useContext } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { AuthContext } from '../AuthContext'
 
 export default function TwoFactorPage() {
@@ -8,7 +8,11 @@ export default function TwoFactorPage() {
   const [isVerifying, setIsVerifying] = useState(false)
   const navigate = useNavigate()
   const inputRefs = useRef([])
-  const { login, user } = useContext(AuthContext)
+  const { login } = useContext(AuthContext)
+
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const user = atob(queryParams.get('email'))
 
   const handleInputChange = (e, index) => {
     let value = e.target.value

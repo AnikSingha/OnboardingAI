@@ -15,11 +15,12 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
   
     // Combine the date, hour, minute, and am/pm to create a full Date object
     const combinedDateTime = new Date(`${date} ${hour}:${minute} ${ampm}`);
-
+  
     // Pass the combined Date object along with other form data
     onSubmit({ name: contact, number: number, date: combinedDateTime, campaign: campaign });
     onClose();
   };
+  
 
   const handleClose = () => {
     setContact('');
@@ -38,8 +39,9 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white p-4 rounded shadow-lg">
-        <h2 className="text-xl font-bold mb-4">Schedule a New Call</h2>
+      <div className="bg-white w-full max-w-md p-6 rounded shadow-lg">
+
+        <h2 className="text-xl font-bold mb-4 text-center">Schedule A New Call</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block mb-1">Contact</label>
@@ -63,33 +65,36 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
               title="Phone number should be 10 digits"
             />
           </div>
-          <div className="mb-4">
-            <label className="block mb-1">Date</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="border rounded p-2 w-full"
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block mb-1">Time</label>
-            <div className="flex">
-              <select value={hour} onChange={(e) => setHour(e.target.value)} className="border rounded p-2 mr-2">
-                {[...Array(12).keys()].map(i => (
-                  <option key={i + 1} value={i + 1}>{i + 1}</option>
-                ))}
-              </select>
-              <select value={minute} onChange={(e) => setMinute(e.target.value)} className="border rounded p-2 mr-2">
-                {[0, 15, 30, 45].map(i => (
-                  <option key={i} value={i.toString().padStart(2, '0')}>{i.toString().padStart(2, '0')}</option>
-                ))}
-              </select>
-              <select value={ampm} onChange={(e) => setAmpm(e.target.value)} className="border rounded p-2">
-                <option value="AM">AM</option>
-                <option value="PM">PM</option>
-              </select>
+
+          <div class = "flex justify-between">
+            <div className="mb-4">
+              <label className="block mb-1">Date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="border rounded p-2 w-[120%]"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block mb-1">Time</label>
+              <div className="flex">
+                <select value={hour} onChange={(e) => setHour(e.target.value)} className="border rounded p-2 mr-2">
+                  {[...Array(12).keys()].map(i => (
+                    <option key={i + 1} value={i + 1}>{i + 1}</option>
+                  ))}
+                </select>
+                <select value={minute} onChange={(e) => setMinute(e.target.value)} className="border rounded p-2 mr-2">
+                  {[0, 15, 30, 45].map(i => (
+                    <option key={i} value={i.toString().padStart(2, '0')}>{i.toString().padStart(2, '0')}</option>
+                  ))}
+                </select>
+                <select value={ampm} onChange={(e) => setAmpm(e.target.value)} className="border rounded p-2">
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
             </div>
           </div>
           <div className="mb-4">

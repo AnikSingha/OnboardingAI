@@ -55,6 +55,15 @@ export default function SchedulePage() {
     return conflict;
   };
 
+  const checkAvailableDay = (selectedTime) => {
+    let i = 0;
+    let available = new Date(selectedTime);
+    while (checkForConflicts(new Date(available.getTime() + i * 15 * 60 * 1000))) {
+      i++;
+    }
+    console.log('Next available time slot:', new Date(available.getTime() + i * 15 * 60 * 1000));
+  };
+
   const handleAddContact = async (call) => {
     try {
       if (!call.name || !call.number || !call.date || !call.campaign) {
@@ -64,6 +73,7 @@ export default function SchedulePage() {
 
       if (checkForConflicts(call.date)) {
         setErrorMessage('This time slot is already taken. Please choose a different time.');
+        checkAvailableDay(call.date);
         return;
       }
 

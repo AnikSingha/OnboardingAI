@@ -72,15 +72,6 @@ router.post('/call-status', (req, res) => {
   res.sendStatus(200);
 });
 
-// WebSocket endpoint for media handling
-router.ws('/media', (ws, req) => {
-  console.log('WebSocket connection received', {
-    query: req.query,
-    headers: req.headers
-  });
-  handleWebSocket(ws, req);
-});
-
 // Twilio webhook endpoint
 router.post('/twilio-stream', twilioStreamWebhook);
 

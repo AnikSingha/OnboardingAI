@@ -97,7 +97,12 @@ app.use('/schedules', schedulesRoutes);
 
 // WebSocket endpoint with ping
 app.ws('/call-leads/media', (ws, req) => {
-  console.log('WebSocket connection received at /call-leads/media');
+  console.log('WebSocket connection attempt received at /call-leads/media', {
+    headers: req.headers,
+    query: req.query,
+    upgrade: req.headers.upgrade,
+    connection: req.headers.connection
+  });
   
   // Set up ping interval
   const pingInterval = setInterval(() => {
@@ -113,18 +118,27 @@ app.ws('/call-leads/media', (ws, req) => {
   });
 
   // Clean up on connection close
-  ws.on('close', () => {
-    console.log('WebSocket connection closed, clearing ping interval');
+  ws.on('close', (code, reason) => {
+    console.log('WebSocket connection closed', {
+      code,
+      reason,
+      readyState: ws.readyState
+    });
     clearInterval(pingInterval);
   });
 
   // Handle errors
   ws.on('error', (error) => {
-    console.error('WebSocket error:', error);
+    console.error('WebSocket error:', {
+      message: error.message,
+      type: error.type,
+      code: error.code
+    });
     clearInterval(pingInterval);
   });
 
   // Pass to main WebSocket handler
+  console.log('Passing connection to handleWebSocket');
   handleWebSocket(ws, req);
 });
 

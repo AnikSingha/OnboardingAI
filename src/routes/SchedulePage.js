@@ -8,10 +8,29 @@ import Modal from '../components/Modal';
 
 export default function SchedulePage() {
   const [calls, setCalls] = useState([]);
+    const [contacts, setContacts] = useState([]);
   const [newcalls, setNewCalls] = useState({ name: '', number: '', date: new Date(), campaign: '' });
   const [isModalOpen, setModalOpen] = useState(false);
   const [isAscending, setIsAscending] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+
+  const fetchContacts = async () => {
+    try {
+      const response = await fetch('https://api.onboardingai.org/leads', { 
+        credentials: 'include' 
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setContacts(data.leads || []);
+      }
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
+    }
+  };
 
   useEffect(() => {
     fetchCalls();
@@ -64,6 +83,33 @@ export default function SchedulePage() {
     console.log('Next available time slot:', new Date(available.getTime() + i * 15 * 60 * 1000));
   };
 
+  const checkNumberExists = async (number) => {
+    try {
+      const response = await fetch(`https://api.onboardingai.org/exists?number=${number}`, {
+        method: 'GET',
+        credentials: 'include', // Include cookies for authentication if necessary
+        headers: { 'Content-Type': 'application/json' },
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const result = await response.json();
+  
+      if (result.success) {
+        console.log(`Number exists: ${result.exists}`);
+        return result.exists; // true if the number exists, false otherwise
+      } else {
+        console.log('Request failed:', result.message);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error checking number existence:', error.message);
+      return false;
+    }
+  };
+  
   const handleAddContact = async (call) => {
     try {
       if (!call.name || !call.number || !call.date || !call.campaign) {
@@ -76,6 +122,13 @@ export default function SchedulePage() {
         checkAvailableDay(call.date);
         return;
       }
+      checkNumberExists(number).then((exists) => {
+        if (exists) {
+          console.log("exist");
+        } else {
+          console.log("not exist");
+        }
+      });
 
       const response = await fetch('https://api.onboardingai.org/schedules', {
         method: 'POST',
@@ -140,8 +193,6 @@ export default function SchedulePage() {
             Sort by Time {isAscending ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
           </Button>
         </div>
-
-        {/* Display error message if time conflict occurs */}
         {errorMessage && <div className="bg-red-500 text-white p-4 mb-6 rounded">{errorMessage}</div>}
 
         <Card>
@@ -199,7 +250,3 @@ export default function SchedulePage() {
     </Layout>
   );
 }
-
-
-
-

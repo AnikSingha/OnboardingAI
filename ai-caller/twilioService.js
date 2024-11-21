@@ -153,14 +153,8 @@ const handleWebSocket = (ws, req) => {
 
   ws.on('message', async (message) => {
     try {
-      console.log('Raw WebSocket message received:', message.toString());
       const data = JSON.parse(message);
-      console.log('Parsed WebSocket message:', {
-        event: data.event,
-        hasStart: !!data.start,
-        hasMedia: !!data.media,
-        streamSid: data.start?.streamSid
-      });
+
 
       if (data.event === 'start') {
         console.log('Start event data:', JSON.stringify(data, null, 2));

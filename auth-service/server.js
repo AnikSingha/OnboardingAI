@@ -88,7 +88,7 @@ app.ws('/call-leads/media', (ws, req) => {
       message: error.message,
       type: error.type,
       code: error.code,
-      stack: error.stack
+      stack: error.stack 
     });
     clearInterval(pingInterval);
   });

@@ -81,7 +81,9 @@ export default function SchedulePage() {
     while (checkForConflicts(new Date(available.getTime() + i * 15 * 60 * 1000))) {
       i++;
     }
-    console.log('Next available time slot:', new Date(available.getTime() + i * 15 * 60 * 1000));
+    const nextAvailableTime = new Date(available.getTime() + i * 15 * 60 * 1000);
+    console.log('Next available time slot:', nextAvailableTime);
+    return nextAvailableTime;
   };
 
   const handleAddContact = async (call) => {
@@ -92,14 +94,11 @@ export default function SchedulePage() {
       }
 
       if (checkForConflicts(call.date)) {
-        setErrorMessage('This time slot is already taken. Please choose a different time.');
-        checkAvailableDay(call.date);
+        setErrorMessage('This time slot is already taken. Please choose a different time.\nNext Available Time is: ',checkAvailableDay(call.date));
         return;
       }
 
-      const formattedCallNumber = call.number.toString().trim();
-
-      const exist = contacts.some((lead) => lead._number.toString().trim() === formattedCallNumber);
+      const exist = contacts.some((lead) => lead.number === call.number);
 
       if (!exist) {
         const addLeadResponse = await fetch('https://api.onboardingai.org/leads', {
@@ -125,7 +124,7 @@ export default function SchedulePage() {
       if (response.ok) {
         fetchCalls();
         setNewCalls({ name: '', number: '', date: new Date(), campaign: '' });
-        setErrorMessage(''); // Clear the error message after successful submission
+        setErrorMessage('');
       } else {
         alert('Failed to add schedule');
       }

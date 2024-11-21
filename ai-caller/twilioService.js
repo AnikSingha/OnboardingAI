@@ -238,17 +238,19 @@ const twilioStreamWebhook = (req, res) => {
     console.error('Query params:', req.query);
     console.error('Body:', req.body);
   }
-
+  
   const response = `<?xml version="1.0" encoding="UTF-8"?>
-    <Response>
-      <Connect>
-        <Stream url="wss://api.onboardingai.org/call-leads/media">
-          <Parameter name="phoneNumber" value="${phoneNumber || ''}" />
-        </Stream>
-      </Connect>
-      <Pause length="300"/>
-    </Response>
-  `;
+  <Response>
+    <Connect>
+      <Stream url="wss://api.onboardingai.org/call-leads/media">
+        <Parameter name="phoneNumber" value="${phoneNumber}" />
+        <Parameter name="callSid" value="${req.body.CallSid || ''}" />
+        <Parameter name="debug" value="true" />
+      </Stream>
+    </Connect>
+    <Pause length="60"/>
+  </Response>
+`;
   res.type('text/xml');
   res.send(response);
   console.log('Twilio webhook response sent with phone number:', phoneNumber);

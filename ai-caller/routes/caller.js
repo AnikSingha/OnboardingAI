@@ -54,15 +54,26 @@ router.post('/', async (req, res) => {
 });
 
 router.post('/call-status', (req, res) => {
-  const callStatus = req.body.CallStatus || req.query.CallStatus;
-  const callSid = req.body.CallSid || req.query.CallSid;
-  console.log('Call Status Update:', { 
-    callStatus, 
-    callSid,
+  const callStatus = req.body.CallStatus;
+  const callSid = req.body.CallSid;
+  const callDuration = req.body.CallDuration;
+  const from = req.body.From;
+  const to = req.body.To;
+  
+  console.log('Raw Call Status Update:', {
     body: req.body,
     query: req.query,
-    headers: req.headers 
+    headers: req.headers
   });
+
+  console.log('Processed Call Status:', {
+    callStatus,
+    callSid,
+    callDuration,
+    from,
+    to
+  });
+
   res.sendStatus(200);
 });
 

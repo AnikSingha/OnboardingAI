@@ -254,19 +254,6 @@ class BusinessManager {
       }
   }
     
-  async leadExist(number) => {
-      try {
-            const client = await connectToDatabase();
-            const leadsCollection = client.db('auth').collection('leads');
-    
-            const lead = await collection.findOne({ number: number });
-    
-        return !!lead; 
-      } catch (error) {
-        console.error("Error checking contact existence:", error);
-        return false;
-      }
-    };
   async addLead(number, name) {
       try {
           const client = await connectToDatabase();

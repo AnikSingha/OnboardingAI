@@ -5,18 +5,6 @@ const WebSocket = require('ws');
 const VoiceResponse = require('twilio').twiml.VoiceResponse;
 const { handleWebSocket, twilioStreamWebhook } = require('../twilioService');
 
-// Initialize WebSocket server
-const wsServer = expressWs(router);
-
-// CORS headers for WebSocket
-wsServer.getWss().on('headers', (headers, req) => {
-  const origin = req.headers.origin;
-  if (origin === 'https://www.onboardingai.org' || origin === 'https://test.onboardingai.org') {
-    headers.push('Access-Control-Allow-Origin: ' + origin);
-    headers.push('Access-Control-Allow-Credentials: true');
-  }
-});
-
 // Call initiation endpoint
 router.post('/', async (req, res) => {
   try {
@@ -66,9 +54,15 @@ router.post('/', async (req, res) => {
 });
 
 router.post('/call-status', (req, res) => {
-  const callStatus = req.body.CallStatus;
-  const callSid = req.body.CallSid;
-  console.log('Call Status Update:', { callStatus, callSid });
+  const callStatus = req.body.CallStatus || req.query.CallStatus;
+  const callSid = req.body.CallSid || req.query.CallSid;
+  console.log('Call Status Update:', { 
+    callStatus, 
+    callSid,
+    body: req.body,
+    query: req.query,
+    headers: req.headers 
+  });
   res.sendStatus(200);
 });
 

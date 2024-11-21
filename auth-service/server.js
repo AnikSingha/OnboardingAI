@@ -97,27 +97,34 @@ app.use('/schedules', schedulesRoutes);
 
 // WebSocket endpoint with ping
 app.ws('/call-leads/media', (ws, req) => {
-  console.log('WebSocket connection attempt received at /call-leads/media', {
+  console.log('WebSocket connection attempt received', {
+    url: req.url,
     headers: req.headers,
     query: req.query,
+    params: req.params,
     upgrade: req.headers.upgrade,
     connection: req.headers.connection
   });
-  
-  // Set up ping interval
+
+  ws.isAlive = true;
+
   const pingInterval = setInterval(() => {
-    if (ws.readyState === ws.OPEN) {
-      ws.ping();
-      console.log('Ping sent to client');
+    if (!ws.isAlive) {
+      console.log('Client not responding to pings, terminating connection');
+      clearInterval(pingInterval);
+      return ws.terminate();
     }
+    
+    ws.isAlive = false;
+    ws.ping();
+    console.log('Ping sent to client');
   }, 30000);
 
-  // Handle pong responses
   ws.on('pong', () => {
+    ws.isAlive = true;
     console.log('Received pong from client');
   });
 
-  // Clean up on connection close
   ws.on('close', (code, reason) => {
     console.log('WebSocket connection closed', {
       code,
@@ -127,21 +134,24 @@ app.ws('/call-leads/media', (ws, req) => {
     clearInterval(pingInterval);
   });
 
-  // Handle errors
   ws.on('error', (error) => {
     console.error('WebSocket error:', {
       message: error.message,
       type: error.type,
-      code: error.code
+      code: error.code,
+      stack: error.stack
     });
     clearInterval(pingInterval);
   });
 
-  // Pass to main WebSocket handler
-  console.log('Passing connection to handleWebSocket');
-  handleWebSocket(ws, req);
+  try {
+    console.log('Initializing WebSocket handler');
+    handleWebSocket(ws, req);
+  } catch (error) {
+    console.error('Error in handleWebSocket:', error);
+    ws.close(1011, 'Internal Server Error');
+  }
 });
-
 // Logs endpoint
 app.get('/logs', (req, res) => {
   const logFilePath = path.join(__dirname, 'output.log');

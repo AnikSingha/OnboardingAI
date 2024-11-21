@@ -208,7 +208,7 @@ const handleWebSocket = (ws, req) => {
 };
 
 const twilioStreamWebhook = (req, res) => {
-  const phoneNumber = req.query.phoneNumber;
+  const phoneNumber = req.query.phoneNumber || req.body.To;
   console.log('Twilio webhook received:', {
     phoneNumber,
     query: req.query,
@@ -216,12 +216,7 @@ const twilioStreamWebhook = (req, res) => {
     method: req.method
   });
   
-  if (!phoneNumber) {
-    console.error('No phone number in webhook request');
-    return res.status(400).send('Phone number is required');
-  }
-
-   const response = `<?xml version="1.0" encoding="UTF-8"?>
+  const response = `<?xml version="1.0" encoding="UTF-8"?>
     <Response>
       <Connect>
         <Stream url="wss://api.onboardingai.org/call-leads/media">

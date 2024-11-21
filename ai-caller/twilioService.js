@@ -1,5 +1,5 @@
 const twilio = require('twilio');
-const { generateTTS, processTranscript } = require('./deepgramService.js');
+const { generateTTS, processTranscript, initializeDeepgram } = require('./deepgramService.js');
 const { v4: uuidv4 } = require('uuid');
 const { createClient, LiveTranscriptionEvents } = require('@deepgram/sdk');
 const { client, updateLeadInfo } = require('./database.js');
@@ -145,33 +145,19 @@ const handleWebSocket = (ws, req) => {
           console.log(`Phone number from parameters: ${phoneNumber}`);
         }
 
-        dgLive = deepgram.listen.live({
-          encoding: 'mulaw',
-          sample_rate: 8000,
-          channels: 1,
-          model: 'nova',
-          punctuate: true,
-          interim_results: true,
-          endpointing: 200,
-          utterance_end_ms: 1000,
-        });
-
-        dgLive.addListener(LiveTranscriptionEvents.Open, async () => {
-          console.log('Deepgram Live Transcription connection opened.');
-          try {
-            const initialMessage = 'Hello! May I know your name, please?';
-            console.log('Sending initial message to user:', initialMessage);
-            const ttsAudioBuffer = await generateTTS(initialMessage);
-            await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-          } catch (error) {
-            console.error('Error in initial message flow:', error);
-          }
-        });
-
-        dgLive.addListener(LiveTranscriptionEvents.Transcript, async (transcription) => {
-          if (transcription.is_final) {
-            const transcript = transcription.channel.alternatives[0].transcript;
-            
+        dgLive = initializeDeepgram({
+          onOpen: async () => {
+            console.log('Deepgram Live Transcription connection opened.');
+            try {
+              const initialMessage = 'Hello! May I know your name, please?';
+              console.log('Sending initial message to user:', initialMessage);
+              const ttsAudioBuffer = await generateTTS(initialMessage);
+              await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+            } catch (error) {
+              console.error('Error in initial message flow:', error);
+            }
+          },
+          onTranscript: async (transcript) => {
             if (transcript.trim()) {
               console.log('Final Transcription:', transcript);
 
@@ -200,20 +186,15 @@ const handleWebSocket = (ws, req) => {
                 await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
                 console.log('Assistant response sent to Twilio.');
               }
-            } else {
-              console.log('Received empty final transcription, skipping.');
             }
+          },
+          onError: (error) => {
+            console.error('Deepgram error:', error);
+          },
+          onClose: () => {
+            console.log('Deepgram Live Transcription connection closed.');
           }
         });
-
-        dgLive.addListener(LiveTranscriptionEvents.Error, (error) => {
-          console.error('Deepgram error:', error);
-        });
-
-        dgLive.addListener(LiveTranscriptionEvents.Close, () => {
-          console.log('Deepgram Live Transcription connection closed.');
-        });
-
       } else if (data.event === 'media') {
         const audioBufferData = Buffer.from(data.media.payload, 'base64');
         if (dgLive && dgLive.getReadyState() === 1) {

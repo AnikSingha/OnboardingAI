@@ -71,52 +71,67 @@ const generateTTS = async (text) => {
   }
 };
 
-const processTranscript = async (transcript, callerName) => {
+const processTranscript = async (transcript, isNameExtraction = false) => {
   if (!transcript || transcript.trim() === '') {
     console.log('Received empty transcript.');
     return 'I did not catch that. Could you please repeat?';
   }
 
   try {
-    const functions = [{
-      name: "extractName",
-      description: "Extract a person's name from conversation",
-      parameters: {
-        type: "object",
-        properties: {
-          name: {
-            type: "string",
-            description: "The extracted name from the conversation"
-          }
-        },
-        required: ["name"]
-      }
-    }];
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: "You are a friendly AI assistant making a phone call. Extract names when mentioned in conversation."
-        },
-        {
-          role: "user", 
-          content: transcript
+    if (isNameExtraction) {
+      const functions = [{
+        name: "extractName",
+        description: "Extract a person's name from conversation",
+        parameters: {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              description: "The extracted name from the conversation"
+            }
+          },
+          required: ["name"]
         }
-      ],
-      functions,
-      function_call: "auto"
-    });
+      }];
 
-    const message = response.choices[0].message;
-    
-    if (message.function_call) {
-      const extractedName = JSON.parse(message.function_call.arguments).name;
-      return extractedName;
+      const response = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are a friendly AI assistant making a phone call. Extract names when mentioned in conversation."
+          },
+          {
+            role: "user", 
+            content: transcript
+          }
+        ],
+        functions,
+        function_call: "auto"
+      });
+
+      const message = response.choices[0].message;
+      
+      if (message.function_call) {
+        const extractedName = JSON.parse(message.function_call.arguments).name;
+        return extractedName;
+      }
+    } else {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are a friendly AI assistant making a phone call. Keep responses concise and natural."
+          },
+          {
+            role: "user", 
+            content: transcript
+          }
+        ]
+      });
+      return response.choices[0].message.content;
     }
-
-    return message.content;
   } catch (error) {
     console.error('Error in processTranscript:', error.response ? error.response.data : error.message);
     return 'Sorry, I am unable to process your request at the moment.';

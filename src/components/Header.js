@@ -58,7 +58,7 @@ function Header() {
   ];
 
   return (
-    <header className="relative flex justify-between items-center py-6 px-8 max-w-7xl mx-auto w-full">
+    <header className="relative flex justify-between items-center py-6 px-8 max-w-7xl mx-auto w-full bg-white">
       <Logo />
       <nav className="flex space-x-8">
         <DropdownMenu title="Products" platformItems={productItems} productItems={productItems} />

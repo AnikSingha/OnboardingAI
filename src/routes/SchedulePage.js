@@ -98,7 +98,8 @@ export default function SchedulePage() {
       }
       // Debugging: Log the contacts array and the phone number being checked
       console.log('Checking for existing lead with phone number:', call.number);
-  
+      console.log('Existing leads in contacts:', contacts);
+      
       // Check if the lead already exists in the contacts array by phone number
       const exist = contacts.some((lead) => lead.number === call.number);
   

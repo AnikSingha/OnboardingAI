@@ -215,7 +215,14 @@ const handleWebSocket = (ws, req) => {
 };
 
 const twilioStreamWebhook = (req, res) => {
-  const phoneNumber = req.query.phoneNumber || req.body.To;
+  console.log('Full webhook request:', {
+    query: req.query,
+    body: req.body,
+    params: req.params,
+    headers: req.headers
+  });
+
+  const phoneNumber = req.query.phoneNumber || req.body.To || req.body.to;
   console.log('Twilio webhook received:', {
     phoneNumber,
     query: req.query,
@@ -223,11 +230,17 @@ const twilioStreamWebhook = (req, res) => {
     method: req.method
   });
   
+  if (!phoneNumber) {
+    console.error('No phone number found in request');
+    console.error('Query params:', req.query);
+    console.error('Body:', req.body);
+  }
+
   const response = `<?xml version="1.0" encoding="UTF-8"?>
     <Response>
       <Connect>
         <Stream url="wss://api.onboardingai.org/call-leads/media">
-          <Parameter name="phoneNumber" value="${phoneNumber}" />
+          <Parameter name="phoneNumber" value="${phoneNumber || ''}" />
         </Stream>
       </Connect>
       <Pause length="300"/>

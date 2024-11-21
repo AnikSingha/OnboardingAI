@@ -76,13 +76,13 @@ router.post('/', async (req, res) => {
         const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
         
         const call = await client.calls.create({
-          url: 'https://api.onboardingai.org/call-leads/twilio-stream',
-          to: number,
-          from: fromNumber,
-          statusCallback: 'https://api.onboardingai.org/call-leads/call-status',
-          statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
-          statusCallbackMethod: 'POST'
-        });
+        url: `https://api.onboardingai.org/call-leads/twilio-stream?phoneNumber=${encodeURIComponent(number)}`,
+        to: number,
+        from: fromNumber,
+        statusCallback: 'https://api.onboardingai.org/call-leads/call-status',
+        statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+        statusCallbackMethod: 'POST'
+      });
 
         ws.on('close', () => {
           console.log(`Call ended for ${number}, closing WebSocket`);

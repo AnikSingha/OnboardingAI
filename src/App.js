@@ -24,6 +24,7 @@ import { AuthProvider } from './AuthContext.js';
 import CallsPage from './routes/CallsPage';
 import CallDetailsPage from './routes/CallDetailsPage';
 import ScriptsPage from './routes/ScriptsPage';
+import PricingPage from './components/PricingPage';
 
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
     <Router>
       <AuthProvider>
         <Routes>
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/" element={<LandingPage />} />
           <Route path="/setup" element={<BusinessSetup />} />
           <Route path="/ai-prompts" element={<AIPrompts />} />

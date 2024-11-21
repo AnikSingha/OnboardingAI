@@ -20,6 +20,37 @@ router.get('/', async (req, res) => {
     }
 });
 
+//Check exist
+router.get('/exists', async (req, res) => {
+    const { valid, decoded } = verifyToken(req.cookies.token);
+
+    if (!valid) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const { number } = req.query; 
+
+    if (!number) {
+        return res.status(400).json({ success: false, message: 'Missing number in query parameters' });
+    }
+
+    try {
+        const leadExists = await businessManager.leadExist(number);
+
+        return res.status(200).json({ 
+            success: true, 
+            exists: leadExists, 
+            message: leadExists ? 'Number exists in the leads collection' : 'Number does not exist in the leads collection'
+        });
+    } catch (err) {
+        return res.status(500).json({ 
+            success: false, 
+            message: `Internal server error: ${err.message}` 
+        });
+    }
+});
+
+
 // Add new lead
 router.post('/', async (req, res) => {
     const { valid, decoded } = verifyToken(req.cookies.token);

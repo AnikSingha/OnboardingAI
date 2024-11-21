@@ -97,8 +97,10 @@ export default function SchedulePage() {
         setErrorMessage(`This time slot is already taken. Please choose a different time. Next Available Time is: ${checkAvailableDay(call.date).toLocaleString()}`);
         return;
       }
+      
+      const formattedCallNumber = call.number.toString().trim();
 
-      const exist = contacts.some((lead) => lead.number === call.number);
+      const exist = contacts.some((lead) => lead._number.toString().trim() === formattedCallNumber);
 
       if (!exist) {
         const addLeadResponse = await fetch('https://api.onboardingai.org/leads', {

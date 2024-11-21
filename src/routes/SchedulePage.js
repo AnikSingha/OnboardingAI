@@ -96,8 +96,14 @@ export default function SchedulePage() {
         checkAvailableDay(call.date);
         return;
       }
-
-      const exist = contacts.find((lead) => lead.number === call.number);
+      // Debugging: Log the contacts array and the phone number being checked
+      console.log('Checking for existing lead with phone number:', call.number);
+  
+      // Check if the lead already exists in the contacts array by phone number
+      const exist = contacts.some((lead) => lead.number === call.number);
+  
+      // Debugging: Log whether the lead exists or not
+      console.log('Does lead exist?', exist);
 
       if (!exist) {
         const addLeadResponse = await fetch('https://api.onboardingai.org/leads', {

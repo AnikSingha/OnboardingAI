@@ -25,11 +25,11 @@ const updateLeadInfo = async (phoneNumber, leadInfo) => {
     const database = client.db('auth');
     const leadsCollection = database.collection('leads');
 
-    await leadsCollection.updateOne(
-      { _number: phoneNumber },
-      { $set: { name: leadInfo.name } },
-      { upsert: true }
-    );
+   await leadsCollection.updateOne(
+  { _number: phoneNumber },
+  { $set: leadInfo },
+  { upsert: true }
+);
 
     console.log(`Lead info updated for phone number: ${phoneNumber}`);
   } catch (error) {
@@ -40,5 +40,6 @@ const updateLeadInfo = async (phoneNumber, leadInfo) => {
 
 module.exports = {
   connectToMongoDB,
-  updateLeadInfo
+  updateLeadInfo,
+  client
 };

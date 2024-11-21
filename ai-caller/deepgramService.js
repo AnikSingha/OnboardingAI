@@ -2,11 +2,8 @@ const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const { LiveTranscriptionEvents, createClient } = require('@deepgram/sdk');
 const OpenAI = require('openai');
-const { MongoClient } = require('mongodb');
 const dotenv = require('dotenv');
-
 dotenv.config();
-
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -75,31 +72,54 @@ const generateTTS = async (text) => {
 };
 
 const processTranscript = async (transcript, callerName) => {
-  try {
-    const messages = [
-      {
-        role: 'system',
-        content: `You are a friendly AI assistant making a phone call. Keep responses brief and conversational. 
-                 If you learn the caller's name, use it naturally in conversation. 
-                 Your goal is to have a natural, flowing conversation.`
-      },
-      {
-        role: 'user',
-        content: `Caller said: "${transcript}"`
-      }
-    ];
+  if (!transcript || transcript.trim() === '') {
+    console.log('Received empty transcript.');
+    return 'I did not catch that. Could you please repeat?';
+  }
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: messages,
-      max_tokens: 100,
-      temperature: 0.7,
+  try {
+    const functions = [{
+      name: "extractName",
+      description: "Extract a person's name from conversation",
+      parameters: {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            description: "The extracted name from the conversation"
+          }
+        },
+        required: ["name"]
+      }
+    }];
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: "You are a friendly AI assistant making a phone call. Extract names when mentioned in conversation."
+        },
+        {
+          role: "user", 
+          content: transcript
+        }
+      ],
+      functions,
+      function_call: "auto"
     });
 
-    return completion.choices[0].message.content;
+    const message = response.choices[0].message;
+    
+    if (message.function_call) {
+      const extractedName = JSON.parse(message.function_call.arguments).name;
+      return extractedName;
+    }
+
+    return message.content;
   } catch (error) {
-    console.error('Error in processTranscript:', error);
-    throw error;
+    console.error('Error in processTranscript:', error.response ? error.response.data : error.message);
+    return 'Sorry, I am unable to process your request at the moment.';
   }
 };
 

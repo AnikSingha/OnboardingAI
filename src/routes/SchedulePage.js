@@ -9,10 +9,29 @@ import Modal from '../components/Modal';
 
 export default function SchedulePage() {
   const [calls, setCalls] = useState([]);
+  const [contacts, setContacts] = useState([]);
   const [newcalls, setNewCalls] = useState({ name: '', number: '', date: new Date(), campaign: '' });
   const [isModalOpen, setModalOpen] = useState(false);
   const [isAscending, setIsAscending] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+
+  const fetchContacts = async () => {
+    try {
+      const response = await fetch('https://api.onboardingai.org/leads', { 
+        credentials: 'include' 
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setContacts(data.leads || []);
+      }
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
+    }
+  };
 
   useEffect(() => {
     fetchCalls();
@@ -76,6 +95,22 @@ export default function SchedulePage() {
         setErrorMessage('This time slot is already taken. Please choose a different time.');
         checkAvailableDay(call.date);
         return;
+      }
+
+      const exist = contacts.find((lead) => lead.number === call.number);
+
+      if (!exist) {
+        const addLeadResponse = await fetch('https://api.onboardingai.org/leads', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: call.name, number: call.number}),
+        });
+  
+        if (!addLeadResponse.ok) {
+          alert('Failed to add lead');
+          return;
+        }
       }
 
       const response = await fetch('https://api.onboardingai.org/schedules', {

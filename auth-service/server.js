@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const expressWs = require('express-ws');
+const fs = require('fs');
+const readline = require('readline');
 const cookieParser = require('cookie-parser');
 const { verifyToken } = require('./utils/token.js');
 const cors = require('cors');
@@ -97,6 +99,19 @@ app.ws('/call-leads/media', (ws, req) => {
   } catch (error) {
     console.error('Error in handleWebSocket:', error);
     ws.close(1011, 'Internal Server Error');
+  }
+});
+
+// Logs endpoint
+app.get('/logs', (req, res) => {
+  const logFilePath = path.join(__dirname, 'output.log');
+  res.setHeader('Content-Type', 'text/plain');
+
+  if (fs.existsSync(logFilePath)) {
+    const logStream = fs.createReadStream(logFilePath, { encoding: 'utf8' });
+    logStream.pipe(res);
+  } else {
+    res.status(404).send('Log file not found.');
   }
 });
 

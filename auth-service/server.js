@@ -1,14 +1,13 @@
 require('dotenv').config();
 const express = require('express');
 const expressWs = require('express-ws');
-const fs = require('fs');
-const path = require('path');
-const readline = require('readline');
 const cookieParser = require('cookie-parser');
 const { verifyToken } = require('./utils/token.js');
 const cors = require('cors');
 const { connectToMongoDB } = require('../ai-caller/database');
 const { handleWebSocket } = require('../ai-caller/twilioService');
+const fs = require('fs');
+const path = require('path');
 
 // Create express app and add websocket capability
 const app = express();
@@ -45,50 +44,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Open paths that don't require authentication
-const openPaths = new Set([
-  '/auth/forgot-password',
-  '/auth/sign-up',
-  '/auth/login',
-  '/auth/login-link',
-  '/auth/send-login-link',
-  '/auth/business-sign-up',
-  '/auth/logout',
-  '/auth/decode-token',
-  '/auth/reset-password',
-  '/auth/decode-business-token',
-  '/auth/employee-sign-up',
-  '/auth/has-two-factor',
-  '/auth/otp/verify-code',
-  '/call-leads',
-  '/call-leads/twilio-stream',
-  '/call-leads/media',
-  '/call-leads/call-status',
-  '/logs',
-]);
-
-function checkToken(req, res, next) {
-  if (openPaths.has(req.path)) {
-    return next();
-  }
-
-  const token = req.cookies.token;
-
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'No token provided' });
-  }
-
-  const result = verifyToken(token);
-  if (!result.valid) {
-    return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error });
-  }
-
-  next();
-}
-
-// Apply token checking middleware
-app.use(checkToken);
-
 // WebSocket endpoint
 app.ws('/call-leads/media', (ws, req) => {
   console.log('WebSocket connection attempt received', {
@@ -108,6 +63,7 @@ app.ws('/call-leads/media', (ws, req) => {
       clearInterval(pingInterval);
       return ws.terminate();
     }
+    
     ws.isAlive = false;
     ws.ping();
     console.log('Ping sent to client');
@@ -144,6 +100,47 @@ app.ws('/call-leads/media', (ws, req) => {
     console.error('Error in handleWebSocket:', error);
     ws.close(1011, 'Internal Server Error');
   }
+});
+
+// Open paths that don't require authentication
+const openPaths = new Set([
+  '/auth/forgot-password',
+  '/auth/sign-up',
+  '/auth/login',
+  '/auth/login-link',
+  '/auth/send-login-link',
+  '/auth/business-sign-up',
+  '/auth/logout',
+  '/auth/decode-token',
+  '/auth/reset-password',
+  '/auth/decode-business-token',
+  '/auth/employee-sign-up',
+  '/auth/has-two-factor',
+  '/auth/otp/verify-code',
+  '/call-leads',
+  '/call-leads/twilio-stream',
+  '/call-leads/media',
+  '/call-leads/call-status',
+  '/logs',
+]);
+
+// Token checking middleware (applied only to HTTP routes, not WebSocket)
+app.use((req, res, next) => {
+  if (req.headers.upgrade === 'websocket' || openPaths.has(req.path)) {
+    return next();
+  }
+
+  const token = req.cookies.token;
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'No token provided' });
+  }
+
+  const result = verifyToken(token);
+  if (!result.valid) {
+    return res.status(401).json({ success: false, message: 'Invalid token: ' + result.error });
+  }
+
+  next();
 });
 
 // Logs endpoint
@@ -184,3 +181,5 @@ app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}/`);
   console.log('WebSocket server is ready');
 });
+
+module.exports = app;

@@ -59,7 +59,10 @@ const handleWebSocket = (ws, req) => {
   let interactionCount = 0;
   let callerName = '';
 
-  console.log('WebSocket connection established');
+  console.log('Twilio WebSocket connection established', {
+    headers: req.headers,
+    query: req.query
+  });
 
   // Initialize Deepgram immediately
   console.log('Creating Deepgram connection...');

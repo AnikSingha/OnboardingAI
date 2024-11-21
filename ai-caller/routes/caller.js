@@ -39,69 +39,19 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Initialize WebSocket before making the call
-    const ws = new WebSocket(`wss://api.onboardingai.org/call-leads/media`);
-
-    // Add error handler
-    ws.on('error', (error) => {
-      console.error('WebSocket error for:', number, error);
-      ws.close();
-      if (!res.headersSent) {
-        res.status(500).json({ 
-          success: false, 
-          error: 'WebSocket connection error' 
-        });
-      }
+    const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    
+    const call = await client.calls.create({
+      url: `https://api.onboardingai.org/call-leads/twilio-stream?phoneNumber=${encodeURIComponent(number)}`,
+      to: number,
+      from: fromNumber,
+      statusCallback: 'https://api.onboardingai.org/call-leads/call-status',
+      statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+      statusCallbackMethod: 'POST'
     });
 
-    // Add connection timeout
-    const connectionTimeout = setTimeout(() => {
-      if (ws.readyState !== WebSocket.OPEN) {
-        ws.close();
-        console.error('WebSocket connection timeout for:', number);
-        if (!res.headersSent) {
-          res.status(500).json({ 
-            success: false, 
-            error: 'WebSocket connection timeout' 
-          });
-        }
-      }
-    }, 10000); // 10 second timeout
-
-    ws.on('open', async () => {
-      try {
-        clearTimeout(connectionTimeout); // Clear timeout on successful connection
-        console.log('WebSocket connection established for:', number);
-        
-        const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-        
-        const call = await client.calls.create({
-        url: `https://api.onboardingai.org/call-leads/twilio-stream?phoneNumber=${encodeURIComponent(number)}`,
-        to: number,
-        from: fromNumber,
-        statusCallback: 'https://api.onboardingai.org/call-leads/call-status',
-        statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
-        statusCallbackMethod: 'POST'
-      });
-
-        ws.on('close', () => {
-          console.log(`Call ended for ${number}, closing WebSocket`);
-        });
-
-        console.log('Call initiated with SID:', call.sid);
-        res.json({ success: true, callSid: call.sid });
-      } catch (error) {
-        console.error('Error in WebSocket open handler:', error);
-        ws.close();
-        if (!res.headersSent) {
-          res.status(500).json({ 
-            success: false, 
-            error: error.message,
-            details: error.code || 'Unknown error code'
-          });
-        }
-      }
-    });
+    console.log('Call initiated with SID:', call.sid);
+    res.json({ success: true, callSid: call.sid });
 
   } catch (error) {
     console.error('Error initiating call:', error);

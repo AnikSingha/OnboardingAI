@@ -99,9 +99,15 @@ export default function SchedulePage() {
       // Debugging: Log the contacts array and the phone number being checked
       console.log('Checking for existing lead with phone number:', call.number);
       console.log('Existing leads in contacts:', contacts);
+  
+      // Convert both numbers to strings and trim whitespace to avoid type mismatch
+      const formattedCallNumber = call.number.toString().trim();
       
-      // Check if the lead already exists in the contacts array by phone number
-      const exist = contacts.some((lead) => lead.number === call.number);
+      // Debugging: Log the formatted number
+      console.log('Formatted call number:', formattedCallNumber);
+  
+      // Update the comparison to use '_number' instead of 'number'
+      const exist = contacts.some((lead) => lead._number.toString().trim() === formattedCallNumber);
   
       // Debugging: Log whether the lead exists or not
       console.log('Does lead exist?', exist);

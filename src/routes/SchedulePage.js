@@ -94,7 +94,7 @@ export default function SchedulePage() {
       }
 
       if (checkForConflicts(call.date)) {
-        setErrorMessage('This time slot is already taken. Please choose a different time.\nNext Available Time is: ',checkAvailableDay(call.date));
+        setErrorMessage(`This time slot is already taken. Please choose a different time. Next Available Time is: ${checkAvailableDay(call.date).toLocaleString()}`);
         return;
       }
 

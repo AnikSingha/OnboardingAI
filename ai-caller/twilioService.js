@@ -67,10 +67,10 @@ const handleWebSocket = (ws, req) => {
 
   const processQueue = async () => {
     if (audioBufferQueue.length > 0 && deepgramReady && dgLive) {
-      const chunk = audioBufferQueue.shift();
-      dgLive.send(chunk);
-      if (audioBufferQueue.length > 0) {
-        setTimeout(processQueue, 20); // Process next chunk after 20ms
+      while (audioBufferQueue.length > 0) {
+        const chunk = audioBufferQueue.shift();
+        dgLive.send(chunk);
+        await new Promise(resolve => setTimeout(resolve, 20)); // Adjust delay as needed
       }
     }
   };

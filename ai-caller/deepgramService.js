@@ -14,7 +14,7 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
     encoding: 'mulaw',
     sample_rate: 8000,
     channels: 1,
-    model: 'nova',
+    model: 'aura-luna-en',
     punctuate: true,
     interim_results: true,
     endpointing: 200,

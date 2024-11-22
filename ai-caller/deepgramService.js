@@ -165,7 +165,7 @@ const processTranscript = async (transcript, isNameExtraction = false) => {
     }
   } catch (error) {
     console.error('Error in processTranscript:', error.response ? error.response.data : error.message);
-    return 'Sorry, I am unable to process your request at the moment.';
+    return null;
   }
 };
 

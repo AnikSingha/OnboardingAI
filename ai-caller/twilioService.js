@@ -64,25 +64,32 @@ const handleWebSocket = (ws, req) => {
   let pendingTranscript = '';
   let debounceTimer = null;
   
-  const processTranscription = async (transcript) => {
-    if (!transcript.trim()) {
-      console.log('Empty transcript received, skipping processing');
-      return;
-    }
-    
+  const processTranscription = async (transcript, isSpeechFinal) => {
     try {
-      console.log('Processing transcript:', transcript, 'isProcessing:', isProcessing, 'callerName:', callerName);
-      
+      if (!transcript.trim() && !isSpeechFinal) {
+        return;
+      }
+
       if (isProcessing) {
-        console.log('Already processing, queuing transcript');
         pendingTranscript = transcript;
         return;
       }
       
       isProcessing = true;
 
+      // Accumulate speech until we get a final segment
+      if (!isSpeechFinal) {
+        currentSpeechSegment += ' ' + transcript;
+        console.log('Accumulating speech:', currentSpeechSegment);
+        return;
+      }
+
+      // Process the complete speech segment
+      const fullTranscript = (currentSpeechSegment + ' ' + transcript).trim();
+      console.log('Processing complete speech segment:', fullTranscript);
+      
       if (!callerName) {
-        const extractedName = await processTranscript(transcript, true);
+        const extractedName = await processTranscript(fullTranscript, true);
         if (extractedName) {
           callerName = extractedName;
           console.log(`Caller name captured: ${callerName}`);
@@ -101,7 +108,7 @@ const handleWebSocket = (ws, req) => {
         }
       } else {
         // Only process non-empty transcripts after name capture
-        const response = await processTranscript(transcript, false);
+        const response = await processTranscript(fullTranscript, false);
         if (response) {
           console.log('Generated response:', response);
           const ttsAudioBuffer = await generateTTS(response);
@@ -109,6 +116,10 @@ const handleWebSocket = (ws, req) => {
           console.log('Response sent successfully');
         }
       }
+
+      // Reset the speech segment
+      currentSpeechSegment = '';
+      
     } catch (error) {
       console.error('Error in processTranscription:', error);
     } finally {
@@ -116,7 +127,7 @@ const handleWebSocket = (ws, req) => {
       if (pendingTranscript) {
         const pending = pendingTranscript;
         pendingTranscript = '';
-        await processTranscription(pending);
+        await processTranscription(pending, false);
       }
     }
   };
@@ -141,7 +152,7 @@ const handleWebSocket = (ws, req) => {
       try {
         if (isSpeechFinal) {
           console.log('Processing speech-final transcript immediately');
-          await processTranscription(transcript);
+          await processTranscription(transcript, isSpeechFinal);
         } else {
           if (debounceTimer) {
             clearTimeout(debounceTimer);
@@ -150,7 +161,7 @@ const handleWebSocket = (ws, req) => {
           console.log('Setting up debounced processing');
           debounceTimer = setTimeout(async () => {
             try {
-              await processTranscription(transcript);
+              await processTranscription(transcript, isSpeechFinal);
             } catch (error) {
               console.error('Error in debounced processing:', error);
             }
@@ -162,7 +173,7 @@ const handleWebSocket = (ws, req) => {
     },
     onUtteranceEnd: async (lastWordEnd) => {
       if (pendingTranscript) {
-        await processTranscription(pendingTranscript);
+        await processTranscription(pendingTranscript, false);
         pendingTranscript = '';
       }
     },

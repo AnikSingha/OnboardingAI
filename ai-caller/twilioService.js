@@ -61,18 +61,16 @@ const handleWebSocket = (ws, req) => {
   let isProcessing = false;
   const DEEPGRAM_RESPONSE_INTERVAL = 2000;
 
-  // Debounce timer and accumulation buffer
+  // Debounce timer
   let debounceTimer = null;
   const DEBOUNCE_DELAY = 3000; // 3 seconds
-  let finalResult = '';
-  let speechFinal = false;
 
   console.log('Twilio WebSocket connection established', {
     headers: req.headers,
     query: req.query
   });
 
-  // Initialize Deepgram connection
+  // Initialize Deepgram
   console.log('Creating Deepgram connection...');
   const dgLive = initializeDeepgram({
     onOpen: async () => {
@@ -93,54 +91,44 @@ const handleWebSocket = (ws, req) => {
     onTranscript: async (transcript) => {
       console.log('Received transcript from Deepgram:', transcript);
 
-      // Accumulate transcript fragments
-      if (transcript.trim()) {
-        finalResult += ` ${transcript.trim()}`;
-        console.log(`Accumulated Transcript: "${finalResult.trim()}"`);
-
-        // Reset debounce timer
-        if (debounceTimer) {
-          clearTimeout(debounceTimer);
-        }
-
-        debounceTimer = setTimeout(async () => {
-          console.log('Debounce period ended. Processing accumulated transcript.');
-
-          if (finalResult.trim()) {
-            if (!callerName) {
-              const extractedName = await processTranscript(finalResult.trim(), true);
-              if (extractedName) {
-                callerName = extractedName;
-                console.log(`Caller name captured: ${callerName}`);
-                
-                if (phoneNumber) {
-                  await updateLeadInfo(phoneNumber, {
-                    _number: phoneNumber,
-                    name: callerName
-                  });
-                  console.log(`Lead info updated for phone number: ${phoneNumber}`);
-                }
-
-                const responseMessage = `Nice to meet you, ${callerName}. How can I assist you today?`;
-                const ttsAudioBuffer = await generateTTS(responseMessage);
-                await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-                finalResult = ''; // Clear the buffer after processing
-                return;
-              }
-            }
-
-            const response = await processTranscript(finalResult.trim());
-            if (response) {
-              console.log('Assistant response:', response);
-              const ttsAudioBuffer = await generateTTS(response);
-              await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-              console.log('Assistant response sent to Twilio.');
-            }
-
-            finalResult = ''; // Clear the buffer after processing
-          }
-        }, DEBOUNCE_DELAY);
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
       }
+
+      debounceTimer = setTimeout(async () => {
+        console.log('Processing transcript:', transcript);
+        if (transcript.trim()) {
+          console.log('Final Transcription:', transcript);
+
+          if (!callerName) {
+            const extractedName = await processTranscript(transcript, true);
+            if (extractedName) {
+              callerName = extractedName;
+              console.log(`Caller name captured: ${callerName}`);
+              
+              if (phoneNumber) {
+                await updateLeadInfo(phoneNumber, {
+                  _number: phoneNumber,
+                  name: callerName
+                });
+              }
+
+              const responseMessage = `Nice to meet you, ${callerName}. How can I assist you today?`;
+              const ttsAudioBuffer = await generateTTS(responseMessage);
+              await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+              return;
+            }
+          }
+
+          const response = await processTranscript(transcript);
+          if (response) {
+            console.log('Assistant response:', response);
+            const ttsAudioBuffer = await generateTTS(response);
+            await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+            console.log('Assistant response sent to Twilio.');
+          }
+        }
+      }, DEBOUNCE_DELAY);
     },
     onError: (error) => {
       console.error('Deepgram connection error:', error);
@@ -150,7 +138,8 @@ const handleWebSocket = (ws, req) => {
     }
   });
 
-  // Heartbeat to keep the connection alive
+  console.log('Deepgram connection created, initial state:', dgLive.getReadyState());
+
   const pingInterval = setInterval(() => {
     if (ws.readyState === ws.OPEN) {
       ws.ping();
@@ -243,4 +232,72 @@ const handleWebSocket = (ws, req) => {
   });
 };
 
-module.exports = { handleWebSocket, makeCall };
+const twilioStreamWebhook = (req, res) => {
+  console.log('Full webhook request:', {
+    query: req.query,
+    body: req.body,
+    params: req.params,
+    headers: req.headers
+  });
+
+  const phoneNumber = req.query.phoneNumber || req.body.To || req.body.to;
+  console.log('Twilio webhook received:', {
+    phoneNumber,
+    query: req.query,
+    body: req.body,
+    method: req.method
+  });
+  
+  if (!phoneNumber) {
+    console.error('No phone number found in request');
+    console.error('Query params:', req.query);
+    console.error('Body:', req.body);
+  }
+  
+  const response = `<?xml version="1.0" encoding="UTF-8"?>
+  <Response>
+    <Connect>
+      <Stream url="wss://api.onboardingai.org/call-leads/media">
+        <Parameter name="phoneNumber" value="${phoneNumber}" />
+        <Parameter name="callSid" value="${req.body.CallSid || ''}" />
+        <Parameter name="debug" value="true" />
+      </Stream>
+    </Connect>
+    <Pause length="60"/>
+  </Response>
+`;
+  res.type('text/xml');
+  res.send(response);
+  console.log('Twilio webhook response sent with phone number:', phoneNumber);
+};
+
+const callLeads = async (req, res) => {
+  try {
+    await client.connect();
+    const database = client.db('auth');
+    const leadsCollection = database.collection('leads');
+
+    const leads = await leadsCollection.find({}).toArray();
+    const phoneNumbers = leads.map(lead => lead._number);
+
+    console.log('Leads to be called:', phoneNumbers);
+
+    for (const number of phoneNumbers) {
+      if (number) {
+        await makeCall(number);
+      }
+    }
+
+    res.status(200).send('Calls initiated successfully to all leads.');
+  } catch (error) {
+    console.error('Error calling leads:', error);
+    res.status(500).send('Error calling leads');
+  }
+};
+
+module.exports = {
+  handleWebSocket,
+  twilioStreamWebhook,
+  callLeads,
+  makeCall
+};

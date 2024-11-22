@@ -30,26 +30,31 @@ router.post('/', async (req, res) => {
     const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     
     const call = await client.calls.create({
-      url: `https://api.onboardingai.org/call-leads/twilio-stream?phoneNumber=${encodeURIComponent(number)}`,
+      url: `${process.env.BASE_URL}/call-leads/twilio-stream?phoneNumber=${encodeURIComponent(number)}`,
       to: number,
       from: fromNumber,
-      statusCallback: 'https://api.onboardingai.org/call-leads/call-status',
+      statusCallback: `${process.env.BASE_URL}/call-leads/call-status`,
       statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
-      statusCallbackMethod: 'POST'
+      statusCallbackMethod: 'POST',
+      timeout: 30  // Add timeout to prevent long-running calls
     });
 
-    console.log('Call initiated with SID:', call.sid);
+    console.log('Call initiated:', {
+      sid: call.sid,
+      to: number,
+      from: fromNumber,
+      status: call.status
+    });
+
     res.json({ success: true, callSid: call.sid });
 
   } catch (error) {
     console.error('Error initiating call:', error);
-    if (!res.headersSent) {
-      res.status(500).json({ 
-        success: false, 
-        error: error.message,
-        details: error.code || 'Unknown error code'
-      });
-    }
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      details: error.code || 'Unknown error code'
+    });
   }
 });
 

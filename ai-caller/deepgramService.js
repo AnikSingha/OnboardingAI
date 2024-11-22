@@ -13,23 +13,37 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
   const dgLive = deepgram.listen.live({
     encoding: 'mulaw',
     sample_rate: 8000,
+    model: 'nova-2',
     punctuate: true,
     interim_results: true,
-    endpointing: 3000,
-    utterance_end_ms: 5000,
+    endpointing: 200,
+    utterance_end_ms: 1000,
+    smart_format: true
   });
 
-  dgLive.on(LiveTranscriptionEvents.Open, onOpen);
+  dgLive.on(LiveTranscriptionEvents.Open, () => {
+    console.log('Deepgram connection established');
+    onOpen();
+  });
 
   dgLive.on(LiveTranscriptionEvents.Transcript, async (transcription) => {
-    if (transcription.is_final) {
-      const transcript = transcription.channel.alternatives[0].transcript;
-      await onTranscript(transcript);
+    try {
+      await onTranscript(transcription);
+    } catch (error) {
+      console.error('Error in Deepgram transcript handler:', error);
+      onError(error);
     }
   });
 
-  dgLive.on(LiveTranscriptionEvents.Error, onError);
-  dgLive.on(LiveTranscriptionEvents.Close, onClose);
+  dgLive.on(LiveTranscriptionEvents.Error, (error) => {
+    console.error('Deepgram connection error:', error);
+    onError(error);
+  });
+
+  dgLive.on(LiveTranscriptionEvents.Close, () => {
+    console.log('Deepgram connection closed');
+    onClose();
+  });
 
   return dgLive;
 };

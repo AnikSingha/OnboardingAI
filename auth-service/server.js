@@ -44,18 +44,39 @@ app.use((req, res, next) => {
 });
 
 // WebSocket endpoint
+// WebSocket endpoint
 app.ws('/call-leads/media', (ws, req) => {
   console.log('WebSocket connection attempt received', {
     url: req.url,
     headers: req.headers,
     query: req.query,
-    params: req.params,
-    upgrade: req.headers.upgrade,
-    connection: req.headers.connection
+    params: req.params
   });
 
   ws.isAlive = true;
 
+  // Add error handling for the WebSocket connection
+  const handleError = (error) => {
+    console.error('WebSocket error:', {
+      message: error.message,
+      type: error.type,
+      code: error.code,
+      stack: error.stack 
+    });
+    
+    if (ws.readyState === ws.OPEN) {
+      ws.close(1011, 'Internal Server Error');
+    }
+  };
+
+  try {
+    console.log('Initializing WebSocket handler');
+    handleWebSocket(ws, req);
+  } catch (error) {
+    handleError(error);
+  }
+
+  // Update ping/pong handling
   const pingInterval = setInterval(() => {
     if (!ws.isAlive) {
       console.log('Client not responding to pings, terminating connection');
@@ -65,12 +86,10 @@ app.ws('/call-leads/media', (ws, req) => {
     
     ws.isAlive = false;
     ws.ping();
-    console.log('Ping sent to client');
   }, 30000);
 
   ws.on('pong', () => {
     ws.isAlive = true;
-    console.log('Received pong from client');
   });
 
   ws.on('close', (code, reason) => {
@@ -82,23 +101,7 @@ app.ws('/call-leads/media', (ws, req) => {
     clearInterval(pingInterval);
   });
 
-  ws.on('error', (error) => {
-    console.error('WebSocket error:', {
-      message: error.message,
-      type: error.type,
-      code: error.code,
-      stack: error.stack 
-    });
-    clearInterval(pingInterval);
-  });
-
-  try {
-    console.log('Initializing WebSocket handler');
-    handleWebSocket(ws, req);
-  } catch (error) {
-    console.error('Error in handleWebSocket:', error);
-    ws.close(1011, 'Internal Server Error');
-  }
+  ws.on('error', handleError);
 });
 
 // Open paths that don't require authentication

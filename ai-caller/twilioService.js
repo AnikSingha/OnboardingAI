@@ -63,6 +63,39 @@ const handleWebSocket = (ws, req) => {
   let phoneNumber = null;
   let streamSid = null;
   let interactionCount = 0;
+  let audioBufferQueue = [];
+
+  const processAudioBuffer = async () => {
+    if (audioBufferQueue.length === 0) {
+      console.log('No audio buffers to process.');
+      return;
+    }
+
+    while (audioBufferQueue.length > 0) {
+      const audioBuffer = audioBufferQueue.shift();
+      try {
+        deepgram.send(audioBuffer);
+        console.log('Audio buffer sent to Deepgram.');
+      } catch (error) {
+        console.error('Error sending audio buffer to Deepgram:', error);
+        audioBufferQueue.unshift(audioBuffer);
+        break;
+      }
+    }
+  };
+
+  const debouncedProcessTranscription = () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(async () => {
+      try {
+        await processTranscription(pendingTranscript, true);
+        pendingTranscript = '';
+        await processAudioBuffer();
+      } catch (error) {
+        console.error('Error in debounced processing:', error);
+      }
+    }, DEBOUNCE_DELAY);
+  };
 
   const processTranscription = async (transcript, isSpeechFinal) => {
     try {
@@ -73,19 +106,19 @@ const handleWebSocket = (ws, req) => {
       if (isProcessing) {
         pendingTranscript = transcript;
         console.log('Already processing, queuing transcript');
+        debouncedProcessTranscription();
         return;
       }
 
       isProcessing = true;
 
-      // Accumulate speech until we get a final segment
       if (!isSpeechFinal) {
         currentSpeechSegment += ' ' + transcript;
         console.log('Accumulating speech:', currentSpeechSegment);
+        isProcessing = false;
         return;
       }
 
-      // Process the complete speech segment
       const fullTranscript = (currentSpeechSegment + ' ' + transcript).trim();
       console.log('Processing complete speech segment:', fullTranscript);
 
@@ -108,7 +141,6 @@ const handleWebSocket = (ws, req) => {
           await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
         }
       } else {
-        // Only process non-empty transcripts after name capture
         const response = await processTranscript(fullTranscript, false);
         if (response) {
           console.log('Generated response:', response);
@@ -117,19 +149,17 @@ const handleWebSocket = (ws, req) => {
           console.log('Response sent successfully');
         }
       }
-
-      // Reset the speech segment
       currentSpeechSegment = '';
-
-    } catch (error) {
-      console.error('Error in processTranscription:', error);
-    } finally {
       isProcessing = false;
+
       if (pendingTranscript) {
-        const pending = pendingTranscript;
+        const queuedTranscript = pendingTranscript;
         pendingTranscript = '';
-        await processTranscription(pending, false);
+        await processTranscription(queuedTranscript, true);
       }
+    } catch (error) {
+      console.error('Error processing transcription:', error);
+      isProcessing = false;
     }
   };
 
@@ -186,7 +216,7 @@ const handleWebSocket = (ws, req) => {
 
   const sendAudioFrames = async (audioBuffer, ws, streamSid, index) => {
     if (index === interactionCount && ws.readyState === ws.OPEN && !isProcessing) {
-      isProcessing = true; // Lock
+      isProcessing = true;
       try {
         await sendBufferedAudio(audioBuffer, ws, streamSid);
 
@@ -198,7 +228,7 @@ const handleWebSocket = (ws, req) => {
         }));
         interactionCount++;
       } finally {
-        isProcessing = false; // Unlock
+        isProcessing = false;
       }
     }
   };
@@ -220,7 +250,6 @@ const handleWebSocket = (ws, req) => {
           phoneNumber = data.start.customParameters.phoneNumber;
           console.log(`Phone number from parameters: ${phoneNumber}`);
           
-          // Process any queued audio now that we have streamSid
           if (audioBufferQueue.length > 0) {
             console.log('Processing queued audio...');
             while (audioBufferQueue.length > 0) {

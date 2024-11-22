@@ -65,7 +65,10 @@ const handleWebSocket = (ws, req) => {
   let debounceTimer = null;
   
   const processTranscription = async (transcript) => {
-    if (!transcript.trim()) return;
+    if (!transcript.trim()) {
+      console.log('Empty transcript received, skipping processing');
+      return;
+    }
     
     try {
       console.log('Processing transcript:', transcript, 'isProcessing:', isProcessing, 'callerName:', callerName);
@@ -97,24 +100,19 @@ const handleWebSocket = (ws, req) => {
           await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
         }
       } else {
-        // Always process transcript after name is captured
-        console.log('Processing post-name transcript:', transcript);
+        // Only process non-empty transcripts after name capture
         const response = await processTranscript(transcript, false);
-        
         if (response) {
           console.log('Generated response:', response);
           const ttsAudioBuffer = await generateTTS(response);
           await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
           console.log('Response sent successfully');
-        } else {
-          console.log('No response generated for transcript');
         }
       }
     } catch (error) {
       console.error('Error in processTranscription:', error);
     } finally {
       isProcessing = false;
-      // Process any pending transcript
       if (pendingTranscript) {
         const pending = pendingTranscript;
         pendingTranscript = '';

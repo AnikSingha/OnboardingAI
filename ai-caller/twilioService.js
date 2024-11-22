@@ -19,7 +19,7 @@ const PROCESSING_TIMEOUT = 5000;
 const makeCall = async (to) => {
   try {
     const call = await twilioClient.calls.create({
-      url: `${process.env.BASE_URL}/twilio-stream?phoneNumber=${encodeURIComponent(to)}`,
+      url: `https://api.onboardingai.org/call-leads/twilio-stream?phoneNumber=${encodeURIComponent(to)}`,
       to: to,
       from: TWILIO_PHONE_NUMBER,
     });

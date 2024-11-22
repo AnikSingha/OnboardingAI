@@ -171,7 +171,7 @@ router.post('/otp/verify-code', async(req, res) => {
             return res.status(404).json({ success: false, message: 'User does not exist' })
         }
 
-        const OTPSecret = await accountManager.getOTPSecret(email)
+        const OTPSecret = await accountManager.getTwoFactorSecret(email)
         const success = verifyOTP( code, OTPSecret)
 
         if (success) {

@@ -69,7 +69,8 @@ const addLead = async (number, name) => {
     const leadsCollection = db.collection('leads');
     const result = await leadsCollection.insertOne({
       _number: number,
-      name: name
+      name: name,
+      created_at: new Date()
     });
     return result.acknowledged;
   } catch (error) {

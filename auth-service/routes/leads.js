@@ -4,9 +4,8 @@ const { verifyToken } = require('../utils/token.js');
 
 const router = express.Router();
 
-// Get all leads
 router.get('/', async (req, res) => {
-    const { valid, decoded } = verifyToken(req.cookies.token);
+    const { valid } = verifyToken(req.cookies.token);
     
     if (!valid) {
         return res.status(403).json({ 
@@ -17,12 +16,6 @@ router.get('/', async (req, res) => {
 
     try {
         const leads = await businessManager.getLeads();
-        if (!leads) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'No leads found' 
-            });
-        }
         return res.status(200).json({ 
             success: true, 
             leads 
@@ -38,26 +31,42 @@ router.get('/', async (req, res) => {
 
 // Add new lead
 router.post('/', async (req, res) => {
-    const { valid, decoded } = verifyToken(req.cookies.token);
+    const { valid } = verifyToken(req.cookies.token);
     
     if (!valid) {
-        return res.status(403).json({ success: false, message: 'Unauthorized' });
+        return res.status(403).json({ 
+            success: false, 
+            message: 'Unauthorized' 
+        });
     }
 
     const { number, name } = req.body;
     if (!number || !name) {
-        return res.status(400).json({ success: false, message: 'Number and name are required' });
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Number and name are required' 
+        });
     }
 
     try {
         const success = await businessManager.addLead(number, name);
         if (success) {
-            return res.status(201).json({ success: true, message: 'Lead added successfully' });
+            return res.status(201).json({ 
+                success: true, 
+                message: 'Lead added successfully' 
+            });
         } else {
-            return res.status(400).json({ success: false, message: 'Failed to add lead' });
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Failed to add lead' 
+            });
         }
     } catch (err) {
-        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` });
+        console.error('Error adding lead:', err);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Internal server error' 
+        });
     }
 });
 

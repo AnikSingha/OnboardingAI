@@ -62,6 +62,7 @@ const handleWebSocket = (ws, req) => {
   let callerName = '';
   let isProcessing = false;
   let pendingTranscript = '';
+  let debounceTimer = null;
   
   const processTranscription = async (transcript) => {
     if (isProcessing || !transcript.trim()) return;

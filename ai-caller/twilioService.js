@@ -14,6 +14,8 @@ const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
 
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 const twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+const DEBOUNCE_DELAY = 1000;
+const PROCESSING_TIMEOUT = 5000;
 
 const makeCall = async (to) => {
   try {
@@ -59,11 +61,17 @@ const handleWebSocket = (ws, req) => {
   let interactionCount = 0;
   let callerName = '';
   let isProcessing = false;
-  const DEEPGRAM_RESPONSE_INTERVAL = 2000;
+  let processingTimeout = null;
 
   // Debounce timer
   let debounceTimer = null;
-  const DEBOUNCE_DELAY = 3000; // 3 seconds
+
+  const resetProcessingLock = () => {
+    if (processingTimer) {
+      clearTimeout(processingTimer);
+    }
+    isProcessing = false;
+  };
 
   console.log('Twilio WebSocket connection established', {
     headers: req.headers,
@@ -89,6 +97,7 @@ const handleWebSocket = (ws, req) => {
       }
     },
     onTranscript: async (transcript) => {
+      if (!transcript.trim()) return;
       console.log('Received transcript from Deepgram:', transcript);
 
       if (debounceTimer) {
@@ -172,7 +181,6 @@ const handleWebSocket = (ws, req) => {
 
   ws.on('message', async (message) => {
     if (isProcessing) {
-      console.log('Skipping message because processing is locked');
       return;
     }
 

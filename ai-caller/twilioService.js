@@ -65,10 +65,19 @@ const handleWebSocket = (ws, req) => {
   let debounceTimer = null;
   
   const processTranscription = async (transcript) => {
-    if (isProcessing || !transcript.trim()) return;
-    isProcessing = true;
-
+    if (!transcript.trim()) return;
+    
     try {
+      console.log('Processing transcript:', transcript, 'isProcessing:', isProcessing, 'callerName:', callerName);
+      
+      if (isProcessing) {
+        console.log('Already processing, queuing transcript');
+        pendingTranscript = transcript;
+        return;
+      }
+      
+      isProcessing = true;
+
       if (!callerName) {
         const extractedName = await processTranscript(transcript, true);
         if (extractedName) {
@@ -76,36 +85,41 @@ const handleWebSocket = (ws, req) => {
           console.log(`Caller name captured: ${callerName}`);
           
           if (phoneNumber) {
-            updateLeadInfo(phoneNumber, {
+            await updateLeadInfo(phoneNumber, {
               _number: phoneNumber,
               name: callerName
             }).catch(err => console.error('Failed to update lead info:', err));
           }
 
           const responseMessage = `Nice to meet you, ${callerName}. How can I assist you today?`;
+          console.log('Sending greeting response:', responseMessage);
           const ttsAudioBuffer = await generateTTS(responseMessage);
           await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-          return;
         }
-      }
-
-      // Add debug logging
-      console.log('Processing regular transcript:', transcript);
-      
-      const response = await processTranscript(transcript);
-      console.log('Got response from processTranscript:', response);
-      
-      if (response) {
-        console.log('Generating TTS for response:', response);
-        const ttsAudioBuffer = await generateTTS(response);
-        console.log('Sending audio frames...');
-        await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-        console.log('Audio frames sent successfully');
+      } else {
+        // Always process transcript after name is captured
+        console.log('Processing post-name transcript:', transcript);
+        const response = await processTranscript(transcript, false);
+        
+        if (response) {
+          console.log('Generated response:', response);
+          const ttsAudioBuffer = await generateTTS(response);
+          await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+          console.log('Response sent successfully');
+        } else {
+          console.log('No response generated for transcript');
+        }
       }
     } catch (error) {
       console.error('Error in processTranscription:', error);
     } finally {
       isProcessing = false;
+      // Process any pending transcript
+      if (pendingTranscript) {
+        const pending = pendingTranscript;
+        pendingTranscript = '';
+        await processTranscription(pending);
+      }
     }
   };
 
@@ -124,23 +138,29 @@ const handleWebSocket = (ws, req) => {
     },
     onTranscript: async (transcript, isSpeechFinal) => {
       if (!transcript.trim()) return;
-        console.log('Received transcript:', transcript, 'isSpeechFinal:', isSpeechFinal);
+      console.log('Received transcript:', transcript, 'isSpeechFinal:', isSpeechFinal);
 
-      if (isSpeechFinal) {
-        console.log('Processing speech-final transcript');
-        await processTranscription(transcript);
-        return;
+      try {
+        if (isSpeechFinal) {
+          console.log('Processing speech-final transcript immediately');
+          await processTranscription(transcript);
+        } else {
+          if (debounceTimer) {
+            clearTimeout(debounceTimer);
+          }
+
+          console.log('Setting up debounced processing');
+          debounceTimer = setTimeout(async () => {
+            try {
+              await processTranscription(transcript);
+            } catch (error) {
+              console.error('Error in debounced processing:', error);
+            }
+          }, DEBOUNCE_DELAY);
+        }
+      } catch (error) {
+        console.error('Error in onTranscript:', error);
       }
-
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-      }
-
-      console.log('Setting up debounced processing');
-      debounceTimer = setTimeout(() => 
-        processTranscription(transcript), 
-        DEBOUNCE_DELAY
-      );
     },
     onUtteranceEnd: async (lastWordEnd) => {
       if (pendingTranscript) {

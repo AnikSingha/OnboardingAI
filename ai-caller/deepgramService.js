@@ -22,12 +22,22 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose, onUtteranc
   dgLive.on(LiveTranscriptionEvents.Open, onOpen);
 
   dgLive.on(LiveTranscriptionEvents.Transcript, async (transcription) => {
-    if (transcription.speech_final) {
-      const transcript = transcription.channel.alternatives[0].transcript;
-      await onTranscript(transcript, true);
-    } else if (transcription.is_final) {
-      const transcript = transcription.channel.alternatives[0].transcript;
-      await onTranscript(transcript, false);
+    try {
+      console.log('Raw transcription:', transcription); // Debug log
+      
+      if (transcription.speech_final) {
+        const transcript = transcription.channel.alternatives[0].transcript;
+        console.log('Speech final transcript:', transcript);
+        await onTranscript(transcript, true);
+      } else if (transcription.is_final) {
+        const transcript = transcription.channel.alternatives[0].transcript;
+        console.log('Is final transcript:', transcript);
+        await onTranscript(transcript, false);
+      } else {
+        console.log('Interim transcript received');
+      }
+    } catch (error) {
+      console.error('Error in transcript handling:', error);
     }
   });
 

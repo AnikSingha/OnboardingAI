@@ -89,11 +89,21 @@ const handleWebSocket = (ws, req) => {
         }
       }
 
+      // Add debug logging
+      console.log('Processing regular transcript:', transcript);
+      
       const response = await processTranscript(transcript);
+      console.log('Got response from processTranscript:', response);
+      
       if (response) {
+        console.log('Generating TTS for response:', response);
         const ttsAudioBuffer = await generateTTS(response);
+        console.log('Sending audio frames...');
         await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+        console.log('Audio frames sent successfully');
       }
+    } catch (error) {
+      console.error('Error in processTranscription:', error);
     } finally {
       isProcessing = false;
     }
@@ -114,8 +124,10 @@ const handleWebSocket = (ws, req) => {
     },
     onTranscript: async (transcript, isSpeechFinal) => {
       if (!transcript.trim()) return;
+        console.log('Received transcript:', transcript, 'isSpeechFinal:', isSpeechFinal);
 
       if (isSpeechFinal) {
+        console.log('Processing speech-final transcript');
         await processTranscription(transcript);
         return;
       }
@@ -124,6 +136,7 @@ const handleWebSocket = (ws, req) => {
         clearTimeout(debounceTimer);
       }
 
+      console.log('Setting up debounced processing');
       debounceTimer = setTimeout(() => 
         processTranscription(transcript), 
         DEBOUNCE_DELAY

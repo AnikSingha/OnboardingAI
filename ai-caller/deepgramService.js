@@ -26,18 +26,20 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose, onUtteranc
       console.log('Raw transcription:', transcription);
       
       const transcript = transcription.channel.alternatives[0].transcript.trim();
-      if (!transcript) {
-        console.log('Empty transcript received, skipping');
+      
+      // Handle speech_final to mark end of speech segments
+      if (transcription.speech_final) {
+        console.log('Speech final detected - ending current segment');
+        await onTranscript(transcript, true); // true indicates end of speech
         return;
       }
-
-      if (transcription.speech_final) {
-        console.log('Speech final transcript:', transcript);
-        await onTranscript(transcript, true);
-      } else if (transcription.is_final) {
-        console.log('Is final transcript:', transcript);
+      
+      // Only process final transcripts that have content
+      if (transcription.is_final && transcript) {
+        console.log('Final transcript:', transcript);
         await onTranscript(transcript, false);
       }
+
     } catch (error) {
       console.error('Error in transcript handling:', error);
     }
@@ -94,29 +96,27 @@ const generateTTS = async (text) => {
 const processTranscript = async (transcript, isNameExtraction = false) => {
   if (!transcript || transcript.trim() === '') {
     console.log('Received empty transcript.');
-    return 'I did not catch that. Could you please repeat?';
+    return null;
   }
 
   try {
     if (isNameExtraction) {
-      // Check if the transcript is likely complete
-      if (!transcript.endsWith('.') && transcript.length < 5) { // Adjust conditions as needed
-        console.log('Transcript too short or incomplete for name extraction.');
-        return null;
-      }
-
       const functions = [{
         name: "extractName",
-        description: "Extract a person's name from conversation",
+        description: "Extract a person's name from conversation, including greetings like 'Hi, I'm [name]' or 'My name is [name]'",
         parameters: {
           type: "object",
           properties: {
             name: {
               type: "string",
               description: "The extracted name from the conversation"
+            },
+            confidence: {
+              type: "number",
+              description: "Confidence score between 0 and 1 that this is actually a name"
             }
           },
-          required: ["name"]
+          required: ["name", "confidence"]
         }
       }];
 
@@ -125,7 +125,7 @@ const processTranscript = async (transcript, isNameExtraction = false) => {
         messages: [
           {
             role: "system",
-            content: "You are a friendly AI assistant making a phone call. Extract names when mentioned in conversation."
+            content: "You are a friendly AI assistant making a phone call. Extract names when mentioned in conversation, even from partial sentences."
           },
           {
             role: "user", 
@@ -139,14 +139,12 @@ const processTranscript = async (transcript, isNameExtraction = false) => {
       const message = response.choices[0].message;
       
       if (message.function_call) {
-        const extractedName = JSON.parse(message.function_call.arguments).name;
-        // Validate the extracted name
-        if (typeof extractedName === 'string' && extractedName.trim().length > 1) {
-          return extractedName.trim();
-        } else {
-          console.log('Invalid name extracted:', extractedName);
-          return null;
+        const result = JSON.parse(message.function_call.arguments);
+        if (result.confidence > 0.7 && result.name.trim().length > 1) {
+          return result.name.trim();
         }
+        console.log('Name extraction skipped - confidence:', result.confidence);
+        return null;
       }
       return null;
     } else {

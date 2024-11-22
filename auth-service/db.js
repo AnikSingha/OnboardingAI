@@ -124,5 +124,6 @@ module.exports = {
   getLeads,
   addLead,
   deleteLead,
-  closeConnection
+  closeConnection,
+  isConnected
 };

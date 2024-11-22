@@ -289,7 +289,7 @@ router.post('/change-password', async (req, res) => {
     }
 
     try {
-        const result = accountManager.updatePassword(email, password)
+        const result = await accountManager.updatePassword(email, password)
 
         if (result) {
             return res.status(200).json({ success: true, message: 'Password was successfully changed' })

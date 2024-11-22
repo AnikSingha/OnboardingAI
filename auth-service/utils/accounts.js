@@ -1,252 +1,228 @@
-const connectToDatabase = require('../db.js')
+const { getDb } = require('../db.js')
 const { hashPassword, checkPassword } = require('./hashing.js')
 const { genSecret } = require('./otp.js')
 class AccountManager {
-
-    // returns true if user exists
     async userExists(email) {
         try {
-            let client = await connectToDatabase()
-            let userCollection = client.db('auth').collection('users')
-
-            let res = await userCollection.findOne(
-                { email }, 
+            const db = await getDb();
+            const userCollection = db.collection('users');
+            const user = await userCollection.findOne(
+                { email: email.toLowerCase() },
                 { projection: { _id: 1 } }
-            )
-
-            return res !== null
+            );
+            return user !== null;
         } catch (err) {
-            return false
+            console.error("Error checking user existence:", err);
+            return false;
         }
     }
 
-    // returns true if successful
     async addUser(name, email, password, business, role) {
         try {
-            let client = await connectToDatabase()
-            let userCollection = client.db('auth').collection('users')
-            let hashedPassword = await hashPassword(password)
-            let OTPSecret = genSecret()
+            const db = await getDb();
+            const userCollection = db.collection('users');
+            const hashedPassword = await hashPassword(password);
+            const OTPSecret = genSecret();
 
-            let newUser = {
+            const newUser = {
                 name,
-                email,
+                email: email.toLowerCase(),
                 password: hashedPassword,
                 business_name: business,
                 role,
                 OTPSecret,
                 twoFactorAuth: false
-            }
+            };
 
-            let res = await userCollection.insertOne(newUser) // add new user
-            return res.acknowledged
+            const result = await userCollection.insertOne(newUser);
+            return result.acknowledged;
         } catch (err) {
-            return false
-        }
-    }
-
-    // returns true if update was successful
-    async updatePassword(email, newPassword) {
-        try {
-            let client = await connectToDatabase()
-            let userCollection = client.db('auth').collection('users')
-            let hashedPassword = await hashPassword(newPassword)
-
-            let res = await userCollection.updateOne(
-                { email },
-                { $set: { password: hashedPassword } } // update the password field
-            )
-
-            return res.acknowledged
-        } catch (err) {
-            return false
-        }
-    }
-
-    // returns true if update was successful
-    async updateRole(email, newRole) {
-        try {
-            let client = await connectToDatabase()
-            let userCollection = client.db('auth').collection('users')
-
-            let res = await userCollection.updateOne(
-                { email },
-                { $set: { role: newRole } } // update the role field
-            )
-
-            return res.acknowledged
-        } catch (err) {
-            return false
-        }
-    }
-
-    // returns true if update was successful
-    async updateBusinessName(email, newName) {
-        try {
-            let client = await connectToDatabase()
-            let userCollection = client.db('auth').collection('users')
-
-            let res = await userCollection.updateOne(
-                { email },
-                { $set: { business_name: newName } }
-            )
-
-            return res.acknowledged
-        } catch (err) {
-            return false
-        }
-    }
-
-    // returns true if user was successfully deleted
-    async deleteUser(email) {
-        try {
-            let client = await connectToDatabase()
-            let userCollection = client.db('auth').collection('users')
-
-            let res = await userCollection.deleteOne({ email })
-            return res.acknowledged
-
-        } catch (err) {
-            return false
-        }
-    }
-
-    // returns true if password is valid
-    async isValidPassword(email, password) {
-        try {
-            let client = await connectToDatabase()
-            let userCollection = client.db('auth').collection('users')
-            let hashedPassword = await userCollection.findOne(
-                { email },
-                { projection: { password: 1 } }
-            )
-
-            if (!hashedPassword) {
-                return false // User doesn't exist
-            }
-
-            let res = await checkPassword(password, hashedPassword.password)
-            return res
-
-        } catch (err) {
-            return false
-        }
-    }
-
-    // returns the corresponding business_name and role of the user
-    async getUserInfo(email) {
-        try {
-            let client = await connectToDatabase()
-            let userCollection = client.db('auth').collection('users')
-    
-            let result = await userCollection.findOne(
-                { email },
-                { projection: { name: 1, business_name: 1, role: 1, _id: 0 } }
-            )
-    
-            if (result && result.business_name && result.role) {
-                return result
-            } else {
-                return ''
-            }
-            
-        } catch (err) {
-            return ''
-        }
-    }
-
-    async getOTPSecret(email) {
-        try {
-            let client = await connectToDatabase()
-            let userCollection = client.db('auth').collection('users')
-            
-            let result = await userCollection.findOne(
-                { email },
-                { projection: { OTPSecret: 1, _id: 0 } }
-            )
-
-            if (result && result.OTPSecret){
-                return result.OTPSecret
-            } else {
-                return ''
-            }
-            
-        } catch (err) {
-            return ''
+            console.error("Error adding user:", err);
+            return false;
         }
     }
 
     async updateUserName(email, newName) {
         try {
-            let client = await connectToDatabase()
-            let userCollection = client.db('auth').collection('users')
-            
+            const db = await getDb();
+            const userCollection = db.collection('users');
+
             const result = await userCollection.updateOne(
-                { email: email },
+                { email: email.toLowerCase() },
                 { $set: { name: newName } }
-            )
-
-            return result.acknowledged
+            );
+            return result.acknowledged;
         } catch (err) {
-            return false
+            console.error("Error updating user name:", err);
+            return false;
         }
     }
 
-    async updateEmail(oldEmail, newEmail) {
+    async deleteUser(email) {
         try {
-            let client = await connectToDatabase()
-            let userCollection = client.db('auth').collection('users')
-            
-            const result = await userCollection.updateOne(
-                { email: oldEmail },
-                { $set: { email: newEmail } }
-            )
-            return result.acknowledged
+            const db = await getDb();
+            const userCollection = db.collection('users');
+            const result = await userCollection.deleteOne({ email: email.toLowerCase() });
+            return result.deletedCount > 0;
         } catch (err) {
-            return false
+            console.error("Error deleting user:", err);
+            return false;
         }
     }
-    
+
+    async isValidPassword(email, password) {
+        try {
+            const db = await getDb();
+            const userCollection = db.collection('users');
+            const user = await userCollection.findOne({ email: email.toLowerCase() });
+            
+            if (!user) return false;
+            
+            return await bcrypt.compare(password, user.password);
+        } catch (err) {
+            console.error("Error validating password:", err);
+            return false;
+        }
+    }
+
+    async updatePassword(email, newPassword) {
+        try {
+            const db = await getDb();
+            const userCollection = db.collection('users');
+            const hashedPassword = await hashPassword(newPassword);
+
+            const result = await userCollection.updateOne(
+                { email: email.toLowerCase() },
+                { $set: { password: hashedPassword } }
+            );
+            return result.acknowledged;
+        } catch (err) {
+            console.error("Error updating password:", err);
+            return false;
+        }
+    }
+
+    async updateRole(email, newRole) {
+        try {
+            const db = await getDb();
+            const userCollection = db.collection('users');
+
+            const result = await userCollection.updateOne(
+                { email: email.toLowerCase() },
+                { $set: { role: newRole } }
+            );
+            return result.acknowledged;
+        } catch (err) {
+            console.error("Error updating role:", err);
+            return false;
+        }
+    }
+
+    async updateBusinessName(email, newName) {
+        try {
+            const db = await getDb();
+            const userCollection = db.collection('users');
+
+            const result = await userCollection.updateOne(
+                { email: email.toLowerCase() },
+                { $set: { business_name: newName } }
+            );
+            return result.acknowledged;
+        } catch (err) {
+            console.error("Error updating business name:", err);
+            return false;
+        }
+    }
+
+    async getUserInfo(email) {
+        try {
+            const db = await getDb();
+            const userCollection = db.collection('users');
+            const user = await userCollection.findOne(
+                { email: email.toLowerCase() },
+                { projection: { password: 0, OTPSecret: 0 } }
+            );
+            return user;
+        } catch (err) {
+            console.error("Error getting user info:", err);
+            return null;
+        }
+    }
+
     async hasTwoFactor(email) {
         try {
-            let client = await connectToDatabase();
-            let userCollection = client.db('auth').collection('users');
-    
-            let user = await userCollection.findOne({ email: email });
-            
-            return user ? user.twoFactorAuth === true : false;
-        } catch (err) {
-            console.error("Error checking two-factor authentication:", err);
-            return false;
-        }
-    }
-    
-    async toggleTwoFactor(email) {
-        try {
-            let client = await connectToDatabase();
-            let userCollection = client.db('auth').collection('users');
-    
-            let user = await userCollection.findOne({ email: email });
-            
-            if (!user) {
-                console.error("User not found.");
-                return false;
-            }
-    
-            let updatedTwoFactorAuth = !user.twoFactorAuth;
-    
-            let result = await userCollection.updateOne(
-                { email: email },
-                { $set: { twoFactorAuth: updatedTwoFactorAuth } }
+            const db = await getDb();
+            const userCollection = db.collection('users');
+            const user = await userCollection.findOne(
+                { email: email.toLowerCase() },
+                { projection: { twoFactorAuth: 1 } }
             );
-    
-            return result.modifiedCount > 0;
+            return user?.twoFactorAuth || false;
         } catch (err) {
-            console.error("Error toggling two-factor authentication:", err);
+            console.error("Error checking two-factor status:", err);
             return false;
         }
     }
-    
+
+    async enableTwoFactor(email) {
+        try {
+            const db = await getDb();
+            const userCollection = db.collection('users');
+            const result = await userCollection.updateOne(
+                { email: email.toLowerCase() },
+                { $set: { twoFactorAuth: true } }
+            );
+            return result.acknowledged;
+        } catch (err) {
+            console.error("Error enabling two-factor:", err);
+            return false;
+        }
+    }
+
+    async disableTwoFactor(email) {
+        try {
+            const db = await getDb();
+            const userCollection = db.collection('users');
+            const result = await userCollection.updateOne(
+                { email: email.toLowerCase() },
+                { $set: { twoFactorAuth: false } }
+            );
+            return result.acknowledged;
+        } catch (err) {
+            console.error("Error disabling two-factor:", err);
+            return false;
+        }
+    }
+
+    async getTwoFactorSecret(email) {
+        try {
+            const db = await getDb();
+            const userCollection = db.collection('users');
+            const user = await userCollection.findOne(
+                { email: email.toLowerCase() },
+                { projection: { OTPSecret: 1 } }
+            );
+            return user?.OTPSecret;
+        } catch (err) {
+            console.error("Error getting two-factor secret:", err);
+            return null;
+        }
+    }
+
+    async verifyTwoFactorToken(email, token) {
+        try {
+            const secret = await this.getTwoFactorSecret(email);
+            if (!secret) return false;
+            
+            return authenticator.verify({
+                token,
+                secret
+            });
+        } catch (err) {
+            console.error("Error verifying two-factor token:", err);
+            return false;
+        }
+    }
 }
 
-module.exports = new AccountManager()
+module.exports = new AccountManager();

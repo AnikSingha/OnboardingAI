@@ -43,7 +43,7 @@ router.put('/update-business-name', async (req, res) => {
             return res.status(403).json({success: false, message: 'Unauthorized to change name this business'})
         }
 
-        let success = businessManager.updateBusinessName(name)
+        let success = await businessManager.updateBusinessName(business, name);
         if (!success) {
             return res.status(500).json({ success: false, message: `Internal server error` })
         }

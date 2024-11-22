@@ -11,24 +11,34 @@ const client = new MongoClient(uri, {
     }
 });
 
-let dbConnection;
+let isConnected = false;
+
 
 const connectToDatabase = async () => {
-  if (!dbConnection) {
-    await client.connect();
-    dbConnection = client.db('auth');
-    console.log('Database connected successfully');
+  if (!isConnected) {
+    try {
+        await client.connect();
+        isConnected = true;
+        console.log('Database connected successfully');
+        return client;
+    } catch (error) {
+        console.error('Error connecting to database:', error);
+        throw error;
+    }
   }
-  return dbConnection;
+  return client;
 };
 
 const getDb = async () => {
-  return await connectToDatabase();
+  const client = await connectToDatabase();
+  return client.db('auth');
 };
 
 const updateLeadInfo = async (phoneNumber, leadInfo) => {
   try {
     const db = await getDb();
+    if (!db) throw new Error('Database connection failed');
+    
     const leadsCollection = db.collection('leads');
     const result = await leadsCollection.updateOne(
       { _number: phoneNumber },
@@ -87,9 +97,9 @@ const deleteLead = async (leadId) => {
 
 const closeConnection = async () => {
   try {
-    if (dbConnection) {
+    if (isConnected) {
       await client.close();
-      dbConnection = null;
+      isConnected = false;
       console.log('Database connection closed');
     }
   } catch (error) {

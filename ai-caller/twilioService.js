@@ -133,9 +133,15 @@ const handleWebSocket = (ws, req) => {
         await processTranscription(pendingTranscript);
         pendingTranscript = '';
       }
+    },
+    onError: (error) => {
+      console.error('Deepgram error:', error);
+    },
+    onClose: () => {
+      console.log('Deepgram connection closed');
     }
   });
-  
+
   const pingInterval = setInterval(() => {
     if (ws.readyState === ws.OPEN) {
       ws.ping();

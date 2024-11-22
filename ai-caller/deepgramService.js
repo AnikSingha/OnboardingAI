@@ -9,7 +9,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
+const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose, onUtteranceEnd }) => {
   const dgLive = deepgram.listen.live({
     encoding: 'mulaw',
     sample_rate: 8000,

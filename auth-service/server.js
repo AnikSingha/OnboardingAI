@@ -4,7 +4,6 @@ const expressWs = require('express-ws');
 const cookieParser = require('cookie-parser');
 const { verifyToken } = require('./utils/token.js');
 const cors = require('cors');
-const { connectToMongoDB } = require('../ai-caller/database');
 const { handleWebSocket } = require('../ai-caller/twilioService');
 const fs = require('fs');
 const path = require('path');
@@ -172,8 +171,6 @@ app.use('/leads', leadsRoutes);
 app.use('/call-leads', callerRoutes);
 app.use('/schedules', schedulesRoutes);
 
-// Connect to MongoDB
-connectToMongoDB();
 
 // Start server
 const PORT = process.env.PORT || 3000;

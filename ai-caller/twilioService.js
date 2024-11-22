@@ -116,10 +116,10 @@ const handleWebSocket = (ws, req) => {
               console.log(`Caller name captured: ${callerName}`);
               
               if (phoneNumber) {
-                await updateLeadInfo(phoneNumber, {
+                updateLeadInfo(phoneNumber, {
                   _number: phoneNumber,
                   name: callerName
-                });
+                }).catch(err => console.error('Failed to update lead info:', err));
               }
 
               const responseMessage = `Nice to meet you, ${callerName}. How can I assist you today?`;
@@ -281,25 +281,22 @@ const twilioStreamWebhook = (req, res) => {
 
 const callLeads = async (req, res) => {
   try {
-    await client.connect();
-    const database = client.db('auth');
-    const leadsCollection = database.collection('leads');
-
+    const db = await getDb();
+    const leadsCollection = db.collection('leads');
     const leads = await leadsCollection.find({}).toArray();
-    const phoneNumbers = leads.map(lead => lead._number);
-
-    console.log('Leads to be called:', phoneNumbers);
-
-    for (const number of phoneNumbers) {
-      if (number) {
-        await makeCall(number);
+    
+    console.log('Leads to be called:', leads.length);
+    
+    for (const lead of leads) {
+      if (lead._number) {
+        await makeCall(lead._number);
       }
     }
 
-    res.status(200).send('Calls initiated successfully to all leads.');
+    res.status(200).json({ message: 'Calls initiated successfully', count: leads.length });
   } catch (error) {
     console.error('Error calling leads:', error);
-    res.status(500).send('Error calling leads');
+    res.status(500).json({ error: 'Failed to initiate calls' });
   }
 };
 

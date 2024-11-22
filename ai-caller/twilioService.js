@@ -178,10 +178,10 @@ const handleWebSocket = (ws, req) => {
         }
 
       } else if (data.event === 'media') {
-        console.log('Received media event');
+        // console.log('Received media event');
         const audioBufferData = Buffer.from(data.media.payload, 'base64');
         if (dgLive.getReadyState() === 1) {
-          console.log('Sending audio to Deepgram');
+          // console.log('Sending audio to Deepgram');
           dgLive.send(audioBufferData);
         } else {
           console.log('Deepgram not ready, queuing audio. Deepgram state:', dgLive.getReadyState());

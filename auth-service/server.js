@@ -46,6 +46,8 @@ app.use((req, res, next) => {
 // WebSocket endpoint
 // WebSocket endpoint
 app.ws('/call-leads/media', (ws, req) => {
+  let wsHandler;
+  let pingInterval;
   console.log('WebSocket connection attempt received', {
     url: req.url,
     headers: req.headers,
@@ -69,18 +71,30 @@ app.ws('/call-leads/media', (ws, req) => {
     }
   };
 
+  const cleanup = () => {
+    if (pingInterval) {
+      clearInterval(pingInterval);
+    }
+    if (wsHandler && wsHandler.cleanup) {
+      wsHandler.cleanup();
+    }
+    ws.isAlive = false;
+  };
+
   try {
     console.log('Initializing WebSocket handler');
-    handleWebSocket(ws, req);
+    wsHandler = handleWebSocket(ws, req);
   } catch (error) {
     handleError(error);
+    cleanup();
+    return;
   }
 
   // Update ping/pong handling
-  const pingInterval = setInterval(() => {
+  pingInterval = setInterval(() => {
     if (!ws.isAlive) {
       console.log('Client not responding to pings, terminating connection');
-      clearInterval(pingInterval);
+      cleanup();
       return ws.terminate();
     }
     
@@ -92,16 +106,17 @@ app.ws('/call-leads/media', (ws, req) => {
     ws.isAlive = true;
   });
 
-  ws.on('close', (code, reason) => {
-    console.log('WebSocket connection closed', {
-      code,
-      reason,
-      readyState: ws.readyState
+   ws.on('close', (code, reason) => {
+    console.log('WebSocket connection closed, cleaning up resources', {
+      code, reason
     });
-    clearInterval(pingInterval);
+    cleanup();
   });
 
-  ws.on('error', handleError);
+  ws.on('error', (error) => {
+    handleError(error);
+    cleanup();
+  });
 });
 
 // Open paths that don't require authentication

@@ -53,6 +53,7 @@ const sendBufferedAudio = async (audioBuffer, ws, streamSid) => {
 };
 
 const handleWebSocket = (ws, req) => {
+  const MAX_QUEUE_SIZE = 50;
   let streamSid;
   let callSid;
   let audioBufferQueue = [];
@@ -62,6 +63,17 @@ const handleWebSocket = (ws, req) => {
   let isProcessing = false;
   let finalTranscript = '';
   let deepgramReady = false;
+
+
+  const processQueue = async () => {
+    if (audioBufferQueue.length > 0 && deepgramReady && dgLive) {
+      const chunk = audioBufferQueue.shift();
+      dgLive.send(chunk);
+      if (audioBufferQueue.length > 0) {
+        setTimeout(processQueue, 20); // Process next chunk after 20ms
+      }
+    }
+  };
 
   const sendAudioFrames = async (audioBuffer, ws, streamSid, interactionCount) => {
     try {
@@ -105,6 +117,7 @@ const handleWebSocket = (ws, req) => {
     onOpen: async () => {
       console.log('Deepgram connection opened');
       deepgramReady = true;
+      processQueue();
       try {
         const initialMessage = 'Hello! May I know your name, please?';
         if (streamSid) {
@@ -185,7 +198,8 @@ const handleWebSocket = (ws, req) => {
     onClose: () => {
       console.log('Deepgram connection closed');
       deepgramReady = false;
-    }
+    },
+    processQueue
   });
 
   ws.on('message', async (data) => {
@@ -196,17 +210,19 @@ const handleWebSocket = (ws, req) => {
         streamSid = msg.start.streamSid;
         callSid = msg.start.callSid;
         phoneNumber = msg.start.customParameters?.phoneNumber;
-        console.log('Start event data:', JSON.stringify(msg, null, 2));
-        console.log('Phone number from parameters:', phoneNumber);
       } else if (msg.event === 'media') {
         if (deepgramReady && dgLive) {
           dgLive.send(Buffer.from(msg.media.payload, 'base64'));
-        } else {
+        } else if (audioBufferQueue.length < MAX_QUEUE_SIZE) {
           audioBufferQueue.push(Buffer.from(msg.media.payload, 'base64'));
-          console.log('Deepgram not ready, queuing audio. Queue size:', audioBufferQueue.length);
+          console.log('Queuing audio. Queue size:', audioBufferQueue.length);
         }
       } else if (msg.event === 'stop') {
-        console.log('Stream stopped.');
+        console.log('Stream stopped, cleaning up...');
+        if (dgLive) {
+          dgLive.finish();
+        }
+        ws.close();
       }
     } catch (error) {
       console.error('Error processing WebSocket message:', error);
@@ -218,6 +234,17 @@ const handleWebSocket = (ws, req) => {
       ws.ping();
     }
   }, 30000);
+
+  const cleanup = () => {
+  if (dgLive) {
+    dgLive.finish();
+  }
+  if (pingInterval) {
+    clearInterval(pingInterval);
+  }
+  audioBufferQueue = [];
+  deepgramReady = false;
+};
 
   ws.on('pong', () => {
     console.log('Received pong from client');
@@ -238,6 +265,8 @@ const handleWebSocket = (ws, req) => {
       dgLive.finish();
     }
   });
+
+  return { cleanup };
 };
 
 const twilioStreamWebhook = (req, res) => {

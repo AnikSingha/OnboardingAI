@@ -1,4 +1,4 @@
-const { getDb } = require('../db.js');
+const { getDb, getLeads, addLead, deleteLead } = require('../db.js');
 const accountManager = require('./accounts.js');
 const { ObjectId } = require('mongodb');
 

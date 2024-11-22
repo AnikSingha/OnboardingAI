@@ -58,6 +58,9 @@ const handleWebSocket = (ws, req) => {
   let phoneNumber;
   let interactionCount = 0;
   let callerName = '';
+  let lastResponseTime = 0;
+  let isProcessing = false;
+  const DEEPGRAM_RESPONSE_INTERVAL = 2000;
 
   console.log('Twilio WebSocket connection established', {
     headers: req.headers,
@@ -138,20 +141,30 @@ const handleWebSocket = (ws, req) => {
   });
 
   const sendAudioFrames = async (audioBuffer, ws, streamSid, index) => {
-    if (index === interactionCount && ws.readyState === ws.OPEN) {
-      await sendBufferedAudio(audioBuffer, ws, streamSid);
-      
-      const markLabel = uuidv4();
-      ws.send(JSON.stringify({
-        event: 'mark',
-        streamSid: streamSid,
-        mark: { name: markLabel }
-      }));
-      interactionCount++;
+    if (index === interactionCount && ws.readyState === ws.OPEN && !isProcessing) {
+      isProcessing = true; // Lock
+      try {
+        await sendBufferedAudio(audioBuffer, ws, streamSid);
+        
+        const markLabel = uuidv4();
+        ws.send(JSON.stringify({
+          event: 'mark',
+          streamSid: streamSid,
+          mark: { name: markLabel }
+        }));
+        interactionCount++;
+      } finally {
+        isProcessing = false; // Unlock
+      }
     }
   };
 
   ws.on('message', async (message) => {
+    if (isProcessing) {
+      console.log('Skipping message because processing is locked');
+      return;
+    }
+    
     try {
       const data = JSON.parse(message);
 

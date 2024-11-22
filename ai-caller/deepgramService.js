@@ -16,9 +16,9 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
     channels: 1,
     punctuate: true,
     interim_results: true,
-    endpointing: 300,
+    endpointing: 1000,
     vad_events: true,
-    utterance_end_ms: 1000,
+    utterance_end_ms: 2000,
   });
 
   dgLive.on(LiveTranscriptionEvents.Open, onOpen);

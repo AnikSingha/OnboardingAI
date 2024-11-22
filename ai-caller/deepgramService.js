@@ -13,7 +13,6 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
   const dgLive = deepgram.listen.live({
     encoding: 'mulaw',
     sample_rate: 8000,
-    model: 'nova-2',
     punctuate: true,
     interim_results: true,
     endpointing: 3000,

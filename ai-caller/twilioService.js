@@ -2,7 +2,7 @@ const twilio = require('twilio');
 const { generateTTS, processTranscript, initializeDeepgram } = require('./deepgramService.js');
 const { v4: uuidv4 } = require('uuid');
 const { createClient, LiveTranscriptionEvents } = require('@deepgram/sdk');
-const { client, updateLeadInfo } = require('./database.js');
+const { updateLeadInfo, getDb } = require('./database.js');
 const dotenv = require('dotenv');
 const WebSocket = require('ws');
 
@@ -11,11 +11,11 @@ dotenv.config();
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+const DEBOUNCE_DELAY = 1000;
+const PROCESSING_TIMEOUT = 5000;
 
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 const twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-const DEBOUNCE_DELAY = 1000;
-const PROCESSING_TIMEOUT = 5000;
 
 const makeCall = async (to) => {
   try {
@@ -61,94 +61,81 @@ const handleWebSocket = (ws, req) => {
   let interactionCount = 0;
   let callerName = '';
   let isProcessing = false;
-  let processingTimeout = null;
+  let pendingTranscript = '';
+  
+  const processTranscription = async (transcript) => {
+    if (isProcessing || !transcript.trim()) return;
+    isProcessing = true;
 
-  // Debounce timer
-  let debounceTimer = null;
+    try {
+      if (!callerName) {
+        const extractedName = await processTranscript(transcript, true);
+        if (extractedName) {
+          callerName = extractedName;
+          console.log(`Caller name captured: ${callerName}`);
+          
+          if (phoneNumber) {
+            updateLeadInfo(phoneNumber, {
+              _number: phoneNumber,
+              name: callerName
+            }).catch(err => console.error('Failed to update lead info:', err));
+          }
 
-  const resetProcessingLock = () => {
-    if (processingTimer) {
-      clearTimeout(processingTimer);
+          const responseMessage = `Nice to meet you, ${callerName}. How can I assist you today?`;
+          const ttsAudioBuffer = await generateTTS(responseMessage);
+          await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+          return;
+        }
+      }
+
+      const response = await processTranscript(transcript);
+      if (response) {
+        const ttsAudioBuffer = await generateTTS(response);
+        await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+      }
+    } finally {
+      isProcessing = false;
     }
-    isProcessing = false;
   };
 
-  console.log('Twilio WebSocket connection established', {
-    headers: req.headers,
-    query: req.query
-  });
-
-  // Initialize Deepgram
-  console.log('Creating Deepgram connection...');
   const dgLive = initializeDeepgram({
     onOpen: async () => {
       console.log('Deepgram connection opened');
       try {
         const initialMessage = 'Hello! May I know your name, please?';
-        console.log('Sending initial message to user:', initialMessage);
-        if (streamSid) {  // Only send if we have streamSid
+        if (streamSid) {
           const ttsAudioBuffer = await generateTTS(initialMessage);
           await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-        } else {
-          console.log('Waiting for streamSid before sending initial message');
         }
       } catch (error) {
         console.error('Error in initial message flow:', error);
       }
     },
-    onTranscript: async (transcript) => {
+    onTranscript: async (transcript, isSpeechFinal) => {
       if (!transcript.trim()) return;
-      console.log('Received transcript from Deepgram:', transcript);
+
+      if (isSpeechFinal) {
+        await processTranscription(transcript);
+        return;
+      }
 
       if (debounceTimer) {
         clearTimeout(debounceTimer);
       }
 
-      debounceTimer = setTimeout(async () => {
-        console.log('Processing transcript:', transcript);
-        if (transcript.trim()) {
-          console.log('Final Transcription:', transcript);
-
-          if (!callerName) {
-            const extractedName = await processTranscript(transcript, true);
-            if (extractedName) {
-              callerName = extractedName;
-              console.log(`Caller name captured: ${callerName}`);
-              
-              if (phoneNumber) {
-                updateLeadInfo(phoneNumber, {
-                  _number: phoneNumber,
-                  name: callerName
-                }).catch(err => console.error('Failed to update lead info:', err));
-              }
-
-              const responseMessage = `Nice to meet you, ${callerName}. How can I assist you today?`;
-              const ttsAudioBuffer = await generateTTS(responseMessage);
-              await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-              return;
-            }
-          }
-
-          const response = await processTranscript(transcript);
-          if (response) {
-            console.log('Assistant response:', response);
-            const ttsAudioBuffer = await generateTTS(response);
-            await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-            console.log('Assistant response sent to Twilio.');
-          }
-        }
-      }, DEBOUNCE_DELAY);
+      debounceTimer = setTimeout(() => 
+        processTranscription(transcript), 
+        DEBOUNCE_DELAY
+      );
     },
-    onError: (error) => {
-      console.error('Deepgram connection error:', error);
-    },
-    onClose: () => {
-      console.log('Deepgram connection closed');
+    onUtteranceEnd: async (lastWordEnd) => {
+      if (pendingTranscript) {
+        await processTranscription(pendingTranscript);
+        pendingTranscript = '';
+      }
     }
   });
-
-  console.log('Deepgram connection created, initial state:', dgLive.getReadyState());
-
+  
   const pingInterval = setInterval(() => {
     if (ws.readyState === ws.OPEN) {
       ws.ping();

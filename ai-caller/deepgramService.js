@@ -22,9 +22,18 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
   dgLive.on(LiveTranscriptionEvents.Open, onOpen);
 
   dgLive.on(LiveTranscriptionEvents.Transcript, async (transcription) => {
-    if (transcription.is_final) {
+    if (transcription.speech_final) {
       const transcript = transcription.channel.alternatives[0].transcript;
-      await onTranscript(transcript);
+      await onTranscript(transcript, true);
+    } else if (transcription.is_final) {
+      const transcript = transcription.channel.alternatives[0].transcript;
+      await onTranscript(transcript, false);
+    }
+  });
+
+  dgLive.on('UtteranceEnd', (data) => {
+    if (onUtteranceEnd) {
+      onUtteranceEnd(data.last_word_end);
     }
   });
 

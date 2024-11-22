@@ -54,16 +54,16 @@ const sendBufferedAudio = async (audioBuffer, ws, streamSid) => {
 };
 
 const handleWebSocket = (ws, req) => {
-  let streamSid;
-  let callSid;
-  let audioBufferQueue = [];
-  let phoneNumber;
-  let interactionCount = 0;
-  let callerName = '';
+  let currentSpeechSegment = '';
   let isProcessing = false;
   let pendingTranscript = '';
   let debounceTimer = null;
-  
+  const DEBOUNCE_DELAY = 500;
+  let callerName = null;
+  let phoneNumber = null;
+  let streamSid = null;
+  let interactionCount = 0;
+
   const processTranscription = async (transcript, isSpeechFinal) => {
     try {
       if (!transcript.trim() && !isSpeechFinal) {
@@ -72,9 +72,10 @@ const handleWebSocket = (ws, req) => {
 
       if (isProcessing) {
         pendingTranscript = transcript;
+        console.log('Already processing, queuing transcript');
         return;
       }
-      
+
       isProcessing = true;
 
       // Accumulate speech until we get a final segment
@@ -87,13 +88,13 @@ const handleWebSocket = (ws, req) => {
       // Process the complete speech segment
       const fullTranscript = (currentSpeechSegment + ' ' + transcript).trim();
       console.log('Processing complete speech segment:', fullTranscript);
-      
+
       if (!callerName) {
         const extractedName = await processTranscript(fullTranscript, true);
         if (extractedName) {
           callerName = extractedName;
           console.log(`Caller name captured: ${callerName}`);
-          
+
           if (phoneNumber) {
             await updateLeadInfo(phoneNumber, {
               _number: phoneNumber,
@@ -119,7 +120,7 @@ const handleWebSocket = (ws, req) => {
 
       // Reset the speech segment
       currentSpeechSegment = '';
-      
+
     } catch (error) {
       console.error('Error in processTranscription:', error);
     } finally {
@@ -146,30 +147,17 @@ const handleWebSocket = (ws, req) => {
       }
     },
     onTranscript: async (transcript, isSpeechFinal) => {
-      if (!transcript.trim()) return;
-      console.log('Received transcript:', transcript, 'isSpeechFinal:', isSpeechFinal);
-
-      try {
-        if (isSpeechFinal) {
-          console.log('Processing speech-final transcript immediately');
-          await processTranscription(transcript, isSpeechFinal);
-        } else {
-          if (debounceTimer) {
-            clearTimeout(debounceTimer);
-          }
-
-          console.log('Setting up debounced processing');
-          debounceTimer = setTimeout(async () => {
-            try {
-              await processTranscription(transcript, isSpeechFinal);
-            } catch (error) {
-              console.error('Error in debounced processing:', error);
-            }
-          }, DEBOUNCE_DELAY);
-        }
-      } catch (error) {
-        console.error('Error in onTranscript:', error);
+      console.log(`Received transcript: "${transcript}" | isSpeechFinal: ${isSpeechFinal}`);
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
       }
+      debounceTimer = setTimeout(async () => {
+        try {
+          await processTranscription(transcript, isSpeechFinal);
+        } catch (error) {
+          console.error('Error in debounced processing:', error);
+        }
+      }, DEBOUNCE_DELAY);
     },
     onUtteranceEnd: async (lastWordEnd) => {
       if (pendingTranscript) {

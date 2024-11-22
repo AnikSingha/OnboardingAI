@@ -78,6 +78,6 @@ router.post('/call-status', (req, res) => {
 });
 
 // Twilio webhook endpoint
-router.post('/twilio-stream', twilioStreamWebhook);
+router.post('/twilio-stream', handleWebSocket);
 
 module.exports = router;

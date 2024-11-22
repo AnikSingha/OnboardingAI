@@ -61,11 +61,9 @@ const handleWebSocket = (ws, req) => {
   let isProcessing = false;
   const DEEPGRAM_RESPONSE_INTERVAL = 2000;
 
-  // Debounce timer
+  // Debounce timer and accumulation buffer
   let debounceTimer = null;
   const DEBOUNCE_DELAY = 3000; // 3 seconds
-
-  // Accumulation buffer and flag
   let finalResult = '';
   let speechFinal = false;
 
@@ -74,7 +72,7 @@ const handleWebSocket = (ws, req) => {
     query: req.query
   });
 
-  // Initialize Deepgram
+  // Initialize Deepgram connection
   console.log('Creating Deepgram connection...');
   const dgLive = initializeDeepgram({
     onOpen: async () => {

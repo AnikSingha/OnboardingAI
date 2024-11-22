@@ -9,14 +9,30 @@ router.get('/', async (req, res) => {
     const { valid, decoded } = verifyToken(req.cookies.token);
     
     if (!valid) {
-        return res.status(403).json({ success: false, message: 'Unauthorized' });
+        return res.status(403).json({ 
+            success: false, 
+            message: 'Unauthorized' 
+        });
     }
 
     try {
         const leads = await businessManager.getLeads();
-        return res.status(200).json({ success: true, leads });
+        if (!leads) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'No leads found' 
+            });
+        }
+        return res.status(200).json({ 
+            success: true, 
+            leads 
+        });
     } catch (err) {
-        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` });
+        console.error('Error fetching leads:', err);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Internal server error' 
+        });
     }
 });
 

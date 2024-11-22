@@ -233,6 +233,33 @@ class BusinessManager {
             return [];
         }
     }
+
+    async getLeads() {
+        try {
+            return await getLeads();
+        } catch (err) {
+            console.error("Error getting leads:", err);
+            return [];
+        }
+    }
+
+    async addLead(number, name) {
+        try {
+            return await addLead(number, name);
+        } catch (err) {
+            console.error("Error adding lead:", err);
+            return false;
+        }
+    }
+
+    async deleteLead(leadId) {
+        try {
+            return await deleteLead(leadId);
+        } catch (err) {
+            console.error("Error deleting lead:", err);
+            return false;
+        }
+    }
     
     async addSchedule(name, number, date, campaign) {
         try {

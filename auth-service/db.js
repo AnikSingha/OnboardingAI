@@ -59,7 +59,7 @@ const getLeads = async () => {
     return await leadsCollection.find().toArray();
   } catch (error) {
     console.error('Error getting leads:', error);
-    throw error;
+    return [];
   }
 };
 
@@ -74,7 +74,7 @@ const addLead = async (number, name) => {
     return result.acknowledged;
   } catch (error) {
     console.error('Error adding lead:', error);
-    throw error;
+    return false;
   }
 };
 

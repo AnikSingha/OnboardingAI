@@ -1,361 +1,157 @@
-const twilio = require('twilio');
-const { generateTTS, processTranscript, initializeDeepgram } = require('./deepgramService.js');
+const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
-const { createClient, LiveTranscriptionEvents } = require('@deepgram/sdk');
-const { updateLeadInfo, getDb } = require('./database.js');
+const { LiveTranscriptionEvents, createClient } = require('@deepgram/sdk');
+const OpenAI = require('openai');
 const dotenv = require('dotenv');
-const WebSocket = require('ws');
-
 dotenv.config();
-
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
-const DEBOUNCE_DELAY = 1000;
-const PROCESSING_TIMEOUT = 5000;
-
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
-const twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-const makeCall = async (to) => {
-  try {
-    const call = await twilioClient.calls.create({
-      url: `${process.env.BASE_URL}/twilio-stream?phoneNumber=${encodeURIComponent(to)}`,
-      to: to,
-      from: TWILIO_PHONE_NUMBER,
-    });
-    console.log(`Call initiated, SID: ${call.sid}, to: ${to}`);
-  } catch (error) {
-    console.error(`Error initiating call to ${to}:`, error);
-  }
-};
+const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
+  const dgLive = deepgram.listen.live({
+    encoding: 'mulaw',
+    sample_rate: 8000,
+    punctuate: true,
+    interim_results: true,
+    endpointing: 3000,
+    utterance_end_ms: 5000,
+  });
 
-const sendBufferedAudio = async (audioBuffer, ws, streamSid) => {
-  const chunkSize = 640;
-  try {
-    for (let i = 0; i < audioBuffer.length; i += chunkSize) {
-      if (ws.readyState !== ws.OPEN) {
-        console.log('WebSocket not open, stopping audio transmission');
-        break;
-      }
-      const chunk = audioBuffer.slice(i, i + chunkSize);
-      ws.send(JSON.stringify({
-        event: 'media',
-        streamSid: streamSid,
-        media: {
-          payload: chunk.toString('base64')
-        }
-      }));
-      await new Promise(resolve => setTimeout(resolve, 20));
-    }
-  } catch (error) {
-    console.error('Error sending buffered audio:', error);
-  }
-};
+  dgLive.on(LiveTranscriptionEvents.Open, onOpen);
 
-const handleWebSocket = (ws, req) => {
-  let currentSpeechSegment = '';
-  let isProcessing = false;
-  let pendingTranscript = '';
-  let debounceTimer = null;
-  const DEBOUNCE_DELAY = 500;
-  let callerName = null;
-  let phoneNumber = null;
-  let streamSid = null;
-  let interactionCount = 0;
-  let audioBufferQueue = [];
-
-  const processAudioBuffer = async () => {
-    if (audioBufferQueue.length === 0) {
-      console.log('No audio buffers to process.');
-      return;
-    }
-
-    while (audioBufferQueue.length > 0) {
-      const audioBuffer = audioBufferQueue.shift();
-      try {
-        deepgram.send(audioBuffer);
-        console.log('Audio buffer sent to Deepgram.');
-      } catch (error) {
-        console.error('Error sending audio buffer to Deepgram:', error);
-        audioBufferQueue.unshift(audioBuffer);
-        break;
-      }
-    }
-  };
-
-  const debouncedProcessTranscription = () => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(async () => {
-      try {
-        await processTranscription(pendingTranscript, true);
-        pendingTranscript = '';
-        await processAudioBuffer();
-      } catch (error) {
-        console.error('Error in debounced processing:', error);
-      }
-    }, DEBOUNCE_DELAY);
-  };
-
-  const processTranscription = async (transcript, isSpeechFinal) => {
-    try {
-      if (!transcript.trim() && !isSpeechFinal) {
-        return;
-      }
-
-      if (isProcessing) {
-        pendingTranscript = transcript;
-        console.log('Already processing, queuing transcript');
-        debouncedProcessTranscription();
-        return;
-      }
-
-      isProcessing = true;
-
-      if (!isSpeechFinal) {
-        currentSpeechSegment += ' ' + transcript;
-        console.log('Accumulating speech:', currentSpeechSegment);
-        isProcessing = false;
-        return;
-      }
-
-      const fullTranscript = (currentSpeechSegment + ' ' + transcript).trim();
-      console.log('Processing complete speech segment:', fullTranscript);
-
-      if (!callerName) {
-        const extractedName = await processTranscript(fullTranscript, true);
-        if (extractedName) {
-          callerName = extractedName;
-          console.log(`Caller name captured: ${callerName}`);
-
-          if (phoneNumber) {
-            await updateLeadInfo(phoneNumber, {
-              _number: phoneNumber,
-              name: callerName
-            }).catch(err => console.error('Failed to update lead info:', err));
-          }
-
-          const responseMessage = `Nice to meet you, ${callerName}. How can I assist you today?`;
-          console.log('Sending greeting response:', responseMessage);
-          const ttsAudioBuffer = await generateTTS(responseMessage);
-          await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-        }
-      } else {
-        const response = await processTranscript(fullTranscript, false);
-        if (response) {
-          console.log('Generated response:', response);
-          const ttsAudioBuffer = await generateTTS(response);
-          await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-          console.log('Response sent successfully');
-        }
-      }
-      currentSpeechSegment = '';
-      isProcessing = false;
-
-      if (pendingTranscript) {
-        const queuedTranscript = pendingTranscript;
-        pendingTranscript = '';
-        await processTranscription(queuedTranscript, true);
-      }
-    } catch (error) {
-      console.error('Error processing transcription:', error);
-      isProcessing = false;
-    }
-  };
-
-  const dgLive = initializeDeepgram({
-    onOpen: async () => {
-      console.log('Deepgram connection opened');
-      try {
-        const initialMessage = 'Hello! May I know your name, please?';
-        if (streamSid) {
-          const ttsAudioBuffer = await generateTTS(initialMessage);
-          await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-        }
-      } catch (error) {
-        console.error('Error in initial message flow:', error);
-      }
-    },
-    onTranscript: async (transcript, isSpeechFinal) => {
-      console.log(`Received transcript: "${transcript}" | isSpeechFinal: ${isSpeechFinal}`);
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-      }
-      debounceTimer = setTimeout(async () => {
-        try {
-          await processTranscription(transcript, isSpeechFinal);
-        } catch (error) {
-          console.error('Error in debounced processing:', error);
-        }
-      }, DEBOUNCE_DELAY);
-    },
-    onUtteranceEnd: async (lastWordEnd) => {
-      if (pendingTranscript) {
-        await processTranscription(pendingTranscript, false);
-        pendingTranscript = '';
-      }
-    },
-    onError: (error) => {
-      console.error('Deepgram error:', error);
-    },
-    onClose: () => {
-      console.log('Deepgram connection closed');
+  dgLive.on(LiveTranscriptionEvents.Transcript, async (transcription) => {
+    if (transcription.is_final) {
+      const transcript = transcription.channel.alternatives[0].transcript;
+      await onTranscript(transcript);
     }
   });
 
-  const pingInterval = setInterval(() => {
-    if (ws.readyState === ws.OPEN) {
-      ws.ping();
-      console.log('Ping sent to client');
-    }
-  }, 30000);
+  dgLive.on(LiveTranscriptionEvents.Error, onError);
+  dgLive.on(LiveTranscriptionEvents.Close, onClose);
 
-  ws.on('pong', () => {
-    console.log('Received pong from client');
-  });
+  return dgLive;
+};
 
-  const sendAudioFrames = async (audioBuffer, ws, streamSid, index) => {
-    if (index === interactionCount && ws.readyState === ws.OPEN && !isProcessing) {
-      isProcessing = true;
-      try {
-        await sendBufferedAudio(audioBuffer, ws, streamSid);
+const generateTTS = async (text) => {
+  if (!text || text.trim() === '') {
+    throw new Error('Text for TTS cannot be null or empty');
+  }
 
-        const markLabel = uuidv4();
-        ws.send(JSON.stringify({
-          event: 'mark',
-          streamSid: streamSid,
-          mark: { name: markLabel }
-        }));
-        interactionCount++;
-      } finally {
-        isProcessing = false;
+  try {
+    const ttsResponse = await axios.post(
+      'https://api.deepgram.com/v1/speak',
+      { text },
+      {
+        headers: {
+          Authorization: `Token ${process.env.DEEPGRAM_API_KEY}`,
+          'Content-Type': 'application/json',
+          Accept: 'audio/mulaw',
+        },
+        params: {
+          model:'aura-luna-en',
+          encoding: 'mulaw',
+          container: 'none',
+          sample_rate: 8000,
+        },
+        responseType: 'arraybuffer',
       }
-    }
-  };
+    );
 
-  ws.on('message', async (message) => {
-    if (isProcessing) {
-      return;
+    if (ttsResponse.status !== 200) {
+      throw new Error('TTS generation failed');
     }
 
-    try {
-      const data = JSON.parse(message);
+    return Buffer.from(ttsResponse.data);
+  } catch (error) {
+    console.error('Error in generateTTS:', error);
+    throw error;
+  }
+};
 
-      if (data.event === 'start') {
-        console.log('Start event data:', JSON.stringify(data, null, 2));
-        streamSid = data.start.streamSid;
-        callSid = data.start.callSid;
-        
-        if (data.start.customParameters?.phoneNumber) {
-          phoneNumber = data.start.customParameters.phoneNumber;
-          console.log(`Phone number from parameters: ${phoneNumber}`);
-          
-          if (audioBufferQueue.length > 0) {
-            console.log('Processing queued audio...');
-            while (audioBufferQueue.length > 0) {
-              const audioData = audioBufferQueue.shift();
-              dgLive.send(audioData);
+const processTranscript = async (transcript, isNameExtraction = false) => {
+  if (!transcript || transcript.trim() === '') {
+    console.log('Received empty transcript.');
+    return 'I did not catch that. Could you please repeat?';
+  }
+
+  try {
+    if (isNameExtraction) {
+      // Check if the transcript is likely complete
+      if (!transcript.endsWith('.') && transcript.length < 5) { // Adjust conditions as needed
+        console.log('Transcript too short or incomplete for name extraction.');
+        return null;
+      }
+
+      const functions = [{
+        name: "extractName",
+        description: "Extract a person's name from conversation",
+        parameters: {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              description: "The extracted name from the conversation"
             }
+          },
+          required: ["name"]
+        }
+      }];
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are a friendly AI assistant making a phone call. Extract names when mentioned in conversation."
+          },
+          {
+            role: "user", 
+            content: transcript
           }
+        ],
+        functions,
+        function_call: "auto"
+      });
+
+      const message = response.choices[0].message;
+      
+      if (message.function_call) {
+        const extractedName = JSON.parse(message.function_call.arguments).name;
+        // Validate the extracted name
+        if (typeof extractedName === 'string' && extractedName.trim().length > 1) {
+          return extractedName.trim();
         } else {
-          console.error('No phone number in custom parameters');
+          console.log('Invalid name extracted:', extractedName);
+          return null;
         }
-
-      } else if (data.event === 'media') {
-        const audioBufferData = Buffer.from(data.media.payload, 'base64');
-        if (dgLive.getReadyState() === 1) {
-          dgLive.send(audioBufferData);
-        } else {
-          console.log('Deepgram not ready, queuing audio. Deepgram state:', dgLive.getReadyState());
-          console.log('Queue size:', audioBufferQueue.length);
-          audioBufferQueue.push(audioBufferData);
-        }
-      } else if (data.event === 'stop') {
-        console.log('Stream stopped.');
-        dgLive.finish();
-        ws.close();
       }
-    } catch (error) {
-      console.error('Error processing message:', error);
-      console.error('Message that caused error:', message.toString());
+      return null;
+    } else {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are a friendly AI assistant making a phone call. Keep responses concise and natural."
+          },
+          {
+            role: "user", 
+            content: transcript
+          }
+        ]
+      });
+      return response.choices[0].message.content;
     }
-  });
-
-  ws.on('error', (error) => {
-    console.error('WebSocket error:', error);
-  });
-
-  ws.on('close', () => {
-    clearInterval(pingInterval);
-    console.log('WebSocket connection closed');
-    dgLive.finish();
-    audioBufferQueue.length = 0;
-  });
-};
-
-const twilioStreamWebhook = (req, res) => {
-  console.log('Full webhook request:', {
-    query: req.query,
-    body: req.body,
-    params: req.params,
-    headers: req.headers
-  });
-
-  const phoneNumber = req.query.phoneNumber || req.body.To || req.body.to;
-  console.log('Twilio webhook received:', {
-    phoneNumber,
-    query: req.query,
-    body: req.body,
-    method: req.method
-  });
-  
-  if (!phoneNumber) {
-    console.error('No phone number found in request');
-    console.error('Query params:', req.query);
-    console.error('Body:', req.body);
-  }
-  
-  const response = `<?xml version="1.0" encoding="UTF-8"?>
-  <Response>
-    <Connect>
-      <Stream url="wss://api.onboardingai.org/call-leads/media">
-        <Parameter name="phoneNumber" value="${phoneNumber}" />
-        <Parameter name="callSid" value="${req.body.CallSid || ''}" />
-        <Parameter name="debug" value="true" />
-      </Stream>
-    </Connect>
-    <Pause length="60"/>
-  </Response>
-`;
-  res.type('text/xml');
-  res.send(response);
-  console.log('Twilio webhook response sent with phone number:', phoneNumber);
-};
-
-const callLeads = async (req, res) => {
-  try {
-    const db = await getDb();
-    const leadsCollection = db.collection('leads');
-    const leads = await leadsCollection.find({}).toArray();
-    
-    console.log('Leads to be called:', leads.length);
-    
-    for (const lead of leads) {
-      if (lead._number) {
-        await makeCall(lead._number);
-      }
-    }
-
-    res.status(200).json({ message: 'Calls initiated successfully', count: leads.length });
   } catch (error) {
-    console.error('Error calling leads:', error);
-    res.status(500).json({ error: 'Failed to initiate calls' });
+    console.error('Error in processTranscript:', error.response ? error.response.data : error.message);
+    return 'Sorry, I am unable to process your request at the moment.';
   }
 };
 
 module.exports = {
-  handleWebSocket,
-  twilioStreamWebhook,
-  callLeads,
-  makeCall
+  generateTTS,
+  processTranscript,
+  initializeDeepgram
 };

@@ -1,176 +1,308 @@
-const axios = require('axios');
+const twilio = require('twilio');
+const { generateTTS, processTranscript, initializeDeepgram } = require('./deepgramService.js');
 const { v4: uuidv4 } = require('uuid');
-const { LiveTranscriptionEvents, createClient } = require('@deepgram/sdk');
-const OpenAI = require('openai');
+const { createClient, LiveTranscriptionEvents } = require('@deepgram/sdk');
+const { client, updateLeadInfo } = require('./database.js');
 const dotenv = require('dotenv');
+const WebSocket = require('ws');
+
 dotenv.config();
+
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+const DEBOUNCE_DELAY = 1000;
+const PROCESSING_TIMEOUT = 5000;
 
-const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose, onUtteranceEnd }) => {
-  const dgLive = deepgram.listen.live({
-    encoding: 'mulaw',
-    sample_rate: 8000,
-    punctuate: true,
-    interim_results: true,
-    endpointing: 3000,
-    utterance_end_ms: 5000,
-  });
-
-  dgLive.on(LiveTranscriptionEvents.Open, onOpen);
-
-  dgLive.on(LiveTranscriptionEvents.Transcript, async (transcription) => {
-    try {
-      console.log('Raw transcription:', transcription);
-      
-      const transcript = transcription.channel.alternatives[0].transcript.trim();
-      
-      // Handle speech_final to mark end of speech segments
-      if (transcription.speech_final) {
-        console.log('Speech final detected - ending current segment');
-        await onTranscript(transcript, true); // true indicates end of speech
-        return;
-      }
-      
-      // Only process final transcripts that have content
-      if (transcription.is_final && transcript) {
-        console.log('Final transcript:', transcript);
-        await onTranscript(transcript, false);
-      }
-
-    } catch (error) {
-      console.error('Error in transcript handling:', error);
-    }
-  });
-
-  dgLive.on('UtteranceEnd', (data) => {
-    if (onUtteranceEnd) {
-      onUtteranceEnd(data.last_word_end);
-    }
-  });
-
-  dgLive.on(LiveTranscriptionEvents.Error, onError);
-  dgLive.on(LiveTranscriptionEvents.Close, onClose);
-
-  return dgLive;
-};
-
-const generateTTS = async (text) => {
-  if (!text || text.trim() === '') {
-    throw new Error('Text for TTS cannot be null or empty');
-  }
-
+const makeCall = async (to) => {
   try {
-    const ttsResponse = await axios.post(
-      'https://api.deepgram.com/v1/speak',
-      { text },
-      {
-        headers: {
-          Authorization: `Token ${process.env.DEEPGRAM_API_KEY}`,
-          'Content-Type': 'application/json',
-          Accept: 'audio/mulaw',
-        },
-        params: {
-          model:'aura-luna-en',
-          encoding: 'mulaw',
-          container: 'none',
-          sample_rate: 8000,
-        },
-        responseType: 'arraybuffer',
-      }
-    );
-
-    if (ttsResponse.status !== 200) {
-      throw new Error('TTS generation failed');
-    }
-
-    return Buffer.from(ttsResponse.data);
+    const call = await twilioClient.calls.create({
+      url: `${process.env.BASE_URL}/twilio-stream?phoneNumber=${encodeURIComponent(to)}`,
+      to: to,
+      from: TWILIO_PHONE_NUMBER,
+    });
+    console.log(`Call initiated, SID: ${call.sid}, to: ${to}`);
   } catch (error) {
-    console.error('Error in generateTTS:', error);
-    throw error;
+    console.error(`Error initiating call to ${to}:`, error);
   }
 };
 
-const processTranscript = async (transcript, isNameExtraction = false) => {
-  if (!transcript || transcript.trim() === '') {
-    console.log('Received empty transcript.');
-    return null;
-  }
-
+const sendBufferedAudio = async (audioBuffer, ws, streamSid) => {
+  const chunkSize = 640;
   try {
-    if (isNameExtraction) {
-      const functions = [{
-        name: "extractName",
-        description: "Extract a person's name from conversation, including greetings like 'Hi, I'm [name]' or 'My name is [name]'",
-        parameters: {
-          type: "object",
-          properties: {
-            name: {
-              type: "string",
-              description: "The extracted name from the conversation"
-            },
-            confidence: {
-              type: "number",
-              description: "Confidence score between 0 and 1 that this is actually a name"
+    for (let i = 0; i < audioBuffer.length; i += chunkSize) {
+      if (ws.readyState !== ws.OPEN) {
+        console.log('WebSocket not open, stopping audio transmission');
+        break;
+      }
+      const chunk = audioBuffer.slice(i, i + chunkSize);
+      ws.send(JSON.stringify({
+        event: 'media',
+        streamSid: streamSid,
+        media: {
+          payload: chunk.toString('base64')
+        }
+      }));
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+  } catch (error) {
+    console.error('Error sending buffered audio:', error);
+  }
+};
+
+const handleWebSocket = (ws, req) => {
+  let streamSid;
+  let callSid;
+  let audioBufferQueue = [];
+  let phoneNumber;
+  let interactionCount = 0;
+  let callerName = '';
+  let isProcessing = false;
+  let processingTimeout = null;
+
+  // Debounce timer
+  let debounceTimer = null;
+
+  const resetProcessingLock = () => {
+    if (processingTimer) {
+      clearTimeout(processingTimer);
+    }
+    isProcessing = false;
+  };
+
+  console.log('Twilio WebSocket connection established', {
+    headers: req.headers,
+    query: req.query
+  });
+
+  // Initialize Deepgram
+  console.log('Creating Deepgram connection...');
+  const dgLive = initializeDeepgram({
+    onOpen: async () => {
+      console.log('Deepgram connection opened');
+      try {
+        const initialMessage = 'Hello! May I know your name, please?';
+        console.log('Sending initial message to user:', initialMessage);
+        if (streamSid) {  // Only send if we have streamSid
+          const ttsAudioBuffer = await generateTTS(initialMessage);
+          await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+        } else {
+          console.log('Waiting for streamSid before sending initial message');
+        }
+      } catch (error) {
+        console.error('Error in initial message flow:', error);
+      }
+    },
+    onTranscript: async (transcript) => {
+      if (!transcript.trim()) return;
+      console.log('Received transcript from Deepgram:', transcript);
+
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+
+      debounceTimer = setTimeout(async () => {
+        console.log('Processing transcript:', transcript);
+        if (transcript.trim()) {
+          console.log('Final Transcription:', transcript);
+
+          if (!callerName) {
+            const extractedName = await processTranscript(transcript, true);
+            if (extractedName) {
+              callerName = extractedName;
+              console.log(`Caller name captured: ${callerName}`);
+              
+              if (phoneNumber) {
+                updateLeadInfo(phoneNumber, {
+                  _number: phoneNumber,
+                  name: callerName
+                }).catch(err => console.error('Failed to update lead info:', err));
+              }
+
+              const responseMessage = `Nice to meet you, ${callerName}. How can I assist you today?`;
+              const ttsAudioBuffer = await generateTTS(responseMessage);
+              await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+              return;
             }
-          },
-          required: ["name", "confidence"]
-        }
-      }];
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: "You are a friendly AI assistant making a phone call. Extract names when mentioned in conversation, even from partial sentences."
-          },
-          {
-            role: "user", 
-            content: transcript
           }
-        ],
-        functions,
-        function_call: "auto"
-      });
 
-      const message = response.choices[0].message;
-      
-      if (message.function_call) {
-        const result = JSON.parse(message.function_call.arguments);
-        if (result.confidence > 0.7 && result.name.trim().length > 1) {
-          return result.name.trim();
-        }
-        console.log('Name extraction skipped - confidence:', result.confidence);
-        return null;
-      }
-      return null;
-    } else {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: "You are a friendly AI assistant making a phone call. Keep responses concise and natural."
-          },
-          {
-            role: "user", 
-            content: transcript
+          const response = await processTranscript(transcript);
+          if (response) {
+            console.log('Assistant response:', response);
+            const ttsAudioBuffer = await generateTTS(response);
+            await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+            console.log('Assistant response sent to Twilio.');
           }
-        ]
-      });
-      return response.choices[0].message.content;
+        }
+      }, DEBOUNCE_DELAY);
+    },
+    onError: (error) => {
+      console.error('Deepgram connection error:', error);
+    },
+    onClose: () => {
+      console.log('Deepgram connection closed');
     }
+  });
+
+  console.log('Deepgram connection created, initial state:', dgLive.getReadyState());
+
+  const pingInterval = setInterval(() => {
+    if (ws.readyState === ws.OPEN) {
+      ws.ping();
+      console.log('Ping sent to client');
+    }
+  }, 30000);
+
+  ws.on('pong', () => {
+    console.log('Received pong from client');
+  });
+
+  const sendAudioFrames = async (audioBuffer, ws, streamSid, index) => {
+    if (index === interactionCount && ws.readyState === ws.OPEN && !isProcessing) {
+      isProcessing = true; // Lock
+      try {
+        await sendBufferedAudio(audioBuffer, ws, streamSid);
+
+        const markLabel = uuidv4();
+        ws.send(JSON.stringify({
+          event: 'mark',
+          streamSid: streamSid,
+          mark: { name: markLabel }
+        }));
+        interactionCount++;
+      } finally {
+        isProcessing = false; // Unlock
+      }
+    }
+  };
+
+  ws.on('message', async (message) => {
+    if (isProcessing) {
+      return;
+    }
+
+    try {
+      const data = JSON.parse(message);
+
+      if (data.event === 'start') {
+        console.log('Start event data:', JSON.stringify(data, null, 2));
+        streamSid = data.start.streamSid;
+        callSid = data.start.callSid;
+        
+        if (data.start.customParameters?.phoneNumber) {
+          phoneNumber = data.start.customParameters.phoneNumber;
+          console.log(`Phone number from parameters: ${phoneNumber}`);
+          
+          // Process any queued audio now that we have streamSid
+          if (audioBufferQueue.length > 0) {
+            console.log('Processing queued audio...');
+            while (audioBufferQueue.length > 0) {
+              const audioData = audioBufferQueue.shift();
+              dgLive.send(audioData);
+            }
+          }
+        } else {
+          console.error('No phone number in custom parameters');
+        }
+
+      } else if (data.event === 'media') {
+        const audioBufferData = Buffer.from(data.media.payload, 'base64');
+        if (dgLive.getReadyState() === 1) {
+          dgLive.send(audioBufferData);
+        } else {
+          console.log('Deepgram not ready, queuing audio. Deepgram state:', dgLive.getReadyState());
+          console.log('Queue size:', audioBufferQueue.length);
+          audioBufferQueue.push(audioBufferData);
+        }
+      } else if (data.event === 'stop') {
+        console.log('Stream stopped.');
+        dgLive.finish();
+        ws.close();
+      }
+    } catch (error) {
+      console.error('Error processing message:', error);
+      console.error('Message that caused error:', message.toString());
+    }
+  });
+
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
+  });
+
+  ws.on('close', () => {
+    clearInterval(pingInterval);
+    console.log('WebSocket connection closed');
+    dgLive.finish();
+    audioBufferQueue.length = 0;
+  });
+};
+
+const twilioStreamWebhook = (req, res) => {
+  console.log('Full webhook request:', {
+    query: req.query,
+    body: req.body,
+    params: req.params,
+    headers: req.headers
+  });
+
+  const phoneNumber = req.query.phoneNumber || req.body.To || req.body.to;
+  console.log('Twilio webhook received:', {
+    phoneNumber,
+    query: req.query,
+    body: req.body,
+    method: req.method
+  });
+  
+  if (!phoneNumber) {
+    console.error('No phone number found in request');
+    console.error('Query params:', req.query);
+    console.error('Body:', req.body);
+  }
+  
+  const response = `<?xml version="1.0" encoding="UTF-8"?>
+  <Response>
+    <Connect>
+      <Stream url="wss://api.onboardingai.org/call-leads/media">
+        <Parameter name="phoneNumber" value="${phoneNumber}" />
+        <Parameter name="callSid" value="${req.body.CallSid || ''}" />
+        <Parameter name="debug" value="true" />
+      </Stream>
+    </Connect>
+    <Pause length="60"/>
+  </Response>
+`;
+  res.type('text/xml');
+  res.send(response);
+  console.log('Twilio webhook response sent with phone number:', phoneNumber);
+};
+
+const callLeads = async (req, res) => {
+  try {
+    const db = await getDb();
+    const leadsCollection = db.collection('leads');
+    const leads = await leadsCollection.find({}).toArray();
+    
+    console.log('Leads to be called:', leads.length);
+    
+    for (const lead of leads) {
+      if (lead._number) {
+        await makeCall(lead._number);
+      }
+    }
+
+    res.status(200).json({ message: 'Calls initiated successfully', count: leads.length });
   } catch (error) {
-    console.error('Error in processTranscript:', error.response ? error.response.data : error.message);
-    return null;
+    console.error('Error calling leads:', error);
+    res.status(500).json({ error: 'Failed to initiate calls' });
   }
 };
 
 module.exports = {
-  generateTTS,
-  processTranscript,
-  initializeDeepgram
+  handleWebSocket,
+  twilioStreamWebhook,
+  callLeads,
+  makeCall
 };

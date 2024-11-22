@@ -2,17 +2,13 @@ const { MongoClient, ObjectId, ServerApiVersion } = require('mongodb');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const MONGO_URI = process.env.DB_URI;
-const client = new MongoClient(MONGO_URI, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-  tls: true,
-  tlsAllowInvalidCertificates: true,
-  maxPoolSize: 10,
-  minPoolSize: 1
+const uri = process.env.DB_URI;
+const client = new MongoClient(uri, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
+    }
 });
 
 let dbConnection;

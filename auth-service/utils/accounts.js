@@ -69,7 +69,6 @@ class AccountManager {
             return false;
         }
     }
-
     async isValidPassword(email, password) {
         try {
             const db = await getDb();
@@ -78,7 +77,7 @@ class AccountManager {
             
             if (!user) return false;
             
-            return await bcrypt.compare(password, user.password);
+            return await checkPassword(password, user.password);
         } catch (err) {
             console.error("Error validating password:", err);
             return false;

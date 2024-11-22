@@ -66,13 +66,13 @@ router.post('/call-status', (req, res) => {
     headers: req.headers
   });
 
-  console.log('Processed Call Status:', {
+  /* console.log('Processed Call Status:', {
     callStatus,
     callSid,
     callDuration,
     from,
     to
-  });
+  }); */
 
   res.sendStatus(200);
 });

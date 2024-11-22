@@ -14,7 +14,6 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
     encoding: 'mulaw',
     sample_rate: 8000,
     channels: 1,
-    model: "nova-2",
     punctuate: true,
     interim_results: true,
     endpointing: 300,
@@ -53,6 +52,7 @@ const generateTTS = async (text) => {
           Accept: 'audio/mulaw',
         },
         params: {
+          model:'aura-luna-en',
           encoding: 'mulaw',
           container: 'none',
           sample_rate: 8000,

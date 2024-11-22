@@ -53,19 +53,19 @@ const sendBufferedAudio = async (audioBuffer, ws, streamSid) => {
 };
 
 const handleWebSocket = (ws, req) => {
-  const MAX_QUEUE_SIZE = 50;
+  // const MAX_QUEUE_SIZE = 50;
   let streamSid;
   let callSid;
-  let audioBufferQueue = [];
+  // let audioBufferQueue = [];
   let phoneNumber;
   let interactionCount = 0;
   let callerName = '';
   let isProcessing = false;
   let finalTranscript = '';
-  let deepgramReady = false;
+  // let deepgramReady = false;
 
 
-  const processQueue = async () => {
+  /* const processQueue = async () => {
     if (audioBufferQueue.length > 0 && deepgramReady && dgLive) {
       while (audioBufferQueue.length > 0) {
         const chunk = audioBufferQueue.shift();
@@ -74,6 +74,7 @@ const handleWebSocket = (ws, req) => {
       }
     }
   };
+  */
 
   const sendAudioFrames = async (audioBuffer, ws, streamSid, interactionCount) => {
     try {
@@ -116,8 +117,6 @@ const handleWebSocket = (ws, req) => {
   const dgLive = initializeDeepgram({
     onOpen: async () => {
       console.log('Deepgram connection opened');
-      deepgramReady = true;
-      processQueue();
       try {
         const initialMessage = 'Hello! May I know your name, please?';
         if (streamSid) {
@@ -193,13 +192,11 @@ const handleWebSocket = (ws, req) => {
     },
     onError: (error) => {
       console.error('Deepgram error:', error);
-      deepgramReady = false;
     },
     onClose: () => {
       console.log('Deepgram connection closed');
-      deepgramReady = false;
     },
-    processQueue
+   // processQueue
   });
 
   ws.on('message', async (data) => {
@@ -211,11 +208,11 @@ const handleWebSocket = (ws, req) => {
         callSid = msg.start.callSid;
         phoneNumber = msg.start.customParameters?.phoneNumber;
       } else if (msg.event === 'media') {
-        if (deepgramReady && dgLive) {
+        // Only send if Deepgram connection is open
+        if (dgLive && dgLive.getReadyState() === 1) {
           dgLive.send(Buffer.from(msg.media.payload, 'base64'));
-        } else if (audioBufferQueue.length < MAX_QUEUE_SIZE) {
-          audioBufferQueue.push(Buffer.from(msg.media.payload, 'base64'));
-          console.log('Queuing audio. Queue size:', audioBufferQueue.length);
+        } else {
+          console.log('Dropping audio - Deepgram not ready');
         }
       } else if (msg.event === 'stop') {
         console.log('Stream stopped, cleaning up...');
@@ -242,8 +239,6 @@ const handleWebSocket = (ws, req) => {
   if (pingInterval) {
     clearInterval(pingInterval);
   }
-  audioBufferQueue = [];
-  deepgramReady = false;
 };
 
   ws.on('pong', () => {

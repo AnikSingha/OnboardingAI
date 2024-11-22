@@ -1,4 +1,4 @@
-const connectToDatabase = require('../db.js')
+const { connectToDatabase, getLeads, addLead, deleteLead } = require('../db.js');
 const accountManager = require('./accounts.js')
 const { ObjectId } = require('mongodb');
 
@@ -240,59 +240,33 @@ class BusinessManager {
             return false;
         }
     }
+
     async getLeads() {
-      try {
-          const client = await connectToDatabase();
-          const leadsCollection = client.db('auth').collection('leads');
-  
-          const leads = await leadsCollection.find().toArray();
-  
-          return leads;
-      } catch (err) {
-          console.error("Error getting leads:", err);
-          return [];
-      }
-  }
-    
-  async addLead(number, name) {
-      try {
-          const client = await connectToDatabase();
-          const leadsCollection = client.db('auth').collection('leads');
-  
-          const newLead = {
-              _number: number,
-              name: name
-          };
-  
-          const result = await leadsCollection.insertOne(newLead);
-  
-          return result.acknowledged;
-      } catch (err) {
-          console.error("Error adding lead:", err);
-          return false;
-      }
-  }
-  
-  async deleteLead(leadId) {
         try {
-            const client = await connectToDatabase();
-            const leadsCollection = client.db('auth').collection('leads');
-            
-            // Ensure valid ObjectId
-            if (!ObjectId.isValid(leadId)) {
-                return false;
+            return await getLeads();
+        } catch (err) {
+            console.error("Error getting leads:", err);
+            return [];
+        }
+    }
+
+        async addLead(number, name) {
+        try {
+            return await addLead(number, name);
+        } catch (err) {
+            console.error("Error adding lead:", err);
+            return false;
             }
+        }
 
-            const result = await leadsCollection.deleteOne({ 
-                _id: new ObjectId(leadId)
-            });
-
-            return result.deletedCount > 0;
+        async deleteLead(leadId) {
+        try {
+            return await deleteLead(leadId);
         } catch (err) {
             console.error("Error deleting lead:", err);
             return false;
+            }
         }
-    }
 
     async getSchedules() {
         try {

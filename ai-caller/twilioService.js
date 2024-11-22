@@ -2,7 +2,7 @@ const twilio = require('twilio');
 const { generateTTS, processTranscript, initializeDeepgram } = require('./deepgramService.js');
 const { v4: uuidv4 } = require('uuid');
 const { createClient, LiveTranscriptionEvents } = require('@deepgram/sdk');
-const { client, updateLeadInfo } = require('./database.js');
+const { getDb, updateLeadInfo } = require('../auth-service/db.js');
 const dotenv = require('dotenv');
 const WebSocket = require('ws');
 
@@ -310,8 +310,8 @@ const twilioStreamWebhook = (req, res) => {
 
 const callLeads = async (req, res) => {
   try {
-    const { getDb } = require('./database.js');
     const db = await getDb();
+    
     if (!db) {
       throw new Error('Database connection failed');
     }

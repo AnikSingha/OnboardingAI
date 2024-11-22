@@ -36,7 +36,7 @@ router.post('/', async (req, res) => {
       statusCallback: `${process.env.BASE_URL}/call-leads/call-status`,
       statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
       statusCallbackMethod: 'POST',
-      timeout: 30  // Add timeout to prevent long-running calls
+      timeout: 30
     });
 
     console.log('Call initiated:', {

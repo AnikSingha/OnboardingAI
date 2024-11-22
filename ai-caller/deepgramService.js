@@ -15,10 +15,10 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
     sample_rate: 8000,
     channels: 1,
     punctuate: true,
-    interim_results: true,
-    endpointing: 1000,
+    interim_results: false,
+    endpointing: 3000,
     vad_events: true,
-    utterance_end_ms: 2000,
+    utterance_end_ms: 5000,
   });
 
   dgLive.on(LiveTranscriptionEvents.Open, onOpen);
@@ -80,6 +80,12 @@ const processTranscript = async (transcript, isNameExtraction = false) => {
 
   try {
     if (isNameExtraction) {
+      // Check if the transcript is likely complete
+      if (!transcript.endsWith('.') && transcript.length < 5) { // Adjust conditions as needed
+        console.log('Transcript too short or incomplete for name extraction.');
+        return null;
+      }
+
       const functions = [{
         name: "extractName",
         description: "Extract a person's name from conversation",
@@ -115,8 +121,15 @@ const processTranscript = async (transcript, isNameExtraction = false) => {
       
       if (message.function_call) {
         const extractedName = JSON.parse(message.function_call.arguments).name;
-        return extractedName;
+        // Validate the extracted name
+        if (typeof extractedName === 'string' && extractedName.trim().length > 1) {
+          return extractedName.trim();
+        } else {
+          console.log('Invalid name extracted:', extractedName);
+          return null;
+        }
       }
+      return null;
     } else {
       const response = await openai.chat.completions.create({
         model: "gpt-4",

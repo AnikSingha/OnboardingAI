@@ -58,16 +58,19 @@ const handleWebSocket = (ws, req) => {
   let phoneNumber;
   let interactionCount = 0;
   let callerName = '';
-  let lastResponseTime = 0;
   let isProcessing = false;
   const DEEPGRAM_RESPONSE_INTERVAL = 2000;
+
+  // Debounce timer
+  let debounceTimer = null;
+  const DEBOUNCE_DELAY = 3000; // 3 seconds
 
   console.log('Twilio WebSocket connection established', {
     headers: req.headers,
     query: req.query
   });
 
-  // Initialize Deepgram immediately
+  // Initialize Deepgram
   console.log('Creating Deepgram connection...');
   const dgLive = initializeDeepgram({
     onOpen: async () => {
@@ -87,37 +90,45 @@ const handleWebSocket = (ws, req) => {
     },
     onTranscript: async (transcript) => {
       console.log('Received transcript from Deepgram:', transcript);
-      if (transcript.trim()) {
-        console.log('Final Transcription:', transcript);
 
-        if (!callerName) {
-          const extractedName = await processTranscript(transcript, true);
-          if (extractedName) {
-            callerName = extractedName;
-            console.log(`Caller name captured: ${callerName}`);
-            
-            if (phoneNumber) {
-              await updateLeadInfo(phoneNumber, {
-                _number: phoneNumber,
-                name: callerName
-              });
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+
+      debounceTimer = setTimeout(async () => {
+        console.log('Processing transcript:', transcript);
+        if (transcript.trim()) {
+          console.log('Final Transcription:', transcript);
+
+          if (!callerName) {
+            const extractedName = await processTranscript(transcript, true);
+            if (extractedName) {
+              callerName = extractedName;
+              console.log(`Caller name captured: ${callerName}`);
+              
+              if (phoneNumber) {
+                await updateLeadInfo(phoneNumber, {
+                  _number: phoneNumber,
+                  name: callerName
+                });
+              }
+
+              const responseMessage = `Nice to meet you, ${callerName}. How can I assist you today?`;
+              const ttsAudioBuffer = await generateTTS(responseMessage);
+              await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+              return;
             }
+          }
 
-            const responseMessage = `Nice to meet you, ${callerName}. How can I assist you today?`;
-            const ttsAudioBuffer = await generateTTS(responseMessage);
+          const response = await processTranscript(transcript);
+          if (response) {
+            console.log('Assistant response:', response);
+            const ttsAudioBuffer = await generateTTS(response);
             await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-            return;
+            console.log('Assistant response sent to Twilio.');
           }
         }
-
-        const response = await processTranscript(transcript);
-        if (response) {
-          console.log('Assistant response:', response);
-          const ttsAudioBuffer = await generateTTS(response);
-          await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-          console.log('Assistant response sent to Twilio.');
-        }
-      }
+      }, DEBOUNCE_DELAY);
     },
     onError: (error) => {
       console.error('Deepgram connection error:', error);
@@ -145,7 +156,7 @@ const handleWebSocket = (ws, req) => {
       isProcessing = true; // Lock
       try {
         await sendBufferedAudio(audioBuffer, ws, streamSid);
-        
+
         const markLabel = uuidv4();
         ws.send(JSON.stringify({
           event: 'mark',
@@ -164,10 +175,9 @@ const handleWebSocket = (ws, req) => {
       console.log('Skipping message because processing is locked');
       return;
     }
-    
+
     try {
       const data = JSON.parse(message);
-
 
       if (data.event === 'start') {
         console.log('Start event data:', JSON.stringify(data, null, 2));
@@ -191,10 +201,8 @@ const handleWebSocket = (ws, req) => {
         }
 
       } else if (data.event === 'media') {
-        // console.log('Received media event');
         const audioBufferData = Buffer.from(data.media.payload, 'base64');
         if (dgLive.getReadyState() === 1) {
-          // console.log('Sending audio to Deepgram');
           dgLive.send(audioBufferData);
         } else {
           console.log('Deepgram not ready, queuing audio. Deepgram state:', dgLive.getReadyState());

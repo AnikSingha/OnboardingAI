@@ -30,7 +30,7 @@ router.post('/', async (req, res) => {
     const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     
     const call = await client.calls.create({
-      url: `${process.env.BASE_URL}/call-leads/twilio-stream?phoneNumber=${encodeURIComponent(number)}`,
+      url: `https://api.onboardingai.org/call-leads/twilio-stream?phoneNumber=${encodeURIComponent(number)}`,
       to: number,
       from: fromNumber,
       statusCallback: `${process.env.BASE_URL}/call-leads/call-status`,

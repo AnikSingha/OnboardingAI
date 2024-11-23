@@ -182,8 +182,6 @@ router.post('/otp/verify-code', async(req, res) => {
         } else {
             return res.status(403).json({ success: false, message: 'The provided code is incorrect' })
         }
-
-
     } catch (err) {
         return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` })
     }

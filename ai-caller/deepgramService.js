@@ -201,7 +201,7 @@ const processTranscript = async (transcript, isNameExtraction = false) => {
         messages: [
           {
             role: "system",
-            content: "You are a friendly AI assistant making a phone call. Keep responses concise and natural."
+            content: prompt
           },
           {
             role: "user", 

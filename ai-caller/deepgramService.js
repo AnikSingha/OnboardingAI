@@ -1,69 +1,38 @@
 const axios = require('axios');
-const { v4: uuidv4 } = require('uuid');
 const { LiveTranscriptionEvents, createClient } = require('@deepgram/sdk');
 const OpenAI = require('openai');
 const dotenv = require('dotenv');
 dotenv.config();
+
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-let prompt = `You are a professional and friendly AI dental receptionist for [Dental Office Name]. Your primary role is to assist patients with scheduling appointments, providing information about office hours, onboarding new patients, and processing their information. You should communicate clearly, courteously, and efficiently, ensuring a positive experience for every caller.
+// Shortened prompt for efficiency
+const prompt = `You are a professional and friendly AI dental receptionist for [Dental Office Name]. Assist patients with scheduling appointments, providing office information, onboarding new patients, and processing their information. Communicate clearly and courteously, ensuring a positive experience. Handle patient information with confidentiality and comply with HIPAA regulations.`;
 
-Key Responsibilities:
+// Caches for TTS audio and AI responses
+const ttsCache = {};
+const responseCache = new Map();
 
-Appointment Scheduling:
-Assist patients in scheduling, rescheduling, or canceling appointments.
-Provide available dates and times based on the office's schedule.
-Confirm appointment details and send reminders if applicable.
-Office Information:
-Provide information about office hours, location, and contact details.
-Answer questions about services offered, insurance accepted, and pricing.
-Patient Onboarding:
-Collect necessary patient information such as name, contact details, insurance information, and medical history.
-Explain the onboarding process and required documentation.
-General Inquiries:
-Respond to common questions about dental procedures, office policies, and staff.
-Direct more complex queries to the appropriate staff member or department.
-Data Privacy and Security:
-Handle all patient information with confidentiality and in compliance with HIPAA regulations.
-Ensure sensitive information is processed securely.
-Communication Style:
+// Utility function to implement timeouts for asynchronous operations
+const withTimeout = (promise, timeoutMs, errorMessage) => {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+  });
 
-Friendly and Approachable: Greet patients warmly and maintain a positive tone.
-Clear and Concise: Provide information in an easy-to-understand manner without unnecessary jargon.
-Patient and Understanding: Show empathy, especially when dealing with anxious or upset patients.
-Professional: Maintain professionalism in all interactions, reflecting the values and standards of [Dental Office Name].
-Example Interactions:
+  return Promise.race([promise, timeoutPromise]).then((result) => {
+    clearTimeout(timeoutId);
+    return result;
+  });
+};
 
-Scheduling an Appointment:
-Patient: "Hi, I'd like to schedule a dental cleaning."
-AI Receptionist: "Absolutely! I'd be happy to help you schedule a dental cleaning. Are there any specific dates or times that work best for you?"
-Checking Office Hours:
-Patient: "What are your office hours?"
-AI Receptionist: "Our office is open Monday through Friday from 8:00 AM to 6:00 PM, and Saturdays from 9:00 AM to 1:00 PM. How can I assist you further today?"
-Onboarding a New Patient:
-Patient: "I'm a new patient and would like to register."
-AI Receptionist: "Welcome to [Dental Office Name]! I'd be glad to help you with the registration process. Could I please have your full name and contact information to get started?"
-Providing Service Information:
-Patient: "Do you offer teeth whitening services?"
-AI Receptionist: "Yes, we do offer teeth whitening services. We have both in-office and at-home options available. Would you like more information on these treatments or assistance in scheduling an appointment?"
-Handling Complex or Sensitive Situations:
-
-If a patient expresses dental anxiety or discomfort:
-AI Receptionist: "I'm sorry to hear that you're feeling anxious. We strive to make our patients as comfortable as possible. Would you like to speak with one of our team members who can provide more support?"
-If a patient has a billing or insurance question beyond basic information:
-AI Receptionist: "I'd like to connect you with our billing department to assist you further. May I transfer your call?"
-Error Handling:
-
-If the AI does not understand the patient's request:
-AI Receptionist: "I'm sorry, I didn't quite catch that. Could you please provide more details or clarify your request?"
-If there's an issue with scheduling:
-AI Receptionist: "I apologize, but it looks like we're fully booked at that time. Could you please provide an alternative date or time that works for you?"`
-
+// Initialize Deepgram live transcription with event handlers
 const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
-  const dgLive = deepgram.listen.live({
+  const dgLive = deepgram.transcription.live({
     encoding: 'mulaw',
     sample_rate: 8000,
     model: 'nova-2-phonecall',
@@ -76,7 +45,6 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
   dgLive.on(LiveTranscriptionEvents.Open, () => {
     console.log('Deepgram connection established');
     onOpen();
-    // processQueue();
   });
 
   dgLive.on(LiveTranscriptionEvents.Transcript, async (transcription) => {
@@ -101,94 +69,126 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
   return dgLive;
 };
 
-const generateTTS = async (text) => {
+// Generate TTS audio with caching to reduce latency
+const getCachedTTS = async (text) => {
   if (!text || text.trim() === '') {
     throw new Error('Text for TTS cannot be null or empty');
   }
 
+  // Return cached audio if available
+  if (ttsCache[text]) {
+    return ttsCache[text];
+  }
+
   try {
-    const ttsResponse = await axios.post(
-      'https://api.deepgram.com/v1/speak',
-      { text },
-      {
-        headers: {
-          Authorization: `Token ${process.env.DEEPGRAM_API_KEY}`,
-          'Content-Type': 'application/json',
-          Accept: 'audio/mulaw',
-        },
-        params: {
-          model:'aura-luna-en',
-          encoding: 'mulaw',
-          container: 'none',
-          sample_rate: 8000,
-        },
-        responseType: 'arraybuffer',
-      }
+    const ttsResponse = await withTimeout(
+      axios.post(
+        'https://api.deepgram.com/v1/speak',
+        { text },
+        {
+          headers: {
+            Authorization: `Token ${process.env.DEEPGRAM_API_KEY}`,
+            'Content-Type': 'application/json',
+            Accept: 'audio/mulaw',
+          },
+          params: {
+            model: 'aura-luna-en',
+            encoding: 'mulaw',
+            container: 'none',
+            sample_rate: 8000,
+          },
+          responseType: 'arraybuffer',
+        }
+      ),
+      5000, // Timeout in milliseconds
+      'TTS generation timed out'
     );
 
     if (ttsResponse.status !== 200) {
-      throw new Error('TTS generation failed');
+      throw new Error(`TTS generation failed with status ${ttsResponse.status}`);
     }
 
-    return Buffer.from(ttsResponse.data);
+    const audioBuffer = Buffer.from(ttsResponse.data);
+    ttsCache[text] = audioBuffer; // Cache the generated audio
+    return audioBuffer;
   } catch (error) {
-    console.error('Error in generateTTS:', error);
+    console.error('Error in generateTTS:', error.message || error);
     throw error;
   }
 };
 
+// Process user transcripts with caching and optimizations
 const processTranscript = async (transcript, isNameExtraction = false) => {
   if (!transcript || transcript.trim() === '') {
     console.log('Received empty transcript.');
     return 'I did not catch that. Could you please repeat?';
   }
 
+  // Check if the transcript appears complete
+  if (!transcript.endsWith('.') && transcript.length < 20) {
+    console.log('Transcript appears incomplete. Waiting for more input.');
+    return null;
+  }
+
   try {
+    // Use cache to avoid redundant API calls
+    const cacheKey = `${isNameExtraction}-${transcript}`;
+    if (responseCache.has(cacheKey)) {
+      return responseCache.get(cacheKey);
+    }
+
     if (isNameExtraction) {
-      // Check if the transcript is likely complete
-      if (!transcript.endsWith('.') && transcript.length < 5) { // Adjust conditions as needed
-        console.log('Transcript too short or incomplete for name extraction.');
+      // Proceed with name extraction if indicators are present
+      const nameIndicators = ['my name is', 'this is', "i'm", 'i am', 'call me'];
+      const lowerTranscript = transcript.toLowerCase();
+
+      if (!nameIndicators.some((indicator) => lowerTranscript.includes(indicator))) {
+        console.log('Transcript does not contain name indicators.');
         return null;
       }
 
-      const functions = [{
-        name: "extractName",
-        description: "Extract a person's name from conversation",
-        parameters: {
-          type: "object",
-          properties: {
-            name: {
-              type: "string",
-              description: "The extracted name from the conversation"
-            }
+      const functions = [
+        {
+          name: 'extractName',
+          description: "Extract a person's name from conversation",
+          parameters: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'The extracted name from the conversation',
+              },
+            },
+            required: ['name'],
           },
-          required: ["name"]
-        }
-      }];
+        },
+      ];
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: prompt
-          },
-          {
-            role: "user", 
-            content: transcript
-          }
-        ],
-        functions,
-        function_call: "auto"
-      });
+      const response = await withTimeout(
+        openai.chat.completions.create({
+          model: 'gpt-4',
+          messages: [
+            { role: 'system', content: prompt },
+            { role: 'user', content: transcript },
+          ],
+          functions,
+          function_call: 'auto',
+        }),
+        5000, // Timeout in milliseconds
+        'OpenAI API request timed out'
+      );
 
       const message = response.choices[0].message;
-      
+
       if (message.function_call) {
-        const extractedName = JSON.parse(message.function_call.arguments).name;
-        // Validate the extracted name
+        const args = JSON.parse(message.function_call.arguments);
+        const extractedName = args.name;
+
+        // Validate and cache the extracted name
         if (typeof extractedName === 'string' && extractedName.trim().length > 1) {
-          return extractedName.trim();
+          const name = extractedName.trim();
+          responseCache.set(cacheKey, name);
+          return name;
         } else {
           console.log('Invalid name extracted:', extractedName);
           return null;
@@ -196,29 +196,34 @@ const processTranscript = async (transcript, isNameExtraction = false) => {
       }
       return null;
     } else {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: prompt
-          },
-          {
-            role: "user", 
-            content: transcript
-          }
-        ]
-      });
-      return response.choices[0].message.content;
+      // General response processing
+      const response = await withTimeout(
+        openai.chat.completions.create({
+          model: 'gpt-4',
+          messages: [
+            { role: 'system', content: prompt },
+            { role: 'user', content: transcript },
+          ],
+        }),
+        5000, // Timeout in milliseconds
+        'OpenAI API request timed out'
+      );
+
+      const aiResponse = response.choices[0].message.content;
+      responseCache.set(cacheKey, aiResponse); // Cache the AI response
+      return aiResponse;
     }
   } catch (error) {
-    console.error('Error in processTranscript:', error.response ? error.response.data : error.message);
+    console.error(
+      'Error in processTranscript:',
+      error.response ? error.response.data : error.message
+    );
     return 'Sorry, I am unable to process your request at the moment.';
   }
 };
 
 module.exports = {
-  generateTTS,
+  getCachedTTS,
   processTranscript,
-  initializeDeepgram
+  initializeDeepgram,
 };

@@ -82,6 +82,26 @@ router.post('/call-status', (req, res) => {
   res.sendStatus(200);
 });
 
+router.post('/inbound', (req, res) => {
+  console.log('Inbound call received:', {
+    from: req.body.From,
+    to: req.body.To,
+    callSid: req.body.CallSid
+  });
+
+  const response = new VoiceResponse();
+  response.connect().stream({
+    url: 'wss://api.onboardingai.org/call-leads/media',
+    track: 'inbound_track'
+  });
+  
+  response.pause({ length: 60 });
+
+  res.type('text/xml');
+  res.send(response.toString());
+});
+
+
 // Twilio webhook endpoint
 router.post('/twilio-stream', twilioStreamWebhook);
 

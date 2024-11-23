@@ -139,6 +139,7 @@ const openPaths = new Set([
   '/call-leads/media',
   '/call-leads/call-status',
   '/logs',
+  '/call-leads/inbound',
 ]);
 
 // Token checking middleware (applied only to HTTP routes, not WebSocket)

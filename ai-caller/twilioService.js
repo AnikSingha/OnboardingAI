@@ -207,6 +207,10 @@ const handleWebSocket = (ws, req) => {
         streamSid = msg.start.streamSid;
         callSid = msg.start.callSid;
         phoneNumber = msg.start.customParameters?.phoneNumber;
+        const isInboundCall = msg.start.track === 'inbound_track';
+        if (isInboundCall) {
+          console.log('Handling inbound call from:', phoneNumber);
+        }
       } else if (msg.event === 'media') {
         // Only send if Deepgram connection is open
         if (dgLive && dgLive.getReadyState() === 1) {

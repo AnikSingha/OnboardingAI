@@ -16,7 +16,7 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
     model: 'nova-2-phonecall',
     punctuate: true,
     interim_results: true,
-    endpointing: 300,
+    endpointing: 500,
     utterance_end_ms: 2000,
   });
 

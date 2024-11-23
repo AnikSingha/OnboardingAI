@@ -1,16 +1,16 @@
-import React, { useState, useContext } from 'react';
+import React from 'react';
+import { useContext } from 'react'
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { BarChart, Bell, Calendar, Phone, Clock, FileText, User, LogOut } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { BarChart, Bell, Calendar, Phone, LogOut, Clock } from "lucide-react";
 import Layout from '../components/Layout';
-import { AuthContext } from '../AuthContext';
+import { AuthContext } from '../AuthContext'
 import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
-  const { logout } = useContext(AuthContext);
-  const navigate = useNavigate();
-
+  const { logout } = useContext(AuthContext)
+  const navigate = useNavigate()
   return (
     <Layout>
       <div className="p-8">
@@ -24,14 +24,16 @@ export default function Dashboard() {
               variant="outline"
               className="mr-4 border-blue-600 text-blue-600 hover:bg-blue-50"
               onClick={async () => {
-                const success = await logout();
-                if (success) {
-                  navigate('/');
-                }
+                  // Call the logout function
+                  const success = await logout(); // Ensure logout returns a success status
+                  if (success) {
+                      navigate('/'); // Only navigate if logout was successful
+                  }
               }}
-            >
+          >
               <LogOut className="h-4 w-4 mr-2" /> Log Out
-            </Button>
+          </Button>
+
           </div>
         </div>
 
@@ -70,13 +72,20 @@ export default function Dashboard() {
         </div>
 
         {/* Tabs for different sections */}
-        <Tabs defaultValue="recent_calls" className="space-y-4">
+        <Tabs defaultValue="calls" className="space-y-4">
           <TabsList className="bg-blue-50">
-            <TabsTrigger value="recent_calls" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">Recent Calls</TabsTrigger>
-            <TabsTrigger value="performance" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">Performance</TabsTrigger>
-            <TabsTrigger value="scripts" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">Scripts</TabsTrigger>
+            <TabsTrigger value="calls" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
+              Recent Calls
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="scripts" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
+              Scripts
+            </TabsTrigger>
           </TabsList>
-          <TabsContent value="recent_calls" className="space-y-4">
+
+          <TabsContent value="calls" className="space-y-4">
             <Card className="bg-white border-blue-100">
               <CardHeader>
                 <CardTitle className="text-gray-800">Recent Calls</CardTitle>
@@ -85,9 +94,9 @@ export default function Dashboard() {
               <CardContent>
                 <div className="space-y-4">
                   {[
-                    { name: "John Doe", time: "2 minutes ago", duration: "3:24", outcome: "Appointment Scheduled" },
-                    { name: "Jane Smith", time: "15 minutes ago", duration: "2:51", outcome: "Follow-up Required" },
-                    { name: "Bob Johnson", time: "1 hour ago", duration: "4:12", outcome: "Information Provided" },
+                    { name: "John Doe", time: "2 minutes ago", duration: "3:24" },
+                    { name: "Bobby Bill", time: "10 minutes ago", duration: "2:32" },
+                    { name: "Drill Sergeant", time: "22 minutes ago", duration: "10:01" }
                   ].map((call, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center">
@@ -97,45 +106,60 @@ export default function Dashboard() {
                           <p className="text-sm text-gray-600">{call.time} • {call.duration}</p>
                         </div>
                       </div>
-                      <div className="text-sm font-medium text-blue-600">{call.outcome}</div>
+                      <Button variant="outline" size="sm">View Details</Button>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
-          <TabsContent value="performance" className="space-y-4">
+
+          <TabsContent value="analytics" className="space-y-4">
             <Card className="bg-white border-blue-100">
               <CardHeader>
-                <CardTitle className="text-gray-800">Call Performance</CardTitle>
+                <CardTitle className="text-gray-800">Call Analytics</CardTitle>
                 <CardDescription className="text-gray-600">Your AI-Caller performance metrics</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[200px] bg-blue-50 rounded-md flex items-center justify-center text-blue-600">
-                  Call Performance Chart Placeholder
+                  Call Analytics Chart Placeholder
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border-blue-100">
+              <CardHeader>
+                <CardTitle className="text-gray-800">Call Success Rate</CardTitle>
+                <CardDescription className="text-gray-600">Percentage of successful calls over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[200px] bg-blue-50 rounded-md flex items-center justify-center text-blue-600">
+                  Success Rate Chart Placeholder
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
+
           <TabsContent value="scripts" className="space-y-4">
             <Card className="bg-white border-blue-100">
               <CardHeader>
-                <CardTitle className="text-gray-800">Active Scripts</CardTitle>
-                <CardDescription className="text-gray-600">Currently used AI call scripts</CardDescription>
+                <CardTitle className="text-gray-800">AI Scripts</CardTitle>
+                <CardDescription className="text-gray-600">Manage and customize your AI call scripts</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {[
-                    { name: "Customer Onboarding", uses: 45, lastEdited: "2 days ago" },
-                    { name: "Product Demo", uses: 32, lastEdited: "1 week ago" },
-                    { name: "Follow-up Call", uses: 28, lastEdited: "3 days ago" },
+                    { name: "Customer Onboarding", lastEdited: "2 days ago", uses: 45 },
+                    { name: "Product Demo", lastEdited: "1 week ago", uses: 32 },
+                    { name: "Follow-up Call", lastEdited: "3 days ago", uses: 28 },
+                    { name: "Feedback Collection", lastEdited: "5 days ago", uses: 15 },
+                    { name: "Appointment Scheduling", lastEdited: "1 day ago", uses: 52 }
                   ].map((script, index) => (
-                    <div key={index} className="flex items-center justify-between">
+                    <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium text-gray-800">{script.name}</p>
-                        <p className="text-sm text-gray-600">Used {script.uses} times</p>
+                        <p className="text-sm text-gray-600">Last edited: {script.lastEdited} • Used {script.uses} times</p>
                       </div>
-                      <div className="text-sm text-gray-600">Last edited: {script.lastEdited}</div>
+                      <Button variant="outline" size="sm">Edit</Button>
                     </div>
                   ))}
                 </div>

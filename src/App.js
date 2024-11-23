@@ -21,6 +21,9 @@ import AboutPageHeader from './routes/AboutPage.js';
 import EmployeeSignUp from './routes/EmployeeSignUp.js';
 import TwoFactorPage from './routes/TwoFactor.js';
 import { AuthProvider } from './AuthContext.js';
+import CallsPage from './routes/CallsPage';
+import CallDetailsPage from './routes/CallDetailsPage';
+import ScriptsPage from './routes/ScriptsPage';
 
 
 function App() {
@@ -47,7 +50,10 @@ function App() {
           <Route path="/about" element={<AboutPageHeader />} /> 
           <Route path="/employee-sign-up" element={<EmployeeSignUp />} />
           <Route path="/two-factor" element={<TwoFactorPage />} />
+          <Route path="/calls" element={<CallsPage />} />
+          <Route path="/calls/:id" element={<CallDetailsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/scripts" element={<ScriptsPage />} />
         </Routes>
       </AuthProvider>
     </Router>

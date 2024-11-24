@@ -18,6 +18,13 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
+      - name: Add new SSH key to EC2
+        run: |
+          echo "${{ secrets.NEW_SSH_PUBLIC_KEY }}" > temp_key.pub
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "cat >> ~/.ssh/authorized_keys" < temp_key.pub
+          echo "New SSH key added to EC2 instance."
+          rm -f temp_key.pub
+
       - name: Inject environment variables
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
@@ -72,4 +79,3 @@ jobs:
             fi
             exit
           EOF
-  

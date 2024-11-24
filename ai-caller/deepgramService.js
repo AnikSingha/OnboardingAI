@@ -185,7 +185,7 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
     // Get or initialize conversation history
     let conversationHistory = conversationCache.get(sessionId) || [];
     
-    // Add user's message to history, ensuring content is a string
+    // Add user's message to history
     const userMessage = { 
       role: 'user', 
       content: transcript.toString().trim() 
@@ -200,7 +200,7 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
           ? `${prompt}\nIMPORTANT: We don't have the caller's name yet. Please ask for their name if they haven't provided it.`
           : prompt
       },
-      ...conversationHistory.filter(msg => msg.content != null)  // Filter out any null contents
+      ...conversationHistory.filter(msg => msg.content != null)
     ];
 
     const response = await withTimeout(
@@ -215,7 +215,7 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
     );
 
     const message = response.choices[0].message;
-    let aiResponse = message.content || ''; // Ensure content is never null
+    let aiResponse = message.content;
     let extractedName = null;
 
     // Handle name extraction if applicable
@@ -224,33 +224,36 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
         const args = JSON.parse(message.function_call.arguments);
         if (args.confidence) {
           extractedName = args.name.trim();
+          // Generate a greeting response when name is extracted
+          aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
         }
       } catch (error) {
         console.error('Error parsing function call arguments:', error);
       }
     }
 
-    // Update conversation history with AI's response
-    if (aiResponse) {
-      conversationHistory.push({ 
-        role: 'assistant', 
-        content: aiResponse 
-      });
+    // Ensure we have a response
+    if (!aiResponse) {
+      aiResponse = message.content || 'How can I assist you today?';
     }
+
+    // Update conversation history with AI's response
+    conversationHistory.push({ 
+      role: 'assistant', 
+      content: aiResponse 
+    });
     
     // Maintain max history size
     if (conversationHistory.length > CACHE_CONFIG.MAX_HISTORY) {
       conversationHistory = conversationHistory.slice(-CACHE_CONFIG.MAX_HISTORY);
     }
     
-    // Update cache only if we have valid conversation history
-    if (conversationHistory.length > 0) {
-      conversationCache.set(sessionId, conversationHistory);
-      manageCache(conversationCache);
-    }
+    // Update cache
+    conversationCache.set(sessionId, conversationHistory);
+    manageCache(conversationCache);
 
     return {
-      response: aiResponse || 'I apologize, but I am unable to process your request at the moment.',
+      response: aiResponse,
       extractedName: extractedName
     };
 

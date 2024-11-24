@@ -175,26 +175,33 @@ const nameExtractionFunction = {
 const processTranscript = async (transcript, sessionId, currentName = null) => {
   if (!transcript?.trim()) {
     console.log('Received empty transcript.');
-    return 'I did not catch that. Could you please repeat?';
+    return {
+      response: 'I did not catch that. Could you please repeat?',
+      extractedName: null
+    };
   }
 
   try {
     // Get or initialize conversation history
     let conversationHistory = conversationCache.get(sessionId) || [];
     
-    // Add user's message to history
-    conversationHistory.push({ role: 'user', content: transcript });
+    // Add user's message to history, ensuring content is a string
+    const userMessage = { 
+      role: 'user', 
+      content: transcript.toString().trim() 
+    };
+    conversationHistory.push(userMessage);
 
     // Prepare messages array with system prompt and conversation history
     const messages = [
-      { role: 'system', content: prompt },
-      ...conversationHistory
+      { 
+        role: 'system', 
+        content: !currentName 
+          ? `${prompt}\nIMPORTANT: We don't have the caller's name yet. Please ask for their name if they haven't provided it.`
+          : prompt
+      },
+      ...conversationHistory.filter(msg => msg.content != null)  // Filter out any null contents
     ];
-
-    // If we don't have the caller's name yet, add that context
-    if (!currentName) {
-      messages[0].content += "\nIMPORTANT: We don't have the caller's name yet. Please ask for their name if they haven't provided it.";
-    }
 
     const response = await withTimeout(
       openai.chat.completions.create({
@@ -208,31 +215,42 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
     );
 
     const message = response.choices[0].message;
-    let aiResponse = message.content;
+    let aiResponse = message.content || ''; // Ensure content is never null
     let extractedName = null;
 
     // Handle name extraction if applicable
     if (message.function_call) {
-      const args = JSON.parse(message.function_call.arguments);
-      if (args.confidence) {
-        extractedName = args.name.trim();
+      try {
+        const args = JSON.parse(message.function_call.arguments);
+        if (args.confidence) {
+          extractedName = args.name.trim();
+        }
+      } catch (error) {
+        console.error('Error parsing function call arguments:', error);
       }
     }
 
-    // Update conversation history
-    conversationHistory.push({ role: 'assistant', content: aiResponse });
+    // Update conversation history with AI's response
+    if (aiResponse) {
+      conversationHistory.push({ 
+        role: 'assistant', 
+        content: aiResponse 
+      });
+    }
     
     // Maintain max history size
     if (conversationHistory.length > CACHE_CONFIG.MAX_HISTORY) {
       conversationHistory = conversationHistory.slice(-CACHE_CONFIG.MAX_HISTORY);
     }
     
-    // Update caches
-    conversationCache.set(sessionId, conversationHistory);
-    manageCache(conversationCache);
+    // Update cache only if we have valid conversation history
+    if (conversationHistory.length > 0) {
+      conversationCache.set(sessionId, conversationHistory);
+      manageCache(conversationCache);
+    }
 
     return {
-      response: aiResponse,
+      response: aiResponse || 'I apologize, but I am unable to process your request at the moment.',
       extractedName: extractedName
     };
 
@@ -241,6 +259,7 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
       'Error in processTranscript:',
       error.response ? error.response.data : error.message
     );
+    
     return {
       response: 'Sorry, I am unable to process your request at the moment.',
       extractedName: null

@@ -18,7 +18,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Deploy and start service
+      - name: Deploy and start service on EC2
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             # Inject environment variables
@@ -29,20 +29,22 @@ jobs:
             echo "Environment variables injected."
 
             # Navigate to project directory
-            cd OnboardingAI
+            cd ~/OnboardingAI
 
-            # Pull latest changes
-            echo "Pulling latest changes from repo..."
-            git fetch origin auth:auth
+            # Switch to auth branch
+            echo "Switching to auth branch..."
+            git fetch origin auth
             git checkout auth
-            git pull --depth=1
-            echo "Latest changes pulled."
+            git reset --hard origin/auth
+            echo "Codebase updated to latest auth branch."
 
             # Install npm dependencies only if needed
-            if [ -f package-lock.json ]; then
+            mkdir -p ~/.npm-cache
+            if [ -f auth-service/package-lock.json ]; then
               echo "Checking if npm dependencies have changed..."
-              if ! cmp -s package-lock.json ~/.npm-cache/package-lock.json; then
+              if ! cmp -s auth-service/package-lock.json ~/.npm-cache/package-lock.json; then
                 echo "Dependencies changed. Installing npm packages..."
+                cd auth-service
                 npm install
                 cp package-lock.json ~/.npm-cache/
               else
@@ -50,14 +52,15 @@ jobs:
               fi
             else
               echo "No package-lock.json found. Running npm install..."
+              cd auth-service
               npm install
             fi
 
-            # Restart Node.js application using PM2
+            # Restart Node.js application with PM2
             echo "Restarting Node.js application with PM2..."
-            pm2 stop auth-service || true
-            pm2 start server.js --name auth-service
-            echo "Node.js application restarted."
+            pm2 stop auth-service || echo "PM2 process not found, starting fresh..."
+            pm2 start server.js --name auth-service --cwd ~/OnboardingAI/auth-service
+            echo "Node.js application restarted with PM2."
 
             # Reload Nginx only if configuration has changed
             echo "Checking Nginx configuration..."

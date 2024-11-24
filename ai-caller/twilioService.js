@@ -90,31 +90,24 @@ const handleWebSocket = (ws) => {
       isProcessing = true;
 
       try {
-        if (!callerName) {
-          const extractedName = await processTranscript(completeTranscript, true);
-          if (extractedName) {
-            callerName = extractedName;
-            console.log(`Caller name captured: ${callerName}`);
+        const result = await processTranscript(completeTranscript, streamSid, callerName);
+        
+        if (result.extractedName && !callerName) {
+          callerName = result.extractedName;
+          console.log(`Caller name captured: ${callerName}`);
 
-            if (phoneNumber) {
-              await updateLeadInfo(phoneNumber, {
-                _number: phoneNumber,
-                name: callerName,
-              });
-            }
+          if (phoneNumber) {
+            await updateLeadInfo(phoneNumber, {
+              _number: phoneNumber,
+              name: callerName,
+            });
+          }
+        }
 
-            const responseMessage = `Nice to meet you, ${callerName}. How can I assist you today?`;
-            const ttsAudioBuffer = await generateTTS(responseMessage);
-            await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-            interactionCount++;
-          }
-        } else {
-          const response = await processTranscript(completeTranscript);
-          if (response) {
-            const ttsAudioBuffer = await generateTTS(response);
-            await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-            interactionCount++;
-          }
+        if (result.response) {
+          const ttsAudioBuffer = await generateTTS(result.response);
+          await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+          interactionCount++;
         }
       } catch (error) {
         console.error('Error processing transcript:', error);

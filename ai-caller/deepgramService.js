@@ -30,6 +30,7 @@ Communication Style:
 const CACHE_CONFIG = {
   MAX_SIZE: 1000,  // Maximum number of items in cache
   TTL: 1000 * 60 * 60, // Cache TTL: 1 hour
+  MAX_HISTORY: 10
 }
 
 // Replace simple caches with more structured ones
@@ -148,114 +149,102 @@ const generateTTS = async (text) => {
   }
 };
 
-const processTranscript = async (transcript, isNameExtraction = false) => {
-  if (!transcript || transcript.trim() === '') {
+// Add conversation context cache
+const conversationCache = new Map();
+
+// Add name extraction function definition
+const nameExtractionFunction = {
+  name: "extractName",
+  description: "Extract a person's name when they introduce themselves",
+  parameters: {
+    type: "object",
+    properties: {
+      name: {
+        type: "string",
+        description: "The extracted name from the conversation"
+      },
+      confidence: {
+        type: "boolean",
+        description: "Whether the name was confidently extracted"
+      }
+    },
+    required: ["name", "confidence"]
+  }
+};
+
+const processTranscript = async (transcript, sessionId, currentName = null) => {
+  if (!transcript?.trim()) {
     console.log('Received empty transcript.');
     return 'I did not catch that. Could you please repeat?';
   }
 
-  if (!transcript.endsWith('.') && transcript.length < 20) {
-    console.log('Transcript appears incomplete. Waiting for more input.');
-    return null;
-  }
-
   try {
-    const cacheKey = `${isNameExtraction}-${transcript}`;
+    // Get or initialize conversation history
+    let conversationHistory = conversationCache.get(sessionId) || [];
     
-    // Check cache with timestamp validation
-    const cached = responseCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < CACHE_CONFIG.TTL) {
-      return cached.data;
+    // Add user's message to history
+    conversationHistory.push({ role: 'user', content: transcript });
+
+    // Prepare messages array with system prompt and conversation history
+    const messages = [
+      { role: 'system', content: prompt },
+      ...conversationHistory
+    ];
+
+    // If we don't have the caller's name yet, add that context
+    if (!currentName) {
+      messages[0].content += "\nIMPORTANT: We don't have the caller's name yet. Please ask for their name if they haven't provided it.";
     }
 
-    if (isNameExtraction) {
-      // Proceed with name extraction if indicators are present
-      const nameIndicators = ['my name is', 'this is', "i'm", 'i am', 'call me'];
-      const lowerTranscript = transcript.toLowerCase();
+    const response = await withTimeout(
+      openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: messages,
+        functions: [nameExtractionFunction],
+        function_call: currentName ? 'none' : 'auto'
+      }),
+      10000,
+      'OpenAI API request timed out'
+    );
 
-      if (!nameIndicators.some((indicator) => lowerTranscript.includes(indicator))) {
-        console.log('Transcript does not contain name indicators.');
-        return null;
+    const message = response.choices[0].message;
+    let aiResponse = message.content;
+    let extractedName = null;
+
+    // Handle name extraction if applicable
+    if (message.function_call) {
+      const args = JSON.parse(message.function_call.arguments);
+      if (args.confidence) {
+        extractedName = args.name.trim();
       }
-
-      const functions = [{
-        name: "extractName",
-        description: "Extract a person's name from conversation",
-        parameters: {
-          type: "object",
-          properties: {
-            name: {
-              type: "string",
-              description: "The extracted name from the conversation"
-            }
-          },
-          required: ["name"]
-        }
-      }];
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: prompt
-          },
-          {
-            role: "user", 
-            content: transcript
-          }
-        ],
-        functions,
-        function_call: "auto"
-      });
-
-      const message = response.choices[0].message;
-      
-      if (message.function_call) {
-        const args = JSON.parse(message.function_call.arguments);
-        const extractedName = args.name;
-
-        // Validate and cache the extracted name
-        if (typeof extractedName === 'string' && extractedName.trim().length > 1) {
-          const name = extractedName.trim();
-          responseCache.set(cacheKey, name);
-          return name;
-        } else {
-          console.log('Invalid name extracted:', extractedName);
-          return null;
-        }
-      }
-      return null;
-    } else {
-      const response = await withTimeout(
-        openai.chat.completions.create({
-          model: 'gpt-4',
-          messages: [
-            { role: 'system', content: prompt },
-            { role: 'user', content: transcript },
-          ],
-        }),
-        10000, // Timeout in milliseconds
-        'OpenAI API request timed out'
-      );
-
-      const aiResponse = response.choices[0].message.content;
-      
-      // Update cache storage
-      responseCache.set(cacheKey, {
-        data: aiResponse,
-        timestamp: Date.now()
-      });
-      manageCache(responseCache);
-
-      return aiResponse;
     }
+
+    // Update conversation history
+    conversationHistory.push({ role: 'assistant', content: aiResponse });
+    
+    // Maintain max history size
+    if (conversationHistory.length > CACHE_CONFIG.MAX_HISTORY) {
+      conversationHistory = conversationHistory.slice(-CACHE_CONFIG.MAX_HISTORY);
+    }
+    
+    // Update caches
+    conversationCache.set(sessionId, conversationHistory);
+    manageCache(conversationCache);
+
+    return {
+      response: aiResponse,
+      extractedName: extractedName
+    };
+
   } catch (error) {
     console.error(
       'Error in processTranscript:',
       error.response ? error.response.data : error.message
     );
-    return 'Sorry, I am unable to process your request at the moment.';
+    return {
+      response: 'Sorry, I am unable to process your request at the moment.',
+      extractedName: null
+    };
   }
 };
 

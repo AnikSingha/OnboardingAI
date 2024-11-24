@@ -1,13 +1,14 @@
 const axios = require('axios');
-const { v4: uuidv4 } = require('uuid');
 const { LiveTranscriptionEvents, createClient } = require('@deepgram/sdk');
 const OpenAI = require('openai');
 const dotenv = require('dotenv');
-dotenv.config();
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
+dotenv.config();
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
 
 let prompt = `You are a professional and friendly AI dental receptionist for [Dental Office Name]. Your primary role is to assist patients with scheduling appointments, providing information about office hours, onboarding new patients, and processing their information. You should communicate clearly, courteously, and efficiently, ensuring a positive experience for every caller.
 

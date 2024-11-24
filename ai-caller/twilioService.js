@@ -3,7 +3,6 @@
 const twilio = require('twilio');
 const { generateTTS, processTranscript, initializeDeepgram } = require('./deepgramService.js');
 const dotenv = require('dotenv');
-const WebSocket = require('ws');
 const { getDb, updateLeadInfo } = require('../auth-service/db.js');
 
 dotenv.config();

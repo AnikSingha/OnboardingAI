@@ -18,7 +18,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Deploy and start service on EC2
+      - name: Inject environment variables
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             # Inject environment variables
@@ -26,49 +26,50 @@ jobs:
             export DB_URI="${{ secrets.DB_URI }}"
             export EMAILPASSWORD="${{ secrets.EMAILPASSWORD }}"
             export SECRET_KEY="${{ secrets.SECRET_KEY }}"
+            echo "Current directory: $(pwd)"
+            cd OnboardingAI/auth-service
             echo "Environment variables injected."
-
-            # Navigate to project directory
-            cd ~/OnboardingAI
-
-            # Switch to auth branch
-            echo "Switching to auth branch..."
-            git fetch origin auth
-            git checkout auth
-            git reset --hard origin/auth
-            echo "Codebase updated to latest auth branch."
-
-            # Install npm dependencies only if needed
-            mkdir -p ~/.npm-cache
-            if [ -f auth-service/package-lock.json ]; then
-              echo "Checking if npm dependencies have changed..."
-              if ! cmp -s auth-service/package-lock.json ~/.npm-cache/package-lock.json; then
-                echo "Dependencies changed. Installing npm packages..."
-                cd auth-service
-                npm install
-                cp package-lock.json ~/.npm-cache/
-              else
-                echo "Dependencies are up-to-date."
-              fi
-            else
-              echo "No package-lock.json found. Running npm install..."
-              cd auth-service
-              npm install
-            fi
-
-            # Restart Node.js application with PM2
-            echo "Restarting Node.js application with PM2..."
-            pm2 stop auth-service || echo "PM2 process not found, starting fresh..."
-            pm2 start server.js --name auth-service --cwd ~/OnboardingAI/auth-service
-            echo "Node.js application restarted with PM2."
-
-            # Reload Nginx only if configuration has changed
-            echo "Checking Nginx configuration..."
-            if ! cmp -s /etc/nginx/nginx.conf /tmp/last-nginx.conf; then
-              echo "Nginx configuration changed. Testing and reloading..."
-              sudo nginx -t && sudo systemctl reload nginx
-              cp /etc/nginx/nginx.conf /tmp/last-nginx.conf
-            else
-              echo "Nginx configuration unchanged. Skipping reload."
-            fi
           EOF
+
+      - name: Update code and deploy
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd OnboardingAI
+            
+            # Time npm install
+            echo "Installing npm packages..."
+            start_time=$(date +%s)
+            npm install
+            end_time=$(date +%s)
+            echo "npm install took $((end_time - start_time)) seconds."
+
+            cd auth-service
+
+            # Pull latest code
+            echo "Pulling latest code from repo..."
+            git checkout auth
+            git pull
+
+            # Time killing and starting Express instance
+            echo "Terminating any previously running Node.js instances..."
+            start_time=$(date +%s)
+            sudo pkill -f node || echo "No Node.js processes found."
+            echo "Starting the Express server..."
+            nohup sudo ~/.nvm/versions/node/v22.9.0/bin/node server.js > output.log 2>&1 &
+            end_time=$(date +%s)
+            echo "Killing and starting Express instance took $((end_time - start_time)) seconds."
+
+            # Test the Nginx configuration
+            echo "Testing Nginx configuration..."
+            sudo nginx -t
+            if [ $? -eq 0 ]; then
+              echo "Nginx configuration is valid. Reloading Nginx..."
+              sudo systemctl reload nginx
+              echo "Nginx reloaded."
+            else
+              echo "Nginx configuration is invalid. Aborting reload."
+              exit 1
+            fi
+            exit
+          EOF
+  

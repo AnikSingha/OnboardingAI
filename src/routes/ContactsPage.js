@@ -204,6 +204,34 @@ export default function ContactsPage() {
                 Success: {uploadStatus.success} | Failed: {uploadStatus.failed}
               </span>
             )}
+            <Button 
+              onClick={async () => {
+                if (contacts.length === 0) {
+                  alert('No contacts to call');
+                  return;
+                }
+                
+                try {
+                  const response = await fetch('https://api.onboardingai.org/call-leads/batch', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' }
+                  });
+
+                  const data = await response.json();
+                  if (response.ok) {
+                    alert(`Initiated calls:\nSuccessful: ${data.summary.initiated}\nFailed: ${data.summary.failed}`);
+                  } else {
+                    alert(data.message || 'Failed to initiate batch calls');
+                  }
+                } catch (error) {
+                  console.error("Error initiating batch calls:", error);
+                  alert('Error initiating batch calls');
+                }
+              }}
+            >
+              Call All Contacts
+            </Button>
             </div>
           </div>
         </div>
@@ -258,6 +286,7 @@ export default function ContactsPage() {
                         >
                           Call
                         </Button>
+                        <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => handleDeleteContact(contact._id)}

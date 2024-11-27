@@ -65,8 +65,8 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
     sample_rate: 8000,
     model: 'nova-2-phonecall',
     interim_results: true,
-    endpointing: 300,
-    utterance_end_ms: 500,
+    endpointing: 200,
+    utterance_end_ms: 1000
   });
 
   dgLive.on(LiveTranscriptionEvents.Open, () => {

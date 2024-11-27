@@ -64,10 +64,9 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
     encoding: 'mulaw',
     sample_rate: 8000,
     model: 'nova-2-phonecall',
-    punctuate: true,
     interim_results: true,
     endpointing: 300,
-    utterance_end_ms: 1000
+    utterance_end_ms: 500
   });
 
   dgLive.on(LiveTranscriptionEvents.Open, () => {

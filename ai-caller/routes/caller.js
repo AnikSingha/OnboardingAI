@@ -1,9 +1,90 @@
 const express = require('express');
 const router = express.Router();
-const expressWs = require('express-ws');
-const WebSocket = require('ws');
 const VoiceResponse = require('twilio').twiml.VoiceResponse;
 const { handleWebSocket, twilioStreamWebhook } = require('../twilioService');
+const app = require('../../auth-service/server');
+
+// WebSocket endpoint
+router.ws('/media', (ws, req) => {
+  console.log('WebSocket connection attempt received', {
+    url: req.url,
+    query: req.query,
+    headers: req.headers
+  });
+
+  let wsHandler;
+  let pingInterval;
+  ws.isAlive = true;
+
+  // Cleanup function to handle resources
+  const cleanup = () => {
+    console.log('Cleaning up WebSocket resources');
+    if (pingInterval) {
+      clearInterval(pingInterval);
+    }
+    if (wsHandler && wsHandler.cleanup) {
+      wsHandler.cleanup();
+    }
+    ws.isAlive = false;
+  };
+
+  // Error handler
+  const handleError = (error) => {
+    console.error('WebSocket error:', {
+      message: error.message,
+      type: error.type,
+      code: error.code,
+      stack: error.stack
+    });
+    
+    if (ws.readyState === ws.OPEN) {
+      ws.close(1011, 'Internal Server Error');
+    }
+  };
+
+  try {
+    console.log('Initializing WebSocket handler');
+    wsHandler = handleWebSocket(ws);
+
+    // Set up ping interval for connection health check
+    pingInterval = setInterval(() => {
+      if (!ws.isAlive) {
+        console.log('Client not responding to pings, terminating connection');
+        cleanup();
+        return ws.terminate();
+      }
+      
+      ws.isAlive = false;
+      ws.ping();
+    }, 30000);
+
+    // WebSocket event handlers
+    ws.on('pong', () => {
+      ws.isAlive = true;
+    });
+
+    ws.on('close', (code, reason) => {
+      console.log('WebSocket connection closed:', {
+        code,
+        reason,
+        timestamp: new Date().toISOString()
+      });
+      cleanup();
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket connection error:', error);
+      handleError(error);
+      cleanup();
+    });
+
+  } catch (error) {
+    console.error('Error during WebSocket initialization:', error);
+    handleError(error);
+    cleanup();
+    return;
+  }
+});
 
 // Call initiation endpoint
 router.post('/', async (req, res) => {

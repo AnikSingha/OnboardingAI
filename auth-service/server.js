@@ -10,12 +10,8 @@ const path = require('path');
 
 // Create express app and add websocket capability
 const app = express();
-const wsInstance = expressWs(app);
+expressWs(app);
 
-// Configure WebSocket server
-wsInstance.getWss().on('connection', (ws, req) => {
-  console.log('Raw WebSocket connection received');
-});
 
 // Regular middleware
 app.use(express.json());
@@ -30,94 +26,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// Add WebSocket CORS headers
-app.use((req, res, next) => {
-  if (req.headers.upgrade === 'websocket') {
-    const origin = req.headers.origin;
-    if (origin === 'https://www.onboardingai.org' || origin === 'https://test.onboardingai.org') {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-    }
-  }
-  next();
-});
-
-// WebSocket endpoint
-// WebSocket endpoint
-app.ws('/call-leads/media', (ws, req) => {
-  let wsHandler;
-  let pingInterval;
-  console.log('WebSocket connection attempt received', {
-    url: req.url,
-    headers: req.headers,
-    query: req.query,
-    params: req.params
-  });
-
-  ws.isAlive = true;
-
-  // Add error handling for the WebSocket connection
-  const handleError = (error) => {
-    console.error('WebSocket error:', {
-      message: error.message,
-      type: error.type,
-      code: error.code,
-      stack: error.stack 
-    });
-    
-    if (ws.readyState === ws.OPEN) {
-      ws.close(1011, 'Internal Server Error');
-    }
-  };
-
-  const cleanup = () => {
-    if (pingInterval) {
-      clearInterval(pingInterval);
-    }
-    if (wsHandler && wsHandler.cleanup) {
-      wsHandler.cleanup();
-    }
-    ws.isAlive = false;
-  };
-
-  try {
-    console.log('Initializing WebSocket handler');
-    wsHandler = handleWebSocket(ws, req);
-  } catch (error) {
-    handleError(error);
-    cleanup();
-    return;
-  }
-
-  // Update ping/pong handling
-  pingInterval = setInterval(() => {
-    if (!ws.isAlive) {
-      console.log('Client not responding to pings, terminating connection');
-      cleanup();
-      return ws.terminate();
-    }
-    
-    ws.isAlive = false;
-    ws.ping();
-  }, 30000);
-
-  ws.on('pong', () => {
-    ws.isAlive = true;
-  });
-
-   ws.on('close', (code, reason) => {
-    console.log('WebSocket connection closed, cleaning up resources', {
-      code, reason
-    });
-    cleanup();
-  });
-
-  ws.on('error', (error) => {
-    handleError(error);
-    cleanup();
-  });
-});
 
 // Open paths that don't require authentication
 const openPaths = new Set([
@@ -195,7 +103,6 @@ app.use('/schedules', schedulesRoutes);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}/`);
-  console.log('WebSocket server is ready');
 });
 
 module.exports = app;

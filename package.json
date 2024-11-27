@@ -1,32 +1,27 @@
 {
   "name": "auth-service",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "auth-service/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node auth-service/server.js",
     "dev": "nodemon auth-service/server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
+    "@deepgram/sdk": "^3.8.0",
+    "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
+    "express-ws": "^5.0.2",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.9.0",
+    "mongoose": "^8.7.2",
     "nodemailer": "^6.9.15",
+    "openai": "^4.67.1",
     "otplib": "^12.0.1",
     "qrcode": "^1.5.4",
-    "@deepgram/sdk": "^3.8.0",
-    "axios": "^1.7.7",
-    "express-ws": "^5.0.2",
-    "mongoose": "^8.7.2",
-    "nodemon": "^3.1.7",
-    "openai": "^4.67.1",
     "twilio": "^5.3.3",
     "uuid": "^10.0.0",
     "wavefile": "^11.0.0",
@@ -34,7 +29,6 @@
   },
   "devDependencies": {
     "@types/node": "^22.5.5",
-    "nodemon": "^3.1.5",
-    "typescript": "^5.6.2"
+    "nodemon": "^3.1.7"
   }
 }

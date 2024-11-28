@@ -41,7 +41,7 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid date format' });
         }
 
-        const success = await businessManager.addSchedule(name, number, parsedDate, campaign);
+        const success = await businessManager.addSchedule(name, number, parsedDate);
         if (success) {
             return res.status(201).json({ success: true, message: 'Schedule added successfully', schedule: { name, number, date: parsedDate } });
         } else {

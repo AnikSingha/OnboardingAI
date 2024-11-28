@@ -261,7 +261,7 @@ class BusinessManager {
         }
     }
     
-    async addSchedule(name, number, date, campaign) {
+    async addSchedule(name, number, date) {
         try {
             const db = await getDb();
             const schedulesCollection = db.collection('schedules');
@@ -270,7 +270,6 @@ class BusinessManager {
                 name: name,
                 number: number,
                 date: new Date(date),
-                campaign: campaign
             };
             
             const result = await schedulesCollection.insertOne(newSchedule);

@@ -279,6 +279,26 @@ class BusinessManager {
             return false;
         }
     }
+    async deleteSchedule(scheduleId) {
+        try {
+            const db = await connectToDatabase();
+            const schedulesCollection = db.collection('schedules');
+    
+            // Ensure valid ObjectId
+            if (!ObjectId.isValid(scheduleId)) {
+                return false;
+            }
+    
+            const result = await schedulesCollection.deleteOne({
+                _id: new ObjectId(scheduleId),
+            });
+    
+            return result.deletedCount > 0;
+        } catch (err) {
+            console.error("Error deleting schedule:", err);  // Clarified error message
+            return false;
+        }
+    }
 }
 
 module.exports = new BusinessManager();

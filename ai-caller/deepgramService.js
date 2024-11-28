@@ -63,7 +63,7 @@ const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
   const dgLive = deepgram.listen.live({
     encoding: 'mulaw',
     sample_rate: 8000,
-    model: 'nova-2-phonecall',
+    model: 'nova-2-conversationalai',
     interim_results: true,
     endpointing: 200,
     utterance_end_ms: 1000

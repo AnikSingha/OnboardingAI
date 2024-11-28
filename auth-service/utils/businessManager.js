@@ -222,18 +222,6 @@ class BusinessManager {
         }
     }
 
-    async getSchedules() {
-        try {
-            const db = await getDb();
-            const schedulesCollection = db.collection('schedules');
-            const schedules = await schedulesCollection.find().toArray();
-            return schedules;
-        } catch (err) {
-            console.error("Error getting schedules:", err);
-            return [];
-        }
-    }
-
     async getLeads() {
         try {
             return await getLeads();
@@ -260,7 +248,19 @@ class BusinessManager {
             return false;
         }
     }
-    
+
+    async getSchedules() {
+        try {
+            const db = await getDb();
+            const schedulesCollection = db.collection('schedules');
+            const schedules = await schedulesCollection.find().toArray();
+            return schedules;
+        } catch (err) {
+            console.error("Error getting schedules:", err);
+            return [];
+        }
+    }
+
     async addSchedule(name, number, date) {
         try {
             const db = await getDb();

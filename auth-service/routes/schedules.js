@@ -65,7 +65,6 @@ router.delete('/:id', async (req, res) => {
         if (success) {
             return res.status(200).json({ success: true, message: 'Schedule deleted successfully' });
         } else {
-            console.warn("Failed deletion. Schedule not found:", req.params.id);
             return res.status(404).json({ success: false, message: 'Schedule not found or deletion failed' });
         }
     } catch (err) {

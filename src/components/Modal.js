@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import campaigns from '../routes/campaigns.json';
 
 const Modal = ({ isOpen, onClose, onSubmit }) => {
   const [contact, setContact] = useState('');
@@ -8,7 +7,6 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
   const [hour, setHour] = useState('10');
   const [minute, setMinute] = useState('00');
   const [ampm, setAmpm] = useState('AM');
-  const [campaign, setCampaign] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -17,7 +15,7 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
     const combinedDateTime = new Date(`${date} ${hour}:${minute} ${ampm}`);
   
     // Pass the combined Date object along with other form data
-    onSubmit({ name: contact, number: number, date: combinedDateTime, campaign: campaign });
+    onSubmit({ name: contact, number: number, date: combinedDateTime });
     onClose();
   };
   
@@ -29,11 +27,10 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
     setHour('10');
     setMinute('00');
     setAmpm('AM');
-    setCampaign('');
     onClose();
   };
 
-  const isFormValid = contact && number && date && hour && minute && ampm && campaign;
+  const isFormValid = contact && number && date && hour && minute && ampm;
 
   if (!isOpen) return null;
 
@@ -96,16 +93,6 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
                 </select>
               </div>
             </div>
-          </div>
-          <div className="mb-4">
-            <label className="block mb-1">Campaign</label>
-            <input
-              type="text"
-              value={campaign}
-              onChange={(e) => setCampaign(e.target.value)}
-              className="border rounded p-2 w-full"
-              required
-            />
           </div>
           <div className="flex justify-between">
             <button type="button" onClick={handleClose} className="bg-gray-300 hover:bg-gray-400 rounded px-4 py-2">Cancel</button>

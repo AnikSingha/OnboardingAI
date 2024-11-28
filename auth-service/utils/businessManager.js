@@ -279,35 +279,35 @@ class BusinessManager {
             return false;
         }
     }
-async deleteSchedule(scheduleId) {
-    try {
-        const db = await connectToDatabase();
-        const schedulesCollection = db.collection('schedules');
-        
-        // Validate the scheduleId
-        if (!ObjectId.isValid(scheduleId)) {
-            console.warn("Invalid ObjectId received:", scheduleId);
-            return { success: false, message: "Invalid schedule ID format" };
+    async deleteSchedule(scheduleId) {
+        try {
+            const db = await connectToDatabase();
+            const schedulesCollection = db.collection('schedules');
+            
+            // Validate the scheduleId
+            if (!ObjectId.isValid(scheduleId)) {
+                console.warn("Invalid ObjectId received:", scheduleId);
+                return { success: false, message: "Invalid schedule ID format" };
+            }
+    
+            console.log("Attempting to delete schedule with ID:", scheduleId);
+    
+            const result = await schedulesCollection.deleteOne({
+                _id: new ObjectId(scheduleId),
+            });
+    
+            if (result.deletedCount > 0) {
+                console.log("Schedule deleted successfully. ID:", scheduleId);
+                return { success: true, message: "Schedule deleted successfully" };
+            } else {
+                console.warn("No document found to delete for ID:", scheduleId);
+                return { success: false, message: "No matching schedule found" };
+            }
+        } catch (err) {
+            console.error("Error deleting schedule:", err);
+            return { success: false, message: `Error deleting schedule: ${err.message}` };
         }
-
-        console.log("Attempting to delete schedule with ID:", scheduleId);
-
-        const result = await schedulesCollection.deleteOne({
-            _id: new ObjectId(scheduleId),
-        });
-
-        if (result.deletedCount > 0) {
-            console.log("Schedule deleted successfully. ID:", scheduleId);
-            return { success: true, message: "Schedule deleted successfully" };
-        } else {
-            console.warn("No document found to delete for ID:", scheduleId);
-            return { success: false, message: "No matching schedule found" };
-        }
-    } catch (err) {
-        console.error("Error deleting schedule:", err);
-        return { success: false, message: `Error deleting schedule: ${err.message}` };
     }
-}
 }
 
 module.exports = new BusinessManager();

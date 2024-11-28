@@ -279,7 +279,7 @@ class BusinessManager {
             return false;
         }
     }
-    const deleteSchedule = async (scheduleId) => {
+    async deleteSchedule(scheduleId) {
       try {
         if (!ObjectId.isValid(scheduleId)) {
           return false;

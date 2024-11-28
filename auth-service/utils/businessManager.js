@@ -279,34 +279,21 @@ class BusinessManager {
             return false;
         }
     }
-    async deleteSchedule(scheduleId) {
-        try {
-            const db = await connectToDatabase();
-            const schedulesCollection = db.collection('schedules');
-            
-            // Validate the scheduleId
-            if (!ObjectId.isValid(scheduleId)) {
-                console.warn("Invalid ObjectId received:", scheduleId);
-                return { success: false, message: "Invalid schedule ID format" };
-            }
-    
-            console.log("Attempting to delete schedule with ID:", scheduleId);
-    
-            const result = await schedulesCollection.deleteOne({
-                _id: new ObjectId(scheduleId),
-            });
-    
-            if (result.deletedCount > 0) {
-                console.log("Schedule deleted successfully. ID:", scheduleId);
-                return { success: true, message: "Schedule deleted successfully" };
-            } else {
-                console.warn("No document found to delete for ID:", scheduleId);
-                return { success: false, message: "No matching schedule found" };
-            }
-        } catch (err) {
-            console.error("Error deleting schedule:", err);
-            return { success: false, message: `Error deleting schedule: ${err.message}` };
+    const deleteSchedule = async (scheduleId) => {
+      try {
+        if (!ObjectId.isValid(scheduleId)) {
+          return false;
         }
+        const db = await getDb();
+        const scheduleIdsCollection = db.collection('schedules');
+        const result = await scheduleIdsCollection.deleteOne({
+          _id: new ObjectId(scheduleId)
+        });
+        return result.deletedCount > 0;
+      } catch (error) {
+        console.error('Error deleting lead:', error);
+        throw error;
+      }
     }
 }
 

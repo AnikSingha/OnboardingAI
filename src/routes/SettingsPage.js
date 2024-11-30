@@ -245,7 +245,7 @@ export default function SettingsPage() {
       } else {
         // Disable 2FA
         console.log('Disabling 2FA...');
-        const response = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
+        const response = await fetch('https://api.onboardingai.org/auth/disable-two-factor', {
           method: 'POST',
           credentials: 'include',
           headers: {

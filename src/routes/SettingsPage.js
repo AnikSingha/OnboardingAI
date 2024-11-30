@@ -106,7 +106,7 @@ export default function SettingsPage() {
 
       // If code is valid, then enable 2FA
       console.log('Code verified, toggling 2FA...');
-      const enableResponse = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
+      const enableResponse = await fetch('https://api.onboardingai.org/auth/enable-two-factor', {
         method: 'POST',
         credentials: 'include',
         headers: {

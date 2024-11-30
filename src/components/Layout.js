@@ -13,27 +13,53 @@ export default function Layout({ children }) {
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <aside className={`bg-white p-6 shadow-md transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
-        <div className="flex items-center mb-8" style={{marginLeft:10}}>
-          {!sidebarCollapsed && <Logo/>}
+        <div className="flex items-center mb-8 h-[40px]">
+          <div className={`transition-all duration-300 overflow-hidden flex ${sidebarCollapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
+            <Logo />
+          </div>
         </div>
         <nav>
-          <Link to="/dashboard" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
-            <BarChart className="h-4 w-4 mr-2"/> {!sidebarCollapsed && 'Dashboard'}
+          <Link to="/dashboard" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md px-4 py-2 transition-all duration-300 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+            <div className="transition-transform duration-300">
+              <BarChart className="h-5 w-5 min-w-[20px] min-h-[20px]" />
+            </div>
+            <span className={`transition-all duration-300 ${sidebarCollapsed ? 'opacity-0 w-0 overflow-hidden ml-0' : 'opacity-100 w-auto ml-2'}`}>
+              Dashboard
+            </span>
           </Link>
-          <Link to="/contacts" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
-            <User className="h-4 w-4 mr-2" /> {!sidebarCollapsed && 'Contacts'}
+          <Link to="/contacts" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md px-4 py-2 transition-all duration-300 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+            <div className="transition-transform duration-300">
+              <User className="h-5 w-5 min-w-[20px] min-h-[20px]" />
+            </div>
+            <span className={`transition-all duration-300 ${sidebarCollapsed ? 'opacity-0 w-0 overflow-hidden ml-0' : 'opacity-100 w-auto ml-2'}`}>
+              Contacts
+            </span>
           </Link>
-          <Link to="/schedule" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
-            <Calendar className="h-4 w-4 mr-2" /> {!sidebarCollapsed && 'Schedule'}
+          <Link to="/schedule" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md px-4 py-2 transition-all duration-300 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+            <div className="transition-transform duration-300">
+              <Calendar className="h-5 w-5 min-w-[20px] min-h-[20px]" />
+            </div>
+            <span className={`transition-all duration-300 ${sidebarCollapsed ? 'opacity-0 w-0 overflow-hidden ml-0' : 'opacity-100 w-auto ml-2'}`}>
+              Schedule
+            </span>
           </Link>
-          <Link to="/campaigns" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
-            <Phone className="h-4 w-4 mr-2" /> {!sidebarCollapsed && 'Campaigns'}
+          <Link to="/campaigns" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md px-4 py-2 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+            <Phone className="h-5 w-5 min-w-[20px] min-h-[20px]" />
+            <span className={`ml-2 transition-all duration-300 ${sidebarCollapsed ? 'opacity-0 w-0 ml-0' : 'opacity-100 w-auto'}`}>
+              Campaigns
+            </span>
           </Link>
-          <Link to="/employees" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
-            <Users className="h-4 w-4 mr-2" /> {!sidebarCollapsed && 'Employees'}
+          <Link to="/employees" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md px-4 py-2 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+            <Users className="h-5 w-5 min-w-[20px] min-h-[20px]" />
+            <span className={`ml-2 transition-all duration-300 ${sidebarCollapsed ? 'opacity-0 w-0 ml-0' : 'opacity-100 w-auto'}`}>
+              Employees
+            </span>
           </Link>
-          <Link to="/settings" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 no-underline ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'}`}>
-            <Settings className="h-4 w-4 mr-2" /> {!sidebarCollapsed && 'Settings'}
+          <Link to="/settings" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md px-4 py-2 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+            <Settings className="h-5 w-5 min-w-[20px] min-h-[20px]" />
+            <span className={`ml-2 transition-all duration-300 ${sidebarCollapsed ? 'opacity-0 w-0 ml-0' : 'opacity-100 w-auto'}`}>
+              Settings
+            </span>
           </Link>
         </nav>
         <Button

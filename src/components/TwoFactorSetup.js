@@ -91,8 +91,8 @@ export const TwoFactorSetup = ({ qrCode, user, onSuccess, onError }) => {
       }
 
       // If code is valid, then enable 2FA
-      console.log('Code verified, toggling 2FA...');
-      const enableResponse = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
+      console.log('Code verified, enabling 2FA...');
+      const enableResponse = await fetch('https://api.onboardingai.org/auth/enable-two-factor', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -101,7 +101,7 @@ export const TwoFactorSetup = ({ qrCode, user, onSuccess, onError }) => {
       });
 
       const enableData = await enableResponse.json();
-      console.log('Toggle 2FA response:', enableData);
+      console.log('Enable 2FA response:', enableData);
 
       if (!enableResponse.ok || !enableData.success) {
         throw new Error('Failed to enable 2FA');

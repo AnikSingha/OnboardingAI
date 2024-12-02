@@ -1,9 +1,12 @@
+
 const axios = require('axios');
 const { LiveTranscriptionEvents, createClient } = require('@deepgram/sdk');
 const OpenAI = require('openai');
 const dotenv = require('dotenv');
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 dotenv.config();
+
+const { checkAvailability,nextTime ,connectToMongoDB } = require('../auth-service/db.js');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -170,6 +173,25 @@ const nameExtractionFunction = {
     required: ["name", "confidence"]
   }
 };
+// Add appointmentTime extraction function definition
+const appointmentTimeExtractionFunction = {
+  name: "extractAppointmentTime",
+  description: "Extract an appointment time from the user's conversation",
+  parameters: {
+    type: "object",
+    properties: {
+      appointmentTime: {
+        type: "string",
+        description: "The extracted appointment time in ISO 8601 format",
+      },
+      confidence: {
+        type: "boolean",
+        description: "Whether the time was confidently extracted",
+      },
+    },
+    required: ["appointmentTime", "confidence"],
+  },
+};
 
 const processTranscript = async (transcript, sessionId, currentName = null) => {
   if (!transcript?.trim()) {
@@ -206,7 +228,7 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
       openai.chat.completions.create({
         model: 'gpt-4',
         messages: messages,
-        functions: [nameExtractionFunction],
+        functions: [nameExtractionFunction, appointmentTimeExtractionFunction],
         function_call: currentName ? 'none' : 'auto'
       }),
       10000,
@@ -221,10 +243,29 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
     if (message.function_call) {
       try {
         const args = JSON.parse(message.function_call.arguments);
-        if (args.confidence) {
+        
+        if (message.function_call.name === "extractName" && args.confidence) {
           extractedName = args.name.trim();
-          // Generate a greeting response when name is extracted
           aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
+        }
+        
+        if (message.function_call.name === "extractAppointmentTime" && args.confidence) {
+          extractedAppointmentTime = args.appointmentTime.trim();
+          aiResponse = `Got it! Your preferred appointment time is ${extractedAppointmentTime}. Let me check our availability.`;
+          const isAvailable = await checkAvailability(extractedAppointmentTime);
+
+          if (isAvailable) {
+            aiResponse = `The appointment time ${extractedAppointmentTime} is available. Would you like to confirm your appointment?`;
+          } else {
+            aiResponse = `Sorry, the time ${extractedAppointmentTime} is already booked. Can I suggest another time?`;
+            const nextAvailableTime = await nextTime(extractedAppointmentTime);
+
+            if (nextAvailableTime) {
+              aiResponse = `The next available appointment time is ${nextAvailableTime}. Would you like to confirm your appointment at this time?`;
+            } else {
+              aiResponse = `Sorry, I couldn't find an available time. Please try again later.`;
+            }
+          }
         }
       } catch (error) {
         console.error('Error parsing function call arguments:', error);
@@ -274,4 +315,3 @@ module.exports = {
   processTranscript,
   initializeDeepgram
 };
-

@@ -28,8 +28,8 @@ router.post('/', async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
-    const { name, number, date, campaign } = req.body;
-    if (!number || !name || !date || !campaign) {
+    const { name, number, date } = req.body;
+    if (!number || !name || !date) {
         return res.status(400).json({ success: false, message: 'Please fill in all required fields' });
     }
 
@@ -41,9 +41,9 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid date format' });
         }
 
-        const success = await businessManager.addSchedule(name, number, parsedDate, campaign);
+        const success = await businessManager.addSchedule(name, number, parsedDate);
         if (success) {
-            return res.status(201).json({ success: true, message: 'Schedule added successfully', schedule: { name, number, date: parsedDate, campaign } });
+            return res.status(201).json({ success: true, message: 'Schedule added successfully', schedule: { name, number, date: parsedDate } });
         } else {
             return res.status(400).json({ success: false, message: 'Failed to add schedule' });
         }

@@ -169,21 +169,25 @@ const nameExtractionFunction = {
 // Add appointmentTime extraction function definition
 const appointmentTimeExtractionFunction = {
   name: "extractAppointmentTime",
-  description: "Extract an appointment time from the user's conversation",
+  description: "Extract appointment scheduling intent and time from the conversation",
   parameters: {
     type: "object",
     properties: {
       appointmentTime: {
         type: "string",
-        description: "The extracted appointment time in ISO 8601 format",
+        description: "The extracted appointment time in ISO 8601 format"
+      },
+      hasSchedulingIntent: {
+        type: "boolean",
+        description: "Whether the user is trying to schedule an appointment"
       },
       confidence: {
         type: "boolean",
-        description: "Whether the time was confidently extracted",
-      },
+        description: "Whether the time was confidently extracted"
+      }
     },
-    required: ["appointmentTime", "confidence"],
-  },
+    required: ["appointmentTime", "hasSchedulingIntent", "confidence"]
+  }
 };
 
 const scheduleAppointmentFunction = {
@@ -255,6 +259,24 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
         if (message.function_call.name === "extractName" && args.confidence) {
           extractedName = args.name.trim();
           aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
+        }
+        
+        if (message.function_call.name === "extractAppointmentTime" && args.hasSchedulingIntent) {
+          const { appointmentTime, confidence } = args;
+          
+          if (confidence) {
+            const isAvailable = await checkAvailability(appointmentTime);
+            if (isAvailable) {
+              aiResponse = `I can schedule you for ${appointmentTime}. Would you like me to book this appointment for you?`;
+            } else {
+              const nextAvailableTime = await nextTime(appointmentTime);
+              aiResponse = nextAvailableTime
+                ? `I apologize, but ${appointmentTime} is not available. The next available time is ${nextAvailableTime}. Would you like this time instead?`
+                : `I apologize, but that time is not available. Could you please suggest another time?`;
+            }
+          } else {
+            aiResponse = "I didn't quite catch the time you'd like to schedule. Could you please provide a specific date and time?";
+          }
         }
         
         if (message.function_call.name === "scheduleAppointment") {

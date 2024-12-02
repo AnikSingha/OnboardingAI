@@ -66,7 +66,7 @@ export default function SchedulePage() {
 
   const checkAvailability = async (requestedTime) => {
     try {
-      const response = await fetch('https://api.onboardingai.org/availability/next-available-time', {
+      const response = await fetch('https://api.onboardingai.org/schedules/next-available-time', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

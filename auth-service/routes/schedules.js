@@ -45,8 +45,6 @@ router.post('/', async (req, res) => {
         const isAvailable = await businessManager.IsAvailable(parsedTime);
         if (!isAvailable) {
             console.log(`Time not available: ${parsedTime.toISOString()}`);
-            parsedTime = await businessManager.NextAvailable(parsedTime);
-            console.log(`Next available time: ${parsedTime.toISOString()}`);
         }
         
         const success = await businessManager.addSchedule(name, number, parsedDate);

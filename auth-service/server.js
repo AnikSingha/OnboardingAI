@@ -89,6 +89,7 @@ const businessRoutes = require('./routes/business');
 const leadsRoutes = require('./routes/leads');
 const callerRoutes = require('../ai-caller/routes/caller');
 const schedulesRoutes = require('./routes/schedules');
+const stripeRoutes = require('../stripe-payments/routes/payment')
 
 // Route registration
 app.use('/auth', authRoutes);
@@ -97,6 +98,7 @@ app.use('/business', businessRoutes);
 app.use('/leads', leadsRoutes);
 app.use('/call-leads', callerRoutes);
 app.use('/schedules', schedulesRoutes);
+app.use('/payment', stripeRoutes)
 
 
 // Start server

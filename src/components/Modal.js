@@ -48,12 +48,30 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
         number: number, 
         date: isoDate 
       });
+
+      // Reset form state
+      setContact('');
+      setNumber('');
+      setDate('');
+      setHour('10');
+      setMinute('00');
+      setAmpm('AM');
       onClose();
   
     } catch (error) {
       console.error('Date creation error:', error);
       alert('Please enter a valid date and time');
     }
+  };
+
+  const handleClose = () => {
+    setContact('');
+    setNumber('');
+    setDate('');
+    setHour('10');
+    setMinute('00');
+    setAmpm('AM');
+    onClose();
   };
 
   const isFormValid = contact && number && date && hour && minute && ampm;
@@ -63,7 +81,6 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white w-full max-w-md p-6 rounded shadow-lg">
-
         <h2 className="text-xl font-bold mb-4 text-center">Schedule A New Call</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -89,14 +106,14 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
             />
           </div>
 
-          <div class = "flex justify-between">
+          <div className="flex justify-between">
             <div className="mb-4">
               <label className="block mb-1">Date</label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                min={today}  // Add this line to prevent past dates
+                min={today}
                 className="border rounded p-2 w-[120%]"
                 required
               />
@@ -104,17 +121,31 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
             <div className="mb-4">
               <label className="block mb-1">Time</label>
               <div className="flex">
-                <select value={hour} onChange={(e) => setHour(e.target.value)} className="border rounded p-2 mr-2">
+                <select 
+                  value={hour} 
+                  onChange={(e) => setHour(e.target.value)} 
+                  className="border rounded p-2 mr-2"
+                >
                   {[...Array(12).keys()].map(i => (
                     <option key={i + 1} value={i + 1}>{i + 1}</option>
                   ))}
                 </select>
-                <select value={minute} onChange={(e) => setMinute(e.target.value)} className="border rounded p-2 mr-2">
+                <select 
+                  value={minute} 
+                  onChange={(e) => setMinute(e.target.value)} 
+                  className="border rounded p-2 mr-2"
+                >
                   {[0, 15, 30, 45].map(i => (
-                    <option key={i} value={i.toString().padStart(2, '0')}>{i.toString().padStart(2, '0')}</option>
+                    <option key={i} value={i.toString().padStart(2, '0')}>
+                      {i.toString().padStart(2, '0')}
+                    </option>
                   ))}
                 </select>
-                <select value={ampm} onChange={(e) => setAmpm(e.target.value)} className="border rounded p-2">
+                <select 
+                  value={ampm} 
+                  onChange={(e) => setAmpm(e.target.value)} 
+                  className="border rounded p-2"
+                >
                   <option value="AM">AM</option>
                   <option value="PM">PM</option>
                 </select>
@@ -122,8 +153,20 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
             </div>
           </div>
           <div className="flex justify-between">
-            <button type="button" onClick={handleClose} className="bg-gray-300 hover:bg-gray-400 rounded px-4 py-2">Cancel</button>
-            <button type="submit" className={`bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2 ${isFormValid ? '' : 'opacity-50 cursor-not-allowed'}`} disabled={!isFormValid}>
+            <button 
+              type="button" 
+              onClick={handleClose} 
+              className="bg-gray-300 hover:bg-gray-400 rounded px-4 py-2"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className={`bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2 ${
+                isFormValid ? '' : 'opacity-50 cursor-not-allowed'
+              }`} 
+              disabled={!isFormValid}
+            >
               Add Call
             </button>
           </div>
@@ -134,6 +177,3 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
 };
 
 export default Modal;
-
-
-

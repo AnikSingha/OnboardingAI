@@ -391,7 +391,7 @@ router.post('/toggle-two-factor', async (req, res) => {
         if (hasTwoFactorAuth){
             toggled = await accountManager.disableTwoFactor(decoded.email);
         } else {
-            toggled = await accountManager.toggleTwoFactor(decoded.email);
+            toggled = await accountManager.enableTwoFactor(decoded.email);
         }
 
         if (toggled) 

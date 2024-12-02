@@ -1,4 +1,3 @@
-
 const axios = require('axios');
 const { LiveTranscriptionEvents, createClient } = require('@deepgram/sdk');
 const OpenAI = require('openai');
@@ -28,19 +27,15 @@ Communication Style:
 - Patient and Understanding: Show empathy, especially with anxious or upset patients.
 - Professional: Reflect the values and standards of [Dental Office Name] in all interactions.`;
 
-
-// Add cache configuration
 const CACHE_CONFIG = {
   MAX_SIZE: 1000,  // Maximum number of items in cache
   TTL: 1000 * 60 * 60, // Cache TTL: 1 hour
   MAX_HISTORY: 10
 }
 
-// Replace simple caches with more structured ones
 const ttsCache = new Map();
 const responseCache = new Map();
 
-// Add cache management utility
 const manageCache = (cache) => {
   if (cache.size > CACHE_CONFIG.MAX_SIZE) {
     const oldestKey = cache.keys().next().value;
@@ -105,7 +100,6 @@ const generateTTS = async (text) => {
     throw new Error('Text for TTS cannot be null or empty');
   }
 
-  // Check cache with timestamp validation
   const cached = ttsCache.get(text);
   if (cached && (Date.now() - cached.timestamp) < CACHE_CONFIG.TTL) {
     return cached.data;
@@ -154,7 +148,6 @@ const generateTTS = async (text) => {
 // Add conversation context cache
 const conversationCache = new Map();
 
-// Add name extraction function definition
 const nameExtractionFunction = {
   name: "extractName",
   description: "Extract a person's name when they introduce themselves",
@@ -193,6 +186,26 @@ const appointmentTimeExtractionFunction = {
   },
 };
 
+const scheduleAppointmentFunction = {
+  name: "scheduleAppointment",
+  description: "Schedule a dental appointment for a specific date and time",
+  parameters: {
+    type: "object",
+    properties: {
+      appointmentTime: {
+        type: "string",
+        description: "The requested appointment time in ISO 8601 format"
+      },
+      action: {
+        type: "string",
+        enum: ["check", "schedule", "suggest_next"],
+        description: "Whether to check availability, schedule the appointment, or find next available time"
+      }
+    },
+    required: ["appointmentTime", "action"]
+  }
+};
+
 const processTranscript = async (transcript, sessionId, currentName = null) => {
   if (!transcript?.trim()) {
     console.log('Received empty transcript.');
@@ -203,17 +216,13 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
   }
 
   try {
-    // Get or initialize conversation history
     let conversationHistory = conversationCache.get(sessionId) || [];
-    
-    // Add user's message to history
     const userMessage = { 
       role: 'user', 
       content: transcript.toString().trim() 
     };
     conversationHistory.push(userMessage);
 
-    // Prepare messages array with system prompt and conversation history
     const messages = [
       { 
         role: 'system', 
@@ -228,8 +237,8 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
       openai.chat.completions.create({
         model: 'gpt-4',
         messages: messages,
-        functions: [nameExtractionFunction, appointmentTimeExtractionFunction],
-        function_call: currentName ? 'none' : 'auto'
+        functions: [nameExtractionFunction, appointmentTimeExtractionFunction, scheduleAppointmentFunction],
+        function_call: currentName ? 'auto' : { name: 'extractName' }
       }),
       10000,
       'OpenAI API request timed out'
@@ -239,7 +248,6 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
     let aiResponse = message.content;
     let extractedName = null;
 
-    // Handle name extraction if applicable
     if (message.function_call) {
       try {
         const args = JSON.parse(message.function_call.arguments);
@@ -249,30 +257,42 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
           aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
         }
         
-        if (message.function_call.name === "extractAppointmentTime" && args.confidence) {
-          extractedAppointmentTime = args.appointmentTime.trim();
-          aiResponse = `Got it! Your preferred appointment time is ${extractedAppointmentTime}. Let me check our availability.`;
-          const isAvailable = await checkAvailability(extractedAppointmentTime);
-
-          if (isAvailable) {
-            aiResponse = `The appointment time ${extractedAppointmentTime} is available. Would you like to confirm your appointment?`;
-          } else {
-            aiResponse = `Sorry, the time ${extractedAppointmentTime} is already booked. Can I suggest another time?`;
-            const nextAvailableTime = await nextTime(extractedAppointmentTime);
-
-            if (nextAvailableTime) {
-              aiResponse = `The next available appointment time is ${nextAvailableTime}. Would you like to confirm your appointment at this time?`;
+        if (message.function_call.name === "scheduleAppointment") {
+          const { appointmentTime, action } = args;
+          
+          if (action === "check") {
+            const isAvailable = await checkAvailability(appointmentTime);
+            aiResponse = isAvailable 
+              ? `Yes, ${appointmentTime} is available. Would you like me to schedule this appointment for you?`
+              : `I apologize, but ${appointmentTime} is not available. Would you like me to find the next available time?`;
+          }
+          
+          else if (action === "suggest_next") {
+            const nextAvailableTime = await nextTime(appointmentTime);
+            aiResponse = nextAvailableTime
+              ? `The next available appointment time is ${nextAvailableTime}. Would you like to schedule this time instead?`
+              : `I'm having trouble finding the next available appointment time. Could you please try a different date or time?`;
+          }
+          
+          else if (action === "schedule") {
+            const isAvailable = await checkAvailability(appointmentTime);
+            if (isAvailable) {
+              // Add appointment scheduling logic here
+              aiResponse = `Great! I've scheduled your appointment for ${appointmentTime}. Would you like me to send you a confirmation?`;
             } else {
-              aiResponse = `Sorry, I couldn't find an available time. Please try again later.`;
+              const nextAvailableTime = await nextTime(appointmentTime);
+              aiResponse = nextAvailableTime
+                ? `I apologize, but that time was just taken. The next available time is ${nextAvailableTime}. Would you like this time instead?`
+                : `I apologize, but that time is no longer available. Could you please provide another preferred time?`;
             }
           }
         }
       } catch (error) {
-        console.error('Error parsing function call arguments:', error);
+        console.error('Error handling function call:', error);
+        aiResponse = "I apologize, but I'm having trouble processing your appointment request. Could you please try again?";
       }
     }
 
-    // Ensure we have a response
     if (!aiResponse) {
       aiResponse = message.content || 'How can I assist you today?';
     }

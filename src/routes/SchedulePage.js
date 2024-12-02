@@ -64,26 +64,28 @@ export default function SchedulePage() {
     setIsAscending(!isAscending); // Toggle the sorting order for next click
   };
 
-  const checkForConflicts = (selectedDate) => {
-    const selectedTime = new Date(selectedDate).getTime();
-
-    // Check if any existing call has the same time
-    const conflict = calls.some(call => {
-      return new Date(call.date).getTime() === selectedTime;
-    });
-
-    return conflict;
-  };
-
-  const checkAvailableDay = (selectedTime) => {
-    let i = 0;
-    let available = new Date(selectedTime);
-    while (checkForConflicts(new Date(available.getTime() + i * 15 * 60 * 1000))) {
-      i++;
+  const checkAvailability = async (requestedTime) => {
+    try {
+      const response = await fetch('https://api.onboardingai.org/availability/next-available-time', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestedTime }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to check availability');
+      }
+  
+      const data = await response.json();
+      return {
+        conflict: data.success === false,
+        nextAvailableTime: data.success === false ? data.nextAvailableTime : null,
+      };
+    } catch (error) {
+      console.error("Error checking availability:", error);
+      throw new Error('Error checking availability');
     }
-    const nextAvailableTime = new Date(available.getTime() + i * 15 * 60 * 1000);
-    console.log('Next available time slot:', nextAvailableTime);
-    return nextAvailableTime;
   };
 
   const handleAddContact = async (call) => {
@@ -93,8 +95,9 @@ export default function SchedulePage() {
         return;
       }
 
-      if (checkForConflicts(call.date)) {
-        setErrorMessage(`This time slot is already taken. Please choose a different time. Next Available Time is: ${checkAvailableDay(call.date).toLocaleString()}`);
+      const conflictResponse = await checkAvailability(call.date);
+      if (conflictResponse.conflict) {
+        setErrorMessage(`This time slot is already taken. Please choose a different time. Next Available Time is: ${new Date(conflictResponse.nextAvailableTime).toLocaleString()}`);
         return;
       }
 
@@ -205,9 +208,6 @@ export default function SchedulePage() {
                     <TableCell>{formatTime(call.date)}</TableCell> 
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
-                          Calling 
-                        </Button>
                         <Button 
                           variant="outline" 
                           size="sm"

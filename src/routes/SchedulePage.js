@@ -71,40 +71,54 @@ export default function SchedulePage() {
         alert('Please fill in required fields');
         return;
       }
-
+  
+      // Ensure date is properly formatted
+      const formattedCall = {
+        ...call,
+        date: new Date(call.date).toISOString()  // Convert to ISO string format
+      };
+  
+      // Log the payload for debugging
+      console.log('Sending schedule payload:', formattedCall);
+  
       const exist = contacts.some((lead) => lead.number === call.number);
-
+  
       if (!exist) {
         const addLeadResponse = await fetch('https://api.onboardingai.org/leads', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: call.name, number: call.number}),
+          body: JSON.stringify({ name: call.name, number: call.number }),
         });
   
         if (!addLeadResponse.ok) {
-          alert('Failed to add lead');
+          const errorData = await addLeadResponse.json();
+          console.error('Failed to add lead:', errorData);
+          setErrorMessage(errorData.message || 'Failed to add lead');
           return;
         }
       }
-
+  
       const response = await fetch('https://api.onboardingai.org/schedules', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(call),
+        body: JSON.stringify(formattedCall),
       });
-
+  
       if (response.ok) {
         fetchCalls();
-        setNewCalls({ name: '', number: '', date: new Date()});
+        setNewCalls({ name: '', number: '', date: new Date() });
         setErrorMessage('');
+        setModalOpen(false);  // Close modal on success
       } else {
-        alert('Failed to add schedule');
+        const errorData = await response.json();
+        console.error('Failed to add schedule:', errorData);
+        setErrorMessage(errorData.message || 'Failed to add schedule');
       }
     } catch (error) {
       console.error("Error adding schedule:", error);
-      alert('Error adding schedule');
+      setErrorMessage('Error adding schedule: ' + error.message);
     }
   };
 

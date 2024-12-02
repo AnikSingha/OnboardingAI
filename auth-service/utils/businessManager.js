@@ -295,6 +295,68 @@ class BusinessManager {
         throw error;
       }
     }
+    
+    async IsAvailable(requestedTime) {
+        try {
+            const client = await connectToDatabase();
+            const schedulesCollection = client.db('auth').collection('schedules');
+    
+            // Convert requestedTime to a Date object
+            const requestedStart = new Date(requestedTime);
+            const requestedEnd = new Date(requestedTime);
+            requestedEnd.setMinutes(requestedEnd.getMinutes() + 15);
+    
+            // Fetch all schedules that might conflict with the requested time
+            const conflictingSchedules = await schedulesCollection.find({
+                $or: [
+                    {
+                        time: {
+                            $gte: requestedStart,
+                            $lt: requestedEnd,
+                        },
+                    },
+                    {
+                        endTime: {
+                            $gt: requestedStart,
+                            $lte: requestedEnd,
+                        },
+                    },
+                    {
+                        $and: [
+                            { time: { $lte: requestedStart } },
+                            { endTime: { $gte: requestedEnd } },
+                        ],
+                    },
+                ],
+            }).toArray();
+    
+            // If no conflicting schedules, the time is available
+            return conflictingSchedules.length === 0;
+        } catch (err) {
+            console.error("Error finding time:", err);
+            return false;
+        }
+    }
+
+    async NextAvailable(requestedTime) {
+        try {
+
+            let nextTime = new Date(requestedTime);
+            const appointmentDuration = 15;
+    
+            // Loop until we find an available time
+            while (!(await this.IsAvailable(nextTime))) {
+                // Move to the next time slot
+                nextTime.setMinutes(nextTime.getMinutes() + appointmentDuration);
+            }
+            
+            console.log(`Next available time slot found: ${nextTime.toISOString()}`);
+            return nextTime;
+        } catch (err) {
+            console.error("Error finding next available time:", err);
+            return null; 
+        }
+    }
 }
 
 module.exports = new BusinessManager();

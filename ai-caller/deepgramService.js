@@ -206,7 +206,7 @@ const scheduleAppointmentFunction = {
   }
 };
 
-const processTranscript = async (transcript, sessionId, currentName = null) => {
+const processTranscript = async (transcript, sessionId, currentName = null, phoneNumber = null) => {
   if (!transcript?.trim()) {
     console.log('Received empty transcript.');
     return {
@@ -276,13 +276,15 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
           
           else if (action === "schedule") {
             const isAvailable = await checkAvailability(appointmentTime);
-            if (isAvailable) {
+            if (isAvailable && currentName && phoneNumber) {
               const appointmentCreated = await createAppointment(currentName, phoneNumber, appointmentTime);
               if (appointmentCreated) {
                 aiResponse = `Perfect! I've scheduled your appointment for ${appointmentTime}. You'll receive a confirmation shortly. Is there anything else I can help you with?`;
               } else {
                 aiResponse = `I apologize, but I encountered an error while scheduling your appointment. Could you please try again?`;
               }
+            } else if (!currentName || !phoneNumber) {
+              aiResponse = `I apologize, but I need your name and phone number to schedule the appointment. Could you please provide those?`;
             } else {
               const nextAvailableTime = await nextTime(appointmentTime);
               aiResponse = nextAvailableTime

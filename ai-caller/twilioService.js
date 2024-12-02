@@ -90,7 +90,7 @@ const handleWebSocket = (ws) => {
       isProcessing = true;
 
       try {
-        const result = await processTranscript(completeTranscript, streamSid, callerName);
+        const result = await processTranscript(completeTranscript, streamSid, callerName, phoneNumber);
         
         if (result.extractedName && !callerName) {
           callerName = result.extractedName;

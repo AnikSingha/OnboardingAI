@@ -9,15 +9,24 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
   const [ampm, setAmpm] = useState('AM');
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-  
-    // Combine the date, hour, minute, and am/pm to create a full Date object
-    const combinedDateTime = new Date(`${date} ${hour}:${minute} ${ampm}`);
-  
-    // Pass the combined Date object along with other form data
-    onSubmit({ name: contact, number: number, date: combinedDateTime });
-    onClose();
-  };
+  e.preventDefault();
+
+  // Combine the date, hour, minute, and am/pm to create a full Date object
+  const combinedDateTime = new Date(`${date} ${hour}:${minute} ${ampm}`);
+
+  // Check if the combined date is valid
+  if (isNaN(combinedDateTime)) {
+    alert('Invalid date or time');
+    return;
+  }
+
+  // Convert the combined Date object to an ISO string
+  const isoDate = combinedDateTime.toISOString();
+
+  // Pass the combined Date object along with other form data
+  onSubmit({ name: contact, number: number, date: isoDate });
+  onClose();
+};
   
 
   const handleClose = () => {

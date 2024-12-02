@@ -350,43 +350,6 @@ class BusinessManager {
             return false;
         }
     }
-
-    async getNextAvailableTime(requestedTime) {
-        try {
-            const client = await connectToDatabase();
-            const schedulesCollection = client.db('auth').collection('schedules');
-    
-            // Find all schedules after or overlapping the requested time
-            const schedules = await schedulesCollection
-                .find({ date: { $gte: requestedTime } })
-                .sort({ date: 1 }) // Sort schedules by date in ascending order
-                .toArray();
-    
-            // Define the slot duration (e.g., 30 minutes)
-            const slotDuration = 15 * 60 * 1000; // 30 minutes in milliseconds
-    
-            let nextTime = new Date(requestedTime);
-    
-            for (const schedule of schedules) {
-                const scheduleStartTime = new Date(schedule.date);
-                const scheduleEndTime = new Date(scheduleStartTime.getTime() + slotDuration);
-    
-                // If `nextTime` overlaps with this schedule, move it to after the schedule ends
-                if (nextTime < scheduleEndTime) {
-                    nextTime = new Date(scheduleEndTime);
-                } else {
-                    // Otherwise, `nextTime` is available
-                    break;
-                }
-            }
-    
-            // Return the next available time
-            return nextTime;
-        } catch (error) {
-            console.error('Error in getNextAvailableTime:', error);
-            throw error;
-        }
-    }
     
 }
 

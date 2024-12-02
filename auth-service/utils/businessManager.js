@@ -302,36 +302,19 @@ class BusinessManager {
             const schedulesCollection = client.db('auth').collection('schedules');
     
             // Convert requestedTime to a Date object
-            const requestedStart = new Date(requestedTime);
-            const requestedEnd = new Date(requestedTime);
-            requestedEnd.setMinutes(requestedEnd.getMinutes() + 15);
-    
-            // Fetch all schedules that might conflict with the requested time
-            const conflictingSchedules = await schedulesCollection.find({
-                $or: [
-                    {
-                        time: {
-                            $gte: requestedStart,
-                            $lt: requestedEnd,
-                        },
-                    },
-                    {
-                        endTime: {
-                            $gt: requestedStart,
-                            $lte: requestedEnd,
-                        },
-                    },
-                    {
-                        $and: [
-                            { time: { $lte: requestedStart } },
-                            { endTime: { $gte: requestedEnd } },
-                        ],
-                    },
-                ],
-            }).toArray();
-    
-            // If no conflicting schedules, the time is available
-            return conflictingSchedules.length === 0;
+            const time = new Date(requestedTime);
+
+            const existingSchedule = await schedulesCollection.findOne({
+                time: time
+            });
+            
+            // If a schedule is found with the same time, return false (time is not available)
+            if (existingSchedule) {
+                return false;
+            }
+
+            // Otherwise, the time is available, so return true
+            return true;
         } catch (err) {
             console.error("Error finding time:", err);
             return false;
@@ -357,6 +340,8 @@ class BusinessManager {
             return null; 
         }
     }
+    
+}
 }
 
 module.exports = new BusinessManager();

@@ -64,11 +64,41 @@ export default function SchedulePage() {
     setIsAscending(!isAscending); // Toggle the sorting order for next click
   };
 
+  const checkAvailability = async (requestedTime) => {
+    try {
+      const response = await fetch('https://api.onboardingai.org/schedules/next-available-time', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestedTime }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to check availability');
+      }
+  
+      const data = await response.json();
+      return {
+        conflict: data.success === false,
+        nextAvailableTime: data.success === false ? data.nextAvailableTime : null,
+      };
+    } catch (error) {
+      console.error("Error checking availability:", error);
+      throw new Error('Error checking availability');
+    }
+  };
+
 
   const handleAddContact = async (call) => {
     try {
       if (!call.name || !call.number || !call.date) {
         alert('Please fill in required fields');
+        return;
+      }
+
+      const conflictResponse = await checkAvailability(call.date);
+      if (conflictResponse.conflict) {
+        setErrorMessage(`This time slot is already taken. Please choose a different time. Next Available Time is: ${new Date(conflictResponse.nextAvailableTime).toLocaleString()}`);
         return;
       }
 

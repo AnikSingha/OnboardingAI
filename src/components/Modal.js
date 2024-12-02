@@ -7,36 +7,53 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
   const [hour, setHour] = useState('10');
   const [minute, setMinute] = useState('00');
   const [ampm, setAmpm] = useState('AM');
+  const today = new Date().toISOString().split('T')[0];
 
   const handleSubmit = (e) => {
-  e.preventDefault();
-
-  // Combine the date, hour, minute, and am/pm to create a full Date object
-  const combinedDateTime = new Date(`${date} ${hour}:${minute} ${ampm}`);
-
-  // Check if the combined date is valid
-  if (isNaN(combinedDateTime)) {
-    alert('Invalid date or time');
-    return;
-  }
-
-  // Convert the combined Date object to an ISO string
-  const isoDate = combinedDateTime.toISOString();
-
-  // Pass the combined Date object along with other form data
-  onSubmit({ name: contact, number: number, date: isoDate });
-  onClose();
-};
+    e.preventDefault();
   
-
-  const handleClose = () => {
-    setContact('');
-    setNumber('');
-    setDate('');
-    setHour('10');
-    setMinute('00');
-    setAmpm('AM');
-    onClose();
+    try {
+      // Convert 12-hour format to 24-hour format
+      let hours = parseInt(hour);
+      if (ampm === 'PM' && hours !== 12) {
+        hours += 12;
+      } else if (ampm === 'AM' && hours === 12) {
+        hours = 0;
+      }
+  
+      // Format hours and minutes properly with leading zeros
+      const formattedHours = hours.toString().padStart(2, '0');
+      const formattedMinutes = minute.toString().padStart(2, '0');
+  
+      // Create date string in ISO format: YYYY-MM-DDTHH:mm:ss.sssZ
+      const dateObj = new Date(`${date}T${formattedHours}:${formattedMinutes}:00`);
+  
+      // Validate the date
+      if (isNaN(dateObj)) {
+        throw new Error('Invalid date or time');
+      }
+  
+      // Convert to ISO string
+      const isoDate = dateObj.toISOString();
+  
+      console.log('Submitting schedule:', {
+        name: contact,
+        number: number,
+        date: isoDate,
+        originalValues: { date, hour, minute, ampm }
+      });
+  
+      onSubmit({ 
+        name: contact, 
+        number: number, 
+        date: isoDate 
+      });
+      onClose();
+  
+    } catch (error) {
+      console.error('Date creation error:', error);
+      alert('Please enter a valid date and time');
+    }
   };
 
   const isFormValid = contact && number && date && hour && minute && ampm;
@@ -79,6 +96,7 @@ const Modal = ({ isOpen, onClose, onSubmit }) => {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
+                min={today}  // Add this line to prevent past dates
                 className="border rounded p-2 w-[120%]"
                 required
               />

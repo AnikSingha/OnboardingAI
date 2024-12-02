@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 dotenv.config();
 
-const { checkAvailability,nextTime ,connectToMongoDB } = require('../auth-service/db.js');
+const { checkAvailability, nextTime, createAppointment, connectToMongoDB } = require('../auth-service/db.js');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -277,8 +277,12 @@ const processTranscript = async (transcript, sessionId, currentName = null) => {
           else if (action === "schedule") {
             const isAvailable = await checkAvailability(appointmentTime);
             if (isAvailable) {
-              // Add appointment scheduling logic here
-              aiResponse = `Great! I've scheduled your appointment for ${appointmentTime}. Would you like me to send you a confirmation?`;
+              const appointmentCreated = await createAppointment(currentName, phoneNumber, appointmentTime);
+              if (appointmentCreated) {
+                aiResponse = `Perfect! I've scheduled your appointment for ${appointmentTime}. You'll receive a confirmation shortly. Is there anything else I can help you with?`;
+              } else {
+                aiResponse = `I apologize, but I encountered an error while scheduling your appointment. Could you please try again?`;
+              }
             } else {
               const nextAvailableTime = await nextTime(appointmentTime);
               aiResponse = nextAvailableTime

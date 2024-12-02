@@ -156,6 +156,26 @@ const nextTime = async (appointmentDate) => {
   }
 };
 
+const createAppointment = async (name, number, appointmentDate) => {
+  try {
+    const db = await getDb();
+    const schedulesCollection = db.collection('schedules');
+    
+    const newAppointment = {
+      name: name,
+      number: number,
+      date: new Date(appointmentDate),
+      created_at: new Date()
+    };
+    
+    const result = await schedulesCollection.insertOne(newAppointment);
+    return result.acknowledged;
+  } catch (error) {
+    console.error('Error creating appointment:', error);
+    return false;
+  }
+};
+
 process.on('SIGINT', async () => {
   await closeConnection();
   process.exit(0);
@@ -175,5 +195,6 @@ module.exports = {
   closeConnection,
   checkAvailability,
   nextTime,
-  isConnected
+  isConnected,
+  createAppointment,
 };

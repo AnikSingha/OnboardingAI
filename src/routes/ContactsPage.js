@@ -146,7 +146,7 @@ export default function ContactsPage() {
 
   return (
     <Layout>
-      <div className="h-screen flex flex-col p-8">
+      <div className="p-8">
         <h1 className="text-3xl font-bold mb-6">Contacts</h1>
 
         <div className="flex justify-between items-center mb-6">
@@ -236,13 +236,13 @@ export default function ContactsPage() {
           </div>
         </div>
 
-        <Card className="flex-1 flex flex-col">
+        <Card>
           <CardHeader>
             <CardTitle>Contact List</CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 overflow-auto">
+          <CardContent className="h-[calc(100vh-400px)] overflow-y-auto">
             <Table>
-              <TableHeader className="sticky top-0 bg-white z-10">
+              <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Phone Number</TableHead>

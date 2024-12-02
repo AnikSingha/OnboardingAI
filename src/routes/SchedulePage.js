@@ -64,37 +64,29 @@ export default function SchedulePage() {
     setIsAscending(!isAscending); // Toggle the sorting order for next click
   };
 
-const checkAvailability = async (requestedTime) => {
-    console.log('Checking availability for requested time:', requestedTime); // Log the requested time
-
+  const checkAvailability = async (requestedTime) => {
     try {
-        // Send POST request
-        const response = await fetch('https://api.onboardingai.org/schedules/next-available-time', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requestedTime }),
-        });
-
-        console.log('Response status:', response.status); // Log the response status
-
-        if (!response.ok) {
-            console.error('Failed to check availability, status:', response.status); // Log error if status is not OK
-            throw new Error('Failed to check availability');
-        }
-
-        const data = await response.json();
-        console.log('Response data:', data); // Log the response data
-
-        return {
-            conflict: data.success === false,
-            nextAvailableTime: data.success === false ? data.nextAvailableTime : null,
-        };
+      const response = await fetch('https://api.onboardingai.org/schedules/next-available-time', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestedTime }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to check availability');
+      }
+  
+      const data = await response.json();
+      return {
+        conflict: data.success === false,
+        nextAvailableTime: data.success === false ? data.nextAvailableTime : null,
+      };
     } catch (error) {
-        console.error('Error checking availability:', error); // Log the error
-        throw new Error('Error checking availability');
+      console.error("Error checking availability:", error);
+      throw new Error('Error checking availability');
     }
-};
+  };
 
 
   const handleAddContact = async (call) => {

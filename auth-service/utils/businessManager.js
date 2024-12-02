@@ -340,8 +340,6 @@ class BusinessManager {
             return null; 
         }
     }
-    
-}
 }
 
 module.exports = new BusinessManager();

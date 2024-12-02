@@ -72,50 +72,50 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-router.post('/next-available-time', async (req, res) => {
-    const { valid, decoded } = verifyToken(req.cookies.token);
+// router.post('/next-available-time', async (req, res) => {
+//     const { valid, decoded } = verifyToken(req.cookies.token);
     
-    if (!valid) {
-        return res.status(403).json({ success: false, message: 'Unauthorized' });
-    }
+//     if (!valid) {
+//         return res.status(403).json({ success: false, message: 'Unauthorized' });
+//     }
 
-    const { requestedTime } = req.body;
+//     const { requestedTime } = req.body;
 
-    if (!requestedTime) {
-        return res.status(400).json({ success: false, message: 'Requested time is required' });
-    }
+//     if (!requestedTime) {
+//         return res.status(400).json({ success: false, message: 'Requested time is required' });
+//     }
 
-    try {
-        // Convert `requestedTime` to Date object
-        const parsedTime = new Date(requestedTime);
-        if (isNaN(parsedTime)) {
-            return res.status(400).json({ success: false, message: 'Invalid time format' });
-        }
+//     try {
+//         // Convert `requestedTime` to Date object
+//         const parsedTime = new Date(requestedTime);
+//         if (isNaN(parsedTime)) {
+//             return res.status(400).json({ success: false, message: 'Invalid time format' });
+//         }
 
-        console.log(`Received requested time: ${parsedTime.toISOString()}`);  // Log requested time for debugging
+//         console.log(`Received requested time: ${parsedTime.toISOString()}`);  // Log requested time for debugging
 
-        const nextAvailableTime = await businessManager.NextAvailable(parsedTime);
+//         const nextAvailableTime = await businessManager.NextAvailable(parsedTime);
 
-        if (nextAvailableTime) {
-            console.log(`Next available time: ${nextAvailableTime.toISOString()}`);  // Log next available time for debugging
+//         if (nextAvailableTime) {
+//             console.log(`Next available time: ${nextAvailableTime.toISOString()}`);  // Log next available time for debugging
 
-            return res.status(200).json({
-                success: true,
-                message: 'Next available time found',
-                nextAvailableTime: nextAvailableTime.toISOString(), // Ensure correct time format in response
-            });
-        } else {
-            return res.status(404).json({
-                success: false,
-                message: 'No available time slots found',
-            });
-        }
-    } catch (error) {
-        // Handle server errors
-        console.error('Error finding next available time:', error);
-        return res.status(500).json({ success: false, message: `Internal server error: ${error.message}` });
-    }
-});
+//             return res.status(200).json({
+//                 success: true,
+//                 message: 'Next available time found',
+//                 nextAvailableTime: nextAvailableTime.toISOString(), // Ensure correct time format in response
+//             });
+//         } else {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: 'No available time slots found',
+//             });
+//         }
+//     } catch (error) {
+//         // Handle server errors
+//         console.error('Error finding next available time:', error);
+//         return res.status(500).json({ success: false, message: `Internal server error: ${error.message}` });
+//     }
+// });
 
 module.exports = router;
 

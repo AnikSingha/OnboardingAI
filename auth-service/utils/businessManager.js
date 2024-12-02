@@ -328,9 +328,14 @@ class BusinessManager {
             const appointmentDuration = 15;
     
             // Loop until we find an available time
-            while (!(await this.IsAvailable(nextTime))) {
-                // Move to the next time slot
+            let maxIterations = 1000; // Limit the number of iterations
+            let iterationCount = 0;
+            while (!(await this.IsAvailable(nextTime)) && iterationCount < maxIterations) {
                 nextTime.setMinutes(nextTime.getMinutes() + appointmentDuration);
+                iterationCount++;
+            }
+            if (iterationCount >= maxIterations) {
+                throw new Error("Exceeded maximum iterations. No available time slot found.");
             }
             
             console.log(`Next available time slot found: ${nextTime.toISOString()}`);

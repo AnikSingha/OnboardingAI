@@ -1,3 +1,4 @@
+
 const express = require('express');
 const businessManager = require('../utils/businessManager.js');
 const { verifyToken } = require('../utils/token.js');
@@ -72,8 +73,4 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-
-
 module.exports = router;
-
-

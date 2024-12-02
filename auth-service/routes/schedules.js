@@ -73,34 +73,45 @@ router.delete('/:id', async (req, res) => {
 });
 
 router.post('/next-available-time', async (req, res) => {
+    console.log('Received request to check next available time'); // Log that the request is received
+    
     const { valid, decoded } = verifyToken(req.cookies.token);
     
     if (!valid) {
+        console.error('Unauthorized request'); // Log unauthorized access attempt
         return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
     const { requestedTime } = req.body;
 
     if (!requestedTime) {
+        console.error('No requested time provided'); // Log when requestedTime is missing
         return res.status(400).json({ success: false, message: 'Requested time is required' });
     }
 
     try {
         // Convert `requestedTime` to Date object
         const parsedTime = new Date(requestedTime);
+        console.log('Parsed requested time:', parsedTime); // Log parsed time
+        
         if (isNaN(parsedTime)) {
+            console.error('Invalid time format provided:', requestedTime); // Log invalid time format
             return res.status(400).json({ success: false, message: 'Invalid time format' });
         }
-        
+
+        // Call the business logic to find the next available time
+        console.log('Calling businessManager.nextAvailableTime with:', parsedTime); // Log the time passed to nextAvailableTime
         const nextAvailableTime = await businessManager.nextAvailableTime(parsedTime);
 
         if (nextAvailableTime) {
+            console.log('Next available time found:', nextAvailableTime); // Log the next available time found
             return res.status(200).json({
                 success: true,
                 message: 'Next available time found',
                 nextAvailableTime,
             });
         } else {
+            console.log('No available time slots found'); // Log when no available time slots are found
             return res.status(404).json({
                 success: false,
                 message: 'No available time slots found',
@@ -108,7 +119,7 @@ router.post('/next-available-time', async (req, res) => {
         }
     } catch (error) {
         // Handle server errors
-        console.error('Error finding next available time:', error);
+        console.error('Error finding next available time:', error); // Log the actual error
         return res.status(500).json({ success: false, message: `Internal server error: ${error.message}` });
     }
 });

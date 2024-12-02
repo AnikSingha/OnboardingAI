@@ -385,7 +385,14 @@ router.post('/toggle-two-factor', async (req, res) => {
             return res.status(403).json({ success: false, message: 'Invalid token' });
         }
         
-        const toggled = await accountManager.toggleTwoFactor(decoded.email);
+        const hasTwoFactorAuth = await accountManager.hasTwoFactor(decoded.email);
+        let toggled;
+
+        if (hasTwoFactorAuth){
+            toggled = await accountManager.disableTwoFactor(decoded.email);
+        } else {
+            toggled = await accountManager.toggleTwoFactor(decoded.email);
+        }
 
         if (toggled) 
             return res.status(200).json({ success: true, message: 'Two-factor authentication status has been toggled successfully' });

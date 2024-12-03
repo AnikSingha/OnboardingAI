@@ -21,7 +21,7 @@ router.post('/create-payment-intent', async (req, res) => {
     }
 });
 
-app.post('/create-checkout-session', async (req, res) => {
+router.post('/create-checkout-session', async (req, res) => {
     const { amount } = req.body;
 
     if (!amount || amount <= 0) {

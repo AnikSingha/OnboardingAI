@@ -10,7 +10,7 @@ import { X } from 'lucide-react'
 import ConfirmationDialog from '../components/ConfirmationDialog'
 import { useNavigate } from 'react-router-dom';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
-
+import { CheckoutButton } from '../components/CheckoutButton'
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { user, name, business, login } = useContext(AuthContext);
@@ -621,6 +621,17 @@ export default function SettingsPage() {
               )}
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Billing</CardTitle>
+              <CardDescription>Checkout</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CheckoutButton amount={100} />
+            </CardContent>
+          </Card>
+
         </div>
       </div>
 

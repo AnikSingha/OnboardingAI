@@ -629,7 +629,9 @@ export default function SettingsPage() {
               <CardDescription>Checkout</CardDescription>
             </CardHeader>
             <CardContent>
-              <CheckoutButton amount={100} />
+              <Button>
+                <CheckoutButton amount={100} />
+              </Button>
             </CardContent>
           </Card>
 

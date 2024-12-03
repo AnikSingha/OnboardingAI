@@ -16,6 +16,7 @@ const CheckoutButton = ({ amount }) => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ amount }),
+                credentials: 'include'
             });
 
             const { id } = await response.json();

@@ -148,7 +148,7 @@ router.get('/otp/qr-code', async (req, res) => {
             return res.status(404).json({ success: false, message: 'User does not exist' })
         }
 
-        const OTPSecret = await accountManager.getOTPSecret(decoded.email)
+        const OTPSecret = await accountManager.getTwoFactorSecret(decoded.email)
         const QRCode = await genQRCode(decoded.email, OTPSecret)
 
         return res.status(200).json({ success: true, message: 'QR Code successfully created', QRCode })

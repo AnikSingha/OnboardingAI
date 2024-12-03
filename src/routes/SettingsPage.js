@@ -10,7 +10,8 @@ import { X } from 'lucide-react'
 import ConfirmationDialog from '../components/ConfirmationDialog'
 import { useNavigate } from 'react-router-dom';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
-import { CheckoutButton } from '../components/CheckoutButton'
+import CheckoutButton from '../components/CheckoutButton'
+
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { user, name, business, login } = useContext(AuthContext);

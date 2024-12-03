@@ -2,13 +2,15 @@ const express = require('express');
 const stripe = require('../stripeConfig.js');
 const router = express.Router();
 
+const dollarsToCents = (dollars) => Math.round(dollars * 100);
+
 router.post('/create-payment-intent', async (req, res) => {
-    const { amount, currency } = req.body; 
+    const { amount } = req.body; 
 
     try {
         const paymentIntent = await stripe.paymentIntents.create({
             amount, 
-            currency,
+            currency: 'usd',
             automatic_payment_methods: { enabled: true },
         });
 
@@ -18,4 +20,38 @@ router.post('/create-payment-intent', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+app.post('/create-checkout-session', async (req, res) => {
+    const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+        return res.status(400).json({ error: 'Invalid amount provided.' });
+    }
+    
+    try {
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'usd',
+                        product_data: { name: 'OnboardAI' },
+                        unit_amount: dollarsToCents(amount),
+                    },
+                    quantity: 1,
+                },
+            ],
+            mode: 'payment',
+            success_url: 'https://www.onboardingai.org/',
+            cancel_url: 'https://www.onboardingai.org/',
+        });
+
+        res.json({ id: session.id });
+    } catch (error) {
+        console.error('Error creating checkout session:', error);
+        res.status(500).json({ error: 'Failed to create checkout session.' });
+    }
+});
+
+
 module.exports = router;

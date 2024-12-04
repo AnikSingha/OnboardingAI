@@ -1,13 +1,22 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from "./ui/button"
 import { BarChart, Calendar, Phone, Settings, User, ChevronLeft, ChevronRight, Megaphone, Users, FileText } from "lucide-react"
 import Logo from "./Logo";
 
 export default function Layout({ children }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    // Initialize state from localStorage
+    const saved = localStorage.getItem('sidebarCollapsed')
+    return saved ? JSON.parse(saved) : false
+  })
 
-  const toggleSidebar = () => setSidebarCollapsed(!sidebarCollapsed)
+  const toggleSidebar = () => {
+    const newState = !sidebarCollapsed
+    setSidebarCollapsed(newState)
+    // Save to localStorage whenever state changes
+    localStorage.setItem('sidebarCollapsed', JSON.stringify(newState))
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">

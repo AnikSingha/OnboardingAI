@@ -35,30 +35,30 @@ export default function ContactsPage() {
   };
 
   const handleAddContact = async (contact) => {
-  try {
-    if (!contact.name || !contact.number) {
-      alert('Please fill in both name and phone number');
-      return;
+    try {
+      if (!contact.name || !contact.number) {
+        alert('Please fill in both name and phone number');
+        return;
+      }
+      
+      const response = await fetch('https://api.onboardingai.org/leads', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contact),
+      });
+      
+      if (response.ok) {
+        fetchContacts();
+        setNewContact({ name: '', number: '' });
+      } else {
+        alert('Failed to add contact');
+      }
+    } catch (error) {
+      console.error("Error adding contact:", error);
+      alert('Error adding contact');
     }
-    
-    const response = await fetch('https://api.onboardingai.org/leads', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(contact),
-    });
-    
-    if (response.ok) {
-      fetchContacts();
-      setNewContact({ name: '', number: '' });
-    } else {
-      alert('Failed to add contact');
-    }
-  } catch (error) {
-    console.error("Error adding contact:", error);
-    alert('Error adding contact');
-  }
-};
+  };
 
   const handleCsvUpload = (event) => {
     const file = event.target.files[0];
@@ -118,26 +118,26 @@ export default function ContactsPage() {
   };
 
   const handleDeleteContact = async (contactId) => {
-  try {
-    const response = await fetch(`https://api.onboardingai.org/leads/${contactId}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
+    try {
+      const response = await fetch(`https://api.onboardingai.org/leads/${contactId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        fetchContacts();
+      } else {
+        const data = await response.json();
+        alert(data.message || 'Failed to delete contact');
       }
-    });
-    
-    if (response.ok) {
-      fetchContacts();
-    } else {
-      const data = await response.json();
-      alert(data.message || 'Failed to delete contact');
+    } catch (error) {
+      console.error("Error deleting contact:", error);
+      alert('Error deleting contact');
     }
-  } catch (error) {
-    console.error("Error deleting contact:", error);
-    alert('Error deleting contact');
-  }
-};
+  };
 
   const filteredContacts = contacts.filter(contact =>
     contact.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -177,33 +177,61 @@ export default function ContactsPage() {
             </div>
             <div className="flex gap-2">
               <input
-              type="file"
-              accept=".csv"
-              onChange={handleCsvUpload}
-              className="hidden"
-              id="csvInput"
-            />
-            <Button
-              onClick={() => document.getElementById('csvInput').click()}
-              disabled={isProcessing}
-            >
-              Upload CSV
-            </Button>
-            {csvFile && (
-              <Button 
-                onClick={processCsvFile} 
+                type="file"
+                accept=".csv"
+                onChange={handleCsvUpload}
+                className="hidden"
+                id="csvInput"
+              />
+              <Button
+                onClick={() => document.getElementById('csvInput').click()}
                 disabled={isProcessing}
               >
-                {isProcessing 
-                  ? `Processing ${uploadStatus.success + uploadStatus.failed}/${uploadStatus.total}` 
-                  : 'Process CSV'}
+                Upload CSV
               </Button>
-            )}
-            {isProcessing && (
-              <span className="text-sm text-gray-500">
-                Success: {uploadStatus.success} | Failed: {uploadStatus.failed}
-              </span>
-            )}
+              {csvFile && (
+                <Button 
+                  onClick={processCsvFile} 
+                  disabled={isProcessing}
+                >
+                  {isProcessing 
+                    ? `Processing ${uploadStatus.success + uploadStatus.failed}/${uploadStatus.total}` 
+                    : 'Process CSV'}
+                </Button>
+              )}
+              {isProcessing && (
+                <span className="text-sm text-gray-500">
+                  Success: {uploadStatus.success} | Failed: {uploadStatus.failed}
+                </span>
+              )}
+              <Button 
+                onClick={async () => {
+                  if (contacts.length === 0) {
+                    alert('No contacts to call');
+                    return;
+                  }
+                  
+                  try {
+                    const response = await fetch('https://api.onboardingai.org/call-leads/batch', {
+                      method: 'POST',
+                      credentials: 'include',
+                      headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const data = await response.json();
+                    if (response.ok) {
+                      alert(`Initiated calls:\nSuccessful: ${data.summary.initiated}\nFailed: ${data.summary.failed}`);
+                    } else {
+                      alert(data.message || 'Failed to initiate batch calls');
+                    }
+                  } catch (error) {
+                    console.error("Error initiating batch calls:", error);
+                    alert('Error initiating batch calls');
+                  }
+                }}
+              >
+                Call All Contacts
+              </Button>
             </div>
           </div>
         </div>
@@ -212,9 +240,9 @@ export default function ContactsPage() {
           <CardHeader>
             <CardTitle>Contact List</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="h-[calc(100vh-400px)] overflow-y-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Phone Number</TableHead>
@@ -228,41 +256,36 @@ export default function ContactsPage() {
                     <TableCell>{contact._number}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={async () => {
-                          try {
-                            const response = await fetch('https://api.onboardingai.org/call-leads', {
-                              method: 'POST',
-                              credentials: 'include',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                name: contact.name,
-                                number: contact._number
-                              }),
-                            });
-
-                            const responseText = await response.text();
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={async () => {
                             try {
-                              const data = JSON.parse(responseText);
+                              const response = await fetch('https://api.onboardingai.org/call-leads', {
+                                method: 'POST',
+                                credentials: 'include',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  name: contact.name,
+                                  number: contact._number
+                                }),
+                              });
+                        
                               if (response.ok) {
+                                const data = await response.json();
                                 alert(`Calling ${contact.name}...`);
                               } else {
+                                const data = await response.json();
                                 alert(data.message || 'Failed to initiate call');
                               }
                             } catch (error) {
-                              console.error('Response:', responseText);
-                              alert('Error processing server response');
+                              console.error("Error initiating call:", error);
+                              alert('Error initiating call');
                             }
-                          } catch (error) {
-                            console.error("Error initiating call:", error);
-                            alert('Error initiating call');
-                          }
-                        }}
-                      >
-                        Call
-                      </Button>
+                          }}
+                        >
+                          Call
+                        </Button>
                         <Button 
                           variant="outline" 
                           size="sm"

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -8,10 +9,29 @@ import Modal from '../components/Modal';
 
 export default function SchedulePage() {
   const [calls, setCalls] = useState([]);
-  const [newcalls, setNewCalls] = useState({ name: '', number: '', date: new Date(), campaign: '' });
+  const [contacts, setContacts] = useState([]);
+  const [newcalls, setNewCalls] = useState({ name: '', number: '', date: new Date() });
   const [isModalOpen, setModalOpen] = useState(false);
   const [isAscending, setIsAscending] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+
+  const fetchContacts = async () => {
+    try {
+      const response = await fetch('https://api.onboardingai.org/leads', { 
+        credentials: 'include' 
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setContacts(data.leads || []);
+      }
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
+    }
+  };
 
   useEffect(() => {
     fetchCalls();
@@ -44,46 +64,61 @@ export default function SchedulePage() {
     setIsAscending(!isAscending); // Toggle the sorting order for next click
   };
 
-  const checkForConflicts = (selectedDate) => {
-    const selectedTime = new Date(selectedDate).getTime();
-
-    // Check if any existing call has the same time
-    const conflict = calls.some(call => {
-      return new Date(call.date).getTime() === selectedTime;
-    });
-
-    return conflict;
-  };
 
   const handleAddContact = async (call) => {
     try {
-      if (!call.name || !call.number || !call.date || !call.campaign) {
+      if (!call.name || !call.number || !call.date) {
         alert('Please fill in required fields');
         return;
       }
-
-      if (checkForConflicts(call.date)) {
-        setErrorMessage('This time slot is already taken. Please choose a different time.');
-        return;
+  
+      // Ensure date is properly formatted
+      const formattedCall = {
+        ...call,
+        date: new Date(call.date).toISOString()  // Convert to ISO string format
+      };
+  
+      // Log the payload for debugging
+      console.log('Sending schedule payload:', formattedCall);
+  
+      const exist = contacts.some((lead) => lead.number === call.number);
+  
+      if (!exist) {
+        const addLeadResponse = await fetch('https://api.onboardingai.org/leads', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: call.name, number: call.number }),
+        });
+  
+        if (!addLeadResponse.ok) {
+          const errorData = await addLeadResponse.json();
+          console.error('Failed to add lead:', errorData);
+          setErrorMessage(errorData.message || 'Failed to add lead');
+          return;
+        }
       }
-
+  
       const response = await fetch('https://api.onboardingai.org/schedules', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(call),
+        body: JSON.stringify(formattedCall),
       });
-
+  
       if (response.ok) {
         fetchCalls();
-        setNewCalls({ name: '', number: '', date: new Date(), campaign: '' });
-        setErrorMessage(''); // Clear the error message after successful submission
+        setNewCalls({ name: '', number: '', date: new Date() });
+        setErrorMessage('');
+        setModalOpen(false);  // Close modal on success
       } else {
-        alert('Failed to add schedule');
+        const errorData = await response.json();
+        console.error('Failed to add schedule:', errorData);
+        setErrorMessage(errorData.message || 'Failed to add schedule');
       }
     } catch (error) {
       console.error("Error adding schedule:", error);
-      alert('Error adding schedule');
+      setErrorMessage('Error adding schedule: ' + error.message);
     }
   };
 
@@ -146,7 +181,6 @@ export default function SchedulePage() {
                   <TableHead>Phone Number</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Time</TableHead>
-                  <TableHead>Campaign</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -157,12 +191,8 @@ export default function SchedulePage() {
                     <TableCell>{call.number}</TableCell> 
                     <TableCell>{formatDate(call.date)}</TableCell> 
                     <TableCell>{formatTime(call.date)}</TableCell> 
-                    <TableCell>{call.campaign}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
-                          Calling 
-                        </Button>
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -189,7 +219,3 @@ export default function SchedulePage() {
     </Layout>
   );
 }
-
-
-
-

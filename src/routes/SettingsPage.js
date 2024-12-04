@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Label } from "../components/ui/label"
 import { Switch } from "../components/ui/switch"
 import Layout from '../components/Layout'
-import { X, PlayCircle, Pause, Volume2 } from 'lucide-react' 
+import { X, PlayCircle, Pause, Volume2, LogOut } from 'lucide-react' 
 import ConfirmationDialog from '../components/ConfirmationDialog'
 import { useNavigate } from 'react-router-dom';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
@@ -14,7 +14,7 @@ import CheckoutButton from '../components/CheckoutButton'
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { user, name, business, login, role } = useContext(AuthContext);
+  const { user, name, business, login, role, logout } = useContext(AuthContext);
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
@@ -481,7 +481,24 @@ export default function SettingsPage() {
   return (
     <Layout>
       <div className="p-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Settings</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Settings</h1>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-blue-600 hover:bg-blue-50"
+              onClick={async () => {
+                const success = await logout();
+                if (success) {
+                  navigate('/');
+                }
+              }}
+            >
+              <LogOut className="h-3 w-3 mr-1.5" /> Log Out
+            </Button>
+          </div>
+        </div>
         
         {/* Add alert message display */}
         {alertMessage && (

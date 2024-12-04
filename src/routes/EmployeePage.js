@@ -3,16 +3,18 @@ import { AuthContext } from '../AuthContext'
 import { Button } from "../components/ui/button"
 import { Card, CardContent } from "../components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
-import { Plus, X } from "lucide-react"
+import { Plus, X, LogOut } from "lucide-react"
 import Layout from '../components/Layout'
+import { useNavigate } from 'react-router-dom';
 
 export default function EmployeePage() {
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [editingEmployee, setEditingEmployee] = useState(null);
-  const { business, loading, user, role } = useContext(AuthContext);
+  const { business, loading, user, role, logout } = useContext(AuthContext);
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -166,8 +168,25 @@ export default function EmployeePage() {
   return (
     <Layout>
       <div className="p-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Employees</h1>
-        
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Employees</h1>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-blue-600 hover:bg-blue-50"
+              onClick={async () => {
+                const success = await logout();
+                if (success) {
+                  navigate('/');
+                }
+              }}
+            >
+              <LogOut className="h-3 w-3 mr-1.5" /> Log Out
+            </Button>
+          </div>
+        </div>
+
         {alertMessage && (
           <div className={`mb-4 p-4 rounded-lg ${
             alertMessage.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'

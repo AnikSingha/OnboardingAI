@@ -14,7 +14,7 @@ import CheckoutButton from '../components/CheckoutButton'
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { user, name, business, login } = useContext(AuthContext);
+  const { user, name, business, login, role } = useContext(AuthContext);
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
@@ -475,6 +475,9 @@ export default function SettingsPage() {
     }
   };
 
+  const canAccessBilling = role === 'Owner';
+  const canAccessAISettings = role === 'Owner';
+
   return (
     <Layout>
       <div className="p-8">
@@ -542,107 +545,91 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/*}
-          <Card>
-            <CardHeader>
-              <CardTitle>Notifications</CardTitle>
-              <CardDescription>Manage your notification preferences</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="email-notifications">Email Notifications</Label>
-                <Switch 
-                  id="email-notifications" 
-                  checked={notifications.email}
-                  onCheckedChange={() => handleNotificationToggle('email')}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="sms-notifications">SMS Notifications</Label>
-                <Switch 
-                  id="sms-notifications" 
-                  checked={notifications.sms}
-                  onCheckedChange={() => handleNotificationToggle('sms')}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="lead-status-notifications">Lead Status Updates</Label>
-                <Switch 
-                  id="lead-status-notifications" 
-                  checked={notifications.leadStatusUpdate}
-                  onCheckedChange={() => handleNotificationToggle('leadStatusUpdate')}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>AI Settings</CardTitle>
-              <CardDescription>Configure your AI assistant</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="ai-voice">AI Voice</Label>
-                <select id="ai-voice" name="voice" value={aiSettings.voice} onChange={handleAISettingChange} className="w-full mt-1 rounded-md border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200">
-                  <option>Natural Female</option>
-                  <option>Natural Male</option>
-                  <option>Robot</option>
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="conversation-style">Conversation Style</Label>
-                <select id="conversation-style" name="conversationStyle" value={aiSettings.conversationStyle} onChange={handleAISettingChange} className="w-full mt-1 rounded-md border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200">
-                  <option>Friendly</option>
-                  <option>Professional</option>
-                  <option>Casual</option>
-                </select>
-              </div>
-              <Button onClick={handleSaveAISettings}>Save AI Settings</Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Billing and Subscription</CardTitle>
-              <CardDescription>Manage your plan and payment details</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Current Plan</Label>
-                <p className="text-lg font-semibold">{billingInfo.currentPlan}</p>
-                <p className="text-sm text-gray-500">
-                  Billed {billingInfo.billingCycle.toLowerCase()}. Next billing date: {billingInfo.nextBillingDate}
-                </p>
-              </div>
-              <div>
-                <Label>Payment Method</Label>
-                <p>{billingInfo.paymentMethod}</p>
-              </div>
-              <div>
-                <Label>Usage</Label>
-                <div className="grid grid-cols-2 gap-4 mt-2">
+          {canAccessAISettings && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>AI Voice Settings</CardTitle>
+                <CardDescription>Configure how your AI assistant sounds</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <p className="text-sm font-medium">Calls</p>
-                    <p className="text-lg font-semibold">
-                      {billingInfo.usage.calls} / {billingInfo.usage.callsLimit}
-                    </p>
+                    <Label htmlFor="voice-select">Voice Selection</Label>
+                    <div className="flex items-center space-x-2">
+                      <select
+                        id="voice-select"
+                        value={VOICE_OPTIONS.find(v => v.name === aiSettings.voice)?.id}
+                        onChange={(e) => handleVoiceChange(e.target.value)}
+                        className="w-full mt-1 rounded-md border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                      >
+                        {VOICE_OPTIONS.map((voice) => (
+                          <option key={voice.id} value={voice.id}>
+                            {voice.name}
+                          </option>
+                        ))}
+                      </select>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const currentVoice = VOICE_OPTIONS.find(v => v.name === aiSettings.voice);
+                          if (isPlaying) {
+                            handleStopPreview();
+                          } else {
+                            handlePreviewVoice(currentVoice.sampleUrl);
+                          }
+                        }}
+                        className="flex items-center space-x-2 min-w-[100px]"
+                      >
+                        {isPlaying ? (
+                          <>
+                            <Pause className="h-4 w-4" />
+                            <span>Stop</span>
+                          </>
+                        ) : (
+                          <>
+                            <PlayCircle className="h-4 w-4" />
+                            <span>Preview</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">Storage</p>
-                    <p className="text-lg font-semibold">
-                      {billingInfo.usage.storage} / {billingInfo.usage.storageLimit}
-                    </p>
+
+                  {/* Voice description */}
+                  <div className="text-sm text-gray-500">
+                    {VOICE_OPTIONS.find(v => v.name === aiSettings.voice)?.description}
+                  </div>
+
+                  {/* Audio progress indicator */}
+                  {isPlaying && (
+                    <div className="flex items-center space-x-2">
+                      <Volume2 className="h-4 w-4 text-blue-500 animate-pulse" />
+                      <div className="h-1 w-24 bg-blue-200 rounded-full">
+                        <div className="h-1 bg-blue-500 rounded-full animate-[progress_2s_ease-in-out_infinite]" style={{ width: '75%' }} />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-4">
+                    <Label htmlFor="conversation-style">Conversation Style</Label>
+                    <select
+                      id="conversation-style"
+                      name="conversationStyle"
+                      value={aiSettings.conversationStyle}
+                      onChange={handleAISettingChange}
+                      className="w-full mt-1 rounded-md border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                    >
+                      <option>Friendly</option>
+                      <option>Professional</option>
+                      <option>Casual</option>
+                    </select>
                   </div>
                 </div>
-              </div>
-              <div className="flex space-x-4">
-                <Button onClick={handleUpgradePlan}>Upgrade Plan</Button>
-                <Button variant="outline" onClick={handleUpdatePayment}>Update Payment Method</Button>
-              </div>
-            </CardContent>
-          </Card>
-          */}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>
@@ -686,101 +673,19 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>AI Voice Settings</CardTitle>
-              <CardDescription>Configure how your AI assistant sounds</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="voice-select">Voice Selection</Label>
-                  <div className="flex items-center space-x-2">
-                    <select
-                      id="voice-select"
-                      value={VOICE_OPTIONS.find(v => v.name === aiSettings.voice)?.id}
-                      onChange={(e) => handleVoiceChange(e.target.value)}
-                      className="w-full mt-1 rounded-md border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
-                    >
-                      {VOICE_OPTIONS.map((voice) => (
-                        <option key={voice.id} value={voice.id}>
-                          {voice.name}
-                        </option>
-                      ))}
-                    </select>
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const currentVoice = VOICE_OPTIONS.find(v => v.name === aiSettings.voice);
-                        if (isPlaying) {
-                          handleStopPreview();
-                        } else {
-                          handlePreviewVoice(currentVoice.sampleUrl);
-                        }
-                      }}
-                      className="flex items-center space-x-2 min-w-[100px]"
-                    >
-                      {isPlaying ? (
-                        <>
-                          <Pause className="h-4 w-4" />
-                          <span>Stop</span>
-                        </>
-                      ) : (
-                        <>
-                          <PlayCircle className="h-4 w-4" />
-                          <span>Preview</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Voice description */}
-                <div className="text-sm text-gray-500">
-                  {VOICE_OPTIONS.find(v => v.name === aiSettings.voice)?.description}
-                </div>
-
-                {/* Audio progress indicator */}
-                {isPlaying && (
-                  <div className="flex items-center space-x-2">
-                    <Volume2 className="h-4 w-4 text-blue-500 animate-pulse" />
-                    <div className="h-1 w-24 bg-blue-200 rounded-full">
-                      <div className="h-1 bg-blue-500 rounded-full animate-[progress_2s_ease-in-out_infinite]" style={{ width: '75%' }} />
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-4">
-                  <Label htmlFor="conversation-style">Conversation Style</Label>
-                  <select
-                    id="conversation-style"
-                    name="conversationStyle"
-                    value={aiSettings.conversationStyle}
-                    onChange={handleAISettingChange}
-                    className="w-full mt-1 rounded-md border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
-                  >
-                    <option>Friendly</option>
-                    <option>Professional</option>
-                    <option>Casual</option>
-                  </select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Billing</CardTitle>
-              <CardDescription>Checkout</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button>
-                <CheckoutButton amount={100} />
-              </Button>
-            </CardContent>
-          </Card>
+          {canAccessBilling && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Billing</CardTitle>
+                <CardDescription>Checkout</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button>
+                  <CheckoutButton amount={100} />
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
         </div>
       </div>

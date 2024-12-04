@@ -480,11 +480,14 @@ export default function SettingsPage() {
 
   const [phoneNumbers, setPhoneNumbers] = useState([]);
   const [newPhoneNumber, setNewPhoneNumber] = useState('');
-  console.log("Business name:", business);//debug
-  // Fetch phone numbers when the component mounts
+
   useEffect(() => {
-    fetchPhoneNumbers();
-  }, []);
+    if (business) {
+      fetchPhoneNumbers();
+    } else {
+      console.log("Business name is not set yet");
+    }
+  }, [business]);
 
   // Fetch phone numbers for a business
   const fetchPhoneNumbers = async () => {

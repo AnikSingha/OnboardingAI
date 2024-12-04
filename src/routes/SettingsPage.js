@@ -490,7 +490,7 @@ export default function SettingsPage() {
   const fetchPhoneNumbers = async () => {
     try {
       // Send a GET request to fetch phone numbers
-      const fetchPhoneResponse = await fetch('https://api.onboardingai.org/business/get-phone-numbers?business_name=${business}', {
+      const fetchPhoneResponse = await fetch(`https://api.onboardingai.org/business/get-phone-numbers?business_name=${business}`, {
         method: 'GET',
         credentials: 'include',
         headers: {

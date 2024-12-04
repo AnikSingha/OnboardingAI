@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Label } from "../components/ui/label"
 import { Switch } from "../components/ui/switch"
 import Layout from '../components/Layout'
-import { X } from 'lucide-react' 
+import { X, PlayCircle, Pause, Volume2 } from 'lucide-react' 
 import ConfirmationDialog from '../components/ConfirmationDialog'
 import { useNavigate } from 'react-router-dom';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
@@ -411,6 +411,69 @@ export default function SettingsPage() {
     });
   };
 
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState(null);
+
+  const VOICE_OPTIONS = [
+    { 
+      id: 'natural-female',
+      name: 'Natural Female', 
+      description: 'A warm and professional female voice',
+      sampleUrl: 'https://api.onboardingai.org/samples/natural-female.mp3' // Replace with actual URL
+    },
+    { 
+      id: 'natural-male',
+      name: 'Natural Male', 
+      description: 'A friendly and confident male voice',
+      sampleUrl: 'https://api.onboardingai.org/samples/natural-male.mp3'
+    },
+    {
+      id: 'professional-female',
+      name: 'Professional Female',
+      description: 'A formal and articulate female voice',
+      sampleUrl: 'https://api.onboardingai.org/samples/professional-female.mp3'
+    }
+  ];
+
+  const handleVoiceChange = (voiceId) => {
+    const voice = VOICE_OPTIONS.find(v => v.id === voiceId);
+    if (!voice) return;
+    
+    setAiSettings(prev => ({
+      ...prev,
+      voice: voice.name
+    }));
+    
+    // Stop any playing audio when changing voice
+    if (currentAudio) {
+      currentAudio.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const handlePreviewVoice = (sampleUrl) => {
+    if (currentAudio) {
+      currentAudio.pause();
+    }
+
+    const audio = new Audio(sampleUrl);
+    setCurrentAudio(audio);
+    
+    audio.addEventListener('ended', () => {
+      setIsPlaying(false);
+    });
+
+    audio.play();
+    setIsPlaying(true);
+  };
+
+  const handleStopPreview = () => {
+    if (currentAudio) {
+      currentAudio.pause();
+      setIsPlaying(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="p-8">
@@ -619,6 +682,90 @@ export default function SettingsPage() {
                   onError={handleVerificationError}
                 />
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Voice Settings</CardTitle>
+              <CardDescription>Configure how your AI assistant sounds</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="voice-select">Voice Selection</Label>
+                  <div className="flex items-center space-x-2">
+                    <select
+                      id="voice-select"
+                      value={VOICE_OPTIONS.find(v => v.name === aiSettings.voice)?.id}
+                      onChange={(e) => handleVoiceChange(e.target.value)}
+                      className="w-full mt-1 rounded-md border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                    >
+                      {VOICE_OPTIONS.map((voice) => (
+                        <option key={voice.id} value={voice.id}>
+                          {voice.name}
+                        </option>
+                      ))}
+                    </select>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const currentVoice = VOICE_OPTIONS.find(v => v.name === aiSettings.voice);
+                        if (isPlaying) {
+                          handleStopPreview();
+                        } else {
+                          handlePreviewVoice(currentVoice.sampleUrl);
+                        }
+                      }}
+                      className="flex items-center space-x-2 min-w-[100px]"
+                    >
+                      {isPlaying ? (
+                        <>
+                          <Pause className="h-4 w-4" />
+                          <span>Stop</span>
+                        </>
+                      ) : (
+                        <>
+                          <PlayCircle className="h-4 w-4" />
+                          <span>Preview</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Voice description */}
+                <div className="text-sm text-gray-500">
+                  {VOICE_OPTIONS.find(v => v.name === aiSettings.voice)?.description}
+                </div>
+
+                {/* Audio progress indicator */}
+                {isPlaying && (
+                  <div className="flex items-center space-x-2">
+                    <Volume2 className="h-4 w-4 text-blue-500 animate-pulse" />
+                    <div className="h-1 w-24 bg-blue-200 rounded-full">
+                      <div className="h-1 bg-blue-500 rounded-full animate-[progress_2s_ease-in-out_infinite]" style={{ width: '75%' }} />
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-4">
+                  <Label htmlFor="conversation-style">Conversation Style</Label>
+                  <select
+                    id="conversation-style"
+                    name="conversationStyle"
+                    value={aiSettings.conversationStyle}
+                    onChange={handleAISettingChange}
+                    className="w-full mt-1 rounded-md border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                  >
+                    <option>Friendly</option>
+                    <option>Professional</option>
+                    <option>Casual</option>
+                  </select>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

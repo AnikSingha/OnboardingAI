@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from "./ui/button"
-import { BarChart, Calendar, Phone, Settings, User, ChevronLeft, ChevronRight, Megaphone, Users } from "lucide-react"
+import { BarChart, Calendar, Phone, Settings, User, ChevronLeft, ChevronRight, Megaphone, Users, FileText } from "lucide-react"
 import Logo from "./Logo";
 
 export default function Layout({ children }) {
@@ -43,10 +43,16 @@ export default function Layout({ children }) {
               Schedule
             </span>
           </Link>
-          <Link to="/campaigns" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md px-4 py-2 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+          <Link to="/calls" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md px-4 py-2 ${sidebarCollapsed ? 'justify-center' : ''}`}>
             <Phone className="h-5 w-5 min-w-[20px] min-h-[20px]" />
             <span className={`ml-2 transition-all duration-300 ${sidebarCollapsed ? 'opacity-0 w-0 ml-0' : 'opacity-100 w-auto'}`}>
-              Campaigns
+              Calls
+            </span>
+          </Link>
+          <Link to="/scripts" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md px-4 py-2 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+            <FileText className="h-5 w-5 min-w-[20px] min-h-[20px]" />
+            <span className={`ml-2 transition-all duration-300 ${sidebarCollapsed ? 'opacity-0 w-0 ml-0' : 'opacity-100 w-auto'}`}>
+              Scripts
             </span>
           </Link>
           <Link to="/employees" className={`no-underline flex items-center w-full mb-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md px-4 py-2 ${sidebarCollapsed ? 'justify-center' : ''}`}>

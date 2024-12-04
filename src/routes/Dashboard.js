@@ -3,7 +3,7 @@ import { useContext } from 'react'
 import { Button } from "../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { BarChart, Bell, Calendar, Phone, LogOut } from "lucide-react";
+import { BarChart, Bell, Calendar, Phone, LogOut, Clock, CreditCard, AlertCircle } from "lucide-react";
 import Layout from '../components/Layout';
 import { AuthContext } from '../AuthContext'
 import { useNavigate } from 'react-router-dom';
@@ -11,161 +11,198 @@ import { useNavigate } from 'react-router-dom';
 export default function Dashboard() {
   const { logout } = useContext(AuthContext)
   const navigate = useNavigate()
+
+  const usageData = {
+    creditsRemaining: 850,
+    totalCredits: 1000,
+    usedThisMonth: 150,
+    daysLeft: 22,
+    isLow: false
+  }
+
   return (
     <Layout>
-      <div className="p-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-          <div className="flex items-center">
-            <Button variant="outline" className="mr-4 border-blue-600 text-blue-600 hover:bg-blue-50">
-              <Bell className="h-4 w-4 mr-2" /> Notifications
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="text-blue-600 hover:bg-blue-50">
+              <Bell className="h-3 w-3 mr-1.5" /> Notifications
             </Button>
             <Button
               variant="outline"
-              className="mr-4 border-blue-600 text-blue-600 hover:bg-blue-50"
+              size="sm"
+              className="text-blue-600 hover:bg-blue-50"
               onClick={async () => {
-                  // Call the logout function
-                  const success = await logout(); // Ensure logout returns a success status
-                  if (success) {
-                      navigate('/'); // Only navigate if logout was successful
-                  }
+                const success = await logout();
+                if (success) {
+                  navigate('/');
+                }
               }}
-          >
-              <LogOut className="h-4 w-4 mr-2" /> Log Out
-          </Button>
-
+            >
+              <LogOut className="h-3 w-3 mr-1.5" /> Log Out
+            </Button>
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-white border-blue-100">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <Card className="bg-white hover:shadow-sm transition-shadow duration-200">
+            <CardHeader className="flex flex-row items-center justify-between py-2 px-4">
+              <CardTitle className="text-sm font-medium text-gray-600">Credits Available</CardTitle>
+              <CreditCard className="h-3 w-3 text-blue-600" />
+            </CardHeader>
+            <CardContent className="pt-2 px-4 pb-4">
+              <div className="text-2xl font-bold text-gray-800 mb-1">{usageData.creditsRemaining}</div>
+              <div className="space-y-0.5">
+                <p className="text-xs text-gray-500">Used: {usageData.usedThisMonth} this month</p>
+                <p className="text-xs text-gray-500">{usageData.daysLeft} days left in cycle</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white hover:shadow-sm transition-shadow duration-200">
+            <CardHeader className="flex flex-row items-center justify-between py-2 px-4">
               <CardTitle className="text-sm font-medium text-gray-600">Total Calls</CardTitle>
-              <Phone className="h-4 w-4 text-blue-600" />
+              <Phone className="h-3 w-3 text-blue-600" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-800">1,234</div>
-              <p className="text-xs text-blue-600">+20.1% from last month</p>
+            <CardContent className="pt-2 px-4 pb-4">
+              <div className="text-2xl font-bold text-gray-800 mb-1">1,234</div>
+              <p className="text-xs text-blue-600 font-medium">+20.1% from last month</p>
             </CardContent>
           </Card>
-          <Card className="bg-white border-blue-100">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Success Rate</CardTitle>
-              <BarChart className="h-4 w-4 text-blue-600" />
+
+          <Card className="bg-white hover:shadow-sm transition-shadow duration-200">
+            <CardHeader className="flex flex-row items-center justify-between py-2 px-4">
+              <CardTitle className="text-sm font-medium text-gray-600">Appointments Scheduled</CardTitle>
+              <Calendar className="h-3 w-3 text-blue-600" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-800">89%</div>
-              <p className="text-xs text-blue-600">+2.4% from last month</p>
+            <CardContent className="pt-2 px-4 pb-4">
+              <div className="text-2xl font-bold text-gray-800 mb-1">89</div>
+              <p className="text-xs text-blue-600 font-medium">+15.3% from last month</p>
             </CardContent>
           </Card>
-          <Card className="bg-white border-blue-100">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Active Campaigns</CardTitle>
-              <Calendar className="h-4 w-4 text-blue-600" />
+
+          <Card className="bg-white hover:shadow-sm transition-shadow duration-200">
+            <CardHeader className="flex flex-row items-center justify-between py-2 px-4">
+              <CardTitle className="text-sm font-medium text-gray-600">Avg. Call Duration</CardTitle>
+              <Clock className="h-3 w-3 text-blue-600" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-800">3</div>
-              <p className="text-xs text-blue-600">2 campaigns ending soon</p>
+            <CardContent className="pt-2 px-4 pb-4">
+              <div className="text-2xl font-bold text-gray-800 mb-1">3:24</div>
+              <p className="text-xs text-blue-600 font-medium">-0:12 from last month</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Tabs for different sections */}
-        <Tabs defaultValue="campaigns" className="space-y-4">
-          <TabsList className="bg-blue-50">
-            <TabsTrigger value="campaigns" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
-              Recent Campaigns
+        <Tabs defaultValue="calls" className="space-y-3">
+          <TabsList className="bg-gray-50 p-0.5 rounded-lg">
+            <TabsTrigger 
+              value="calls" 
+              className="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-sm transition-all"
+            >
+              Recent Calls
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
+            <TabsTrigger 
+              value="analytics" 
+              className="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-sm transition-all"
+            >
               Analytics
             </TabsTrigger>
-            <TabsTrigger value="ai-settings" className="data-[state=active]:bg-white data-[state=active]:text-blue-600">
-              AI Settings
+            <TabsTrigger 
+              value="scripts" 
+              className="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-sm transition-all"
+            >
+              Scripts
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="campaigns" className="space-y-4">
-            <Card className="bg-white border-blue-100">
-              <CardHeader>
-                <CardTitle className="text-gray-800">Recent Campaigns</CardTitle>
-                <CardDescription className="text-gray-600">Your latest AI-powered campaigns</CardDescription>
+
+          <TabsContent value="calls" className="space-y-4">
+            <Card className="border border-gray-100 shadow-sm">
+              <CardHeader className="py-3 px-4">
+                <CardTitle className="text-lg text-gray-800">Recent Calls</CardTitle>
+                <CardDescription className="text-sm text-gray-600">Your latest AI-powered calls</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[1, 2, 3].map((campaign) => (
-                    <div key={campaign} className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 mr-4"></div>
-                      <div>
-                        <p className="font-medium text-gray-800">Campaign {campaign}</p>
-                        <p className="text-sm text-gray-600">Started 2 days ago • 45% complete</p>
+              <CardContent className="px-4 py-2">
+                <div className="space-y-2">
+                  {[
+                    { name: "John Doe", time: "2 minutes ago", duration: "3:24" },
+                    { name: "Bobby Bill", time: "10 minutes ago", duration: "2:32" },
+                    { name: "Drill Sergeant", time: "22 minutes ago", duration: "10:01" }
+                  ].map((call, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                          <Phone className="h-3 w-3 text-blue-600" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="font-medium text-gray-800">{call.name}</p>
+                          <p className="text-xs text-gray-600">{call.time} • {call.duration}</p>
+                        </div>
                       </div>
+                      <Button variant="outline" size="sm" className="text-xs hover:bg-blue-50 hover:text-blue-600">
+                        View Details
+                      </Button>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
+
           <TabsContent value="analytics" className="space-y-4">
-            <Card className="bg-white border-blue-100">
+            <Card className="border border-gray-100 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-gray-800">Campaign Analytics</CardTitle>
+                <CardTitle className="text-xl text-gray-800">Call Analytics</CardTitle>
                 <CardDescription className="text-gray-600">Your AI-Caller performance metrics</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[200px] bg-blue-50 rounded-md"></div>
+                <div className="h-[300px] bg-gray-50 rounded-lg flex items-center justify-center text-gray-500">
+                  Call Analytics Chart Placeholder
+                </div>
               </CardContent>
             </Card>
-            <Card className="bg-white border-blue-100">
+            <Card className="border border-gray-100 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-gray-800">Call Success Rate</CardTitle>
+                <CardTitle className="text-xl text-gray-800">Call Success Rate</CardTitle>
                 <CardDescription className="text-gray-600">Percentage of successful calls over time</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[200px] bg-blue-50 rounded-md"></div>
-              </CardContent>
-            </Card>
-            <Card className="bg-white border-blue-100">
-              <CardHeader>
-                <CardTitle className="text-gray-800">Campaign Conversion Rate</CardTitle>
-                <CardDescription className="text-gray-600">Percentage of calls resulting in desired outcomes</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[200px] bg-blue-50 rounded-md"></div>
+                <div className="h-[300px] bg-gray-50 rounded-lg flex items-center justify-center text-gray-500">
+                  Success Rate Chart Placeholder
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
-          <TabsContent value="ai-settings" className="space-y-4">
-            <Card className="bg-white border-blue-100">
+
+          <TabsContent value="scripts" className="space-y-4">
+            <Card className="border border-gray-100 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-gray-800">AI Settings</CardTitle>
-                <CardDescription className="text-gray-600">Customize your AI-Caller behavior</CardDescription>
+                <CardTitle className="text-xl text-gray-800">AI Scripts</CardTitle>
+                <CardDescription className="text-gray-600">Manage and customize your AI call scripts</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">AI Voice</label>
-                    <select className="w-full mt-1 rounded-md border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200">
-                      <option>Natural Female</option>
-                      <option>Natural Male</option>
-                      <option>Robot</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Conversation Style</label>
-                    <select className="w-full mt-1 rounded-md border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200">
-                      <option>Friendly</option>
-                      <option>Professional</option>
-                      <option>Casual</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Call Script</label>
-                    <textarea
-                      className="w-full mt-1 rounded-md border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
-                      rows={4}
-                      placeholder="Enter your default call script here..."
-                    ></textarea>
-                  </div>
+                <div className="space-y-3">
+                  {[
+                    { name: "Customer Onboarding", lastEdited: "2 days ago", uses: 45 },
+                    { name: "Product Demo", lastEdited: "1 week ago", uses: 32 },
+                    { name: "Follow-up Call", lastEdited: "3 days ago", uses: 28 },
+                    { name: "Feedback Collection", lastEdited: "5 days ago", uses: 15 },
+                    { name: "Appointment Scheduling", lastEdited: "1 day ago", uses: 52 }
+                  ].map((script, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div>
+                        <p className="font-medium text-gray-800">{script.name}</p>
+                        <p className="text-sm text-gray-600">Last edited: {script.lastEdited} • Used {script.uses} times</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                      >
+                        Edit
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

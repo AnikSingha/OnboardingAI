@@ -420,19 +420,19 @@ export default function SettingsPage() {
       id: 'natural-female',
       name: 'Natural Female', 
       description: 'A warm and professional female voice',
-      sampleUrl: 'https://api.onboardingai.org/samples/natural-female.mp3' // Replace with actual URL
+      sampleUrl: '/audio/natural-female.wav' // Replace with actual URL
     },
     { 
       id: 'natural-male',
       name: 'Natural Male', 
       description: 'A friendly and confident male voice',
-      sampleUrl: 'https://api.onboardingai.org/samples/natural-male.mp3'
+      sampleUrl: '/audio/natural-male.mp3'
     },
     {
       id: 'professional-female',
       name: 'Professional Female',
       description: 'A formal and articulate female voice',
-      sampleUrl: 'https://api.onboardingai.org/samples/professional-female.mp3'
+      sampleUrl: '/audio/professional-female.wav'
     }
   ];
 

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Label } from "../components/ui/label"
 import { Switch } from "../components/ui/switch"
 import Layout from '../components/Layout'
-import { X, PlayCircle, Pause, Volume2, LogOut } from 'lucide-react' 
+import { X, PlayCircle, Pause, Volume2, LogOut, Trash2 } from 'lucide-react' 
 import ConfirmationDialog from '../components/ConfirmationDialog'
 import { useNavigate } from 'react-router-dom';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
@@ -478,6 +478,91 @@ export default function SettingsPage() {
   const canAccessBilling = role === 'Owner';
   const canAccessAISettings = role === 'Owner';
 
+  const [phoneNumbers, setPhoneNumbers] = useState([]);
+  const [newPhoneNumber, setNewPhoneNumber] = useState('');
+
+  // Fetch phone numbers when the component mounts
+  useEffect(() => {
+    fetchPhoneNumbers();
+  }, []);
+
+  // Fetch phone numbers for a business
+  const fetchPhoneNumbers = async () => {
+    try {
+      // Send a GET request to fetch phone numbers
+      const fetchPhoneResponse = await fetch('https://api.onboardingai.org/business/get-phone-numbers?business_name=${business}', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (fetchPhoneResponse.ok) {
+        const data = await fetchPhoneResponse.json();
+        setPhoneNumbers(data.phone_numbers || []);
+      }
+
+    } catch (error) {
+      console.error('Error fetching phone numbers:', error);
+    }
+  };
+
+  const handleAddPhoneNumber = async (newPhoneNumber) => {
+    if (newPhoneNumber) {
+      try {
+        // Send a PUT request to add the phone number
+        const addPhoneResponse = await fetch('https://api.onboardingai.org/business/add-phone-number', {
+          method: 'PUT',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            business_name: business,
+            phone_number: newPhoneNumber,
+          }),
+        });
+  
+        if (addPhoneResponse.ok) {
+          fetchPhoneNumbers();
+        } else {
+          const data = await addPhoneResponse.json();
+          alert(data.message || 'Failed to add PhoneNumber');
+        }
+      } catch (error) {
+        console.error('Error adding phone number:', error);
+      }
+    }
+  };
+  
+  // Handle deleting a phone number
+  const handleDeletePhoneNumber = async (number) => {
+    try {
+      // Send a DELETE request to delete the phone number
+      const deletePhoneResponse = await fetch('https://api.onboardingai.org/business/delete-phone-number', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          business_name: business,
+          phone_number: number,
+        }),
+      });
+  
+      if (deletePhoneResponse.ok) {
+        fetchPhoneNumbers();
+      } else {
+        const data = await deletePhoneResponse.json();
+        alert(data.message || 'Failed to delete PhoneNumber');
+      }
+    } catch (error) {
+      console.error('Error deleting phone number:', error);
+    }
+  };
+
   return (
     <Layout>
       <div className="p-8">
@@ -559,6 +644,47 @@ export default function SettingsPage() {
               >
                 Reset Password
               </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Phone Numbers</CardTitle>
+              <CardDescription>Manage Phone Numbers for receiving calls</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div>
+                <div className='flex items-center justify-between mb-2 p-2 border-b'>
+                  <Input
+                    type="text"
+                    placeholder="Enter a phone number"
+                    value={newPhoneNumber}
+                    onChange={(e) => setNewPhoneNumber(e.target.value)}
+                    style={{ marginRight: "10px" }}
+                  />
+                  <Button onClick={() => {
+                    if (newPhoneNumber.trim()) {
+                      handleAddPhoneNumber(newPhoneNumber);
+                    } else {
+                      alert('Please fill in phone number');
+                    }
+                  }}>Add</Button>
+                </div>
+                <ul>
+                  {phoneNumbers.map((number) => (
+                    <li className='flex items-center justify-between mb-2 p-2 border-b'>
+                      {number}
+                      <Button
+                        variant="ghost" size="sm"
+                        onClick={() => handleDeletePhoneNumber(number)}
+                        style={{ marginLeft: "10px" }}
+                      >
+                        <Trash2/>
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </CardContent>
           </Card>
 

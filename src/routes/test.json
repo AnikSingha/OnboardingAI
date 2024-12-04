@@ -1,5 +1,0 @@
-[
-    { "id": 1, "contact": "John Doe", "date": "2023-05-20", "time": "10:00 AM", "campaign": "Spring Sale" },
-    { "id": 2, "contact": "Jane Smith", "date": "2023-05-21", "time": "2:00 PM", "campaign": "Customer Follow-up" },
-    { "id": 3, "contact": "Bob Johnson", "date": "2023-05-22", "time": "11:30 AM", "campaign": "New Product Launch" }
-  ]

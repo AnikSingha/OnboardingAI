@@ -475,9 +475,7 @@ export default function SettingsPage() {
     }
   };
 
-  const canAccessBilling = role === 'Owner';
-  const canAccessAISettings = role === 'Owner';
-
+  //For setting Phone Number
   const [phoneNumbers, setPhoneNumbers] = useState([]);
   const [newPhoneNumber, setNewPhoneNumber] = useState('');
 
@@ -565,6 +563,12 @@ export default function SettingsPage() {
       console.error('Error deleting phone number:', error);
     }
   };
+  
+  const canAccessBilling = role === 'Owner';
+  const canAccessAISettings = role === 'Owner';
+  const canAccessPhoneNumber = role === 'Owner';
+
+
 
   return (
     <Layout>
@@ -650,6 +654,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
+          {canAccessPhoneNumber &&(
           <Card>
             <CardHeader>
               <CardTitle>Phone Numbers</CardTitle>
@@ -663,6 +668,9 @@ export default function SettingsPage() {
                     placeholder="Enter a phone number"
                     value={newPhoneNumber}
                     onChange={(e) => setNewPhoneNumber(e.target.value)}
+                    required
+                    pattern="^[0-9]{10}$"
+                    title="Phone number should be 10 digits"
                     style={{ marginRight: "10px" }}
                   />
                   <Button onClick={() => {
@@ -690,6 +698,7 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          )} 
 
           {canAccessAISettings && (
             <Card className="mt-6">

@@ -663,16 +663,18 @@ export default function SettingsPage() {
             <CardContent>
               <div>
                 <div className='flex items-center justify-between mb-2 p-2 border-b'>
-                  <Input
-                    type="text"
-                    placeholder="Enter a phone number"
-                    value={newPhoneNumber}
-                    onChange={(e) => setNewPhoneNumber(e.target.value)}
-                    required
-                    pattern="^[0-9]{10}$"
-                    title="Phone number should be 10 digits"
-                    style={{ marginRight: "10px" }}
-                  />
+                  <form>
+                    <Input
+                      type="text"
+                      placeholder="Enter a phone number"
+                      value={newPhoneNumber}
+                      onChange={(e) => setNewPhoneNumber(e.target.value)}
+                      required
+                      pattern="^[0-9]{10}$"
+                      title="Phone number should be 10 digits"
+                      style={{ marginRight: "10px" }}
+                    />
+                  </form>
                   <Button onClick={() => {
                     if (newPhoneNumber.trim()) {
                       handleAddPhoneNumber(newPhoneNumber);

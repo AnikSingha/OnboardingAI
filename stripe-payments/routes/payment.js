@@ -46,12 +46,9 @@ router.post('/create-checkout-session', async (req, res) => {
                     quantity: 1,
                 },
             ],
-            mode: 'subscription',
+            mode: 'payment',
             success_url: 'https://www.onboardingai.org/',
             cancel_url: 'https://www.onboardingai.org/',
-            metadata: {
-                description: formattedDescription,
-            },
         });
 
         res.json({ id: session.id });

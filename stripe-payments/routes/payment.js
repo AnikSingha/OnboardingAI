@@ -22,12 +22,12 @@ router.post('/create-payment-intent', async (req, res) => {
 });
 
 router.post('/create-checkout-session', async (req, res) => {
-    const { amount, description } = req.body;
+    const { amount, description, features } = req.body;
 
     if (!amount || amount <= 0) {
         return res.status(400).json({ error: 'Invalid amount provided.' });
     }
-    
+
     try {
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
@@ -37,7 +37,7 @@ router.post('/create-checkout-session', async (req, res) => {
                         currency: 'usd',
                         product_data: {
                             name: 'OnboardAI',
-                            description,
+                            description: `${description}\n\nFeatures:\n${features || ''}`,
                         },
                         unit_amount: dollarsToCents(amount),
                     },
@@ -55,6 +55,7 @@ router.post('/create-checkout-session', async (req, res) => {
         res.status(500).json({ error: 'Failed to create checkout session.' });
     }
 });
+
 
 
 

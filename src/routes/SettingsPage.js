@@ -550,6 +550,10 @@ export default function SettingsPage() {
     }
   };
   
+    const handleNavigate = () => {
+      navigate('/pricing');
+    };
+
   // Handle deleting a phone number
   const handleDeletePhoneNumber = async (number) => {
     try {
@@ -845,10 +849,10 @@ export default function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Billing</CardTitle>
-                <CardDescription>See</CardDescription>
+                <CardDescription>Manage your payments</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button component={Link} to="/pricing">
+                <Button onClick={handleNavigate}>
                   Manage my Plan
                 </Button>
             </CardContent>

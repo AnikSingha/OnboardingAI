@@ -22,7 +22,7 @@ router.post('/create-payment-intent', async (req, res) => {
 });
 
 router.post('/create-checkout-session', async (req, res) => {
-    const { amount } = req.body;
+    const { amount, description } = req.body;
 
     if (!amount || amount <= 0) {
         return res.status(400).json({ error: 'Invalid amount provided.' });
@@ -35,7 +35,10 @@ router.post('/create-checkout-session', async (req, res) => {
                 {
                     price_data: {
                         currency: 'usd',
-                        product_data: { name: 'OnboardAI' },
+                        product_data: {
+                            name: 'OnboardAI',
+                            description,
+                        },
                         unit_amount: dollarsToCents(amount),
                     },
                     quantity: 1,
@@ -52,6 +55,7 @@ router.post('/create-checkout-session', async (req, res) => {
         res.status(500).json({ error: 'Failed to create checkout session.' });
     }
 });
+
 
 
 module.exports = router;

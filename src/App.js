@@ -24,7 +24,10 @@ import { AuthProvider } from './AuthContext.js';
 import CallsPage from './routes/CallsPage';
 import CallDetailsPage from './routes/CallDetailsPage';
 import ScriptsPage from './routes/ScriptsPage';
-
+import PricingPage from './components/PricingPage';
+import FAQPage from './components/FAQPage.js';
+import ContactUsPage from './components/ContactUsPage.js';
+import ReviewPage from './routes/ReviewPage';
 
 function App() {
 
@@ -32,6 +35,10 @@ function App() {
     <Router>
       <AuthProvider>
         <Routes>
+          <Route path="/reviews" element={<ReviewPage />} />
+          <Route path="/contact" element={<ContactUsPage />} />
+          <Route path="/faq" element={<FAQPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/" element={<LandingPage />} />
           <Route path="/setup" element={<BusinessSetup />} />
           <Route path="/ai-prompts" element={<AIPrompts />} />

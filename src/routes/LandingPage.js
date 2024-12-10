@@ -4,6 +4,7 @@ import { AuthContext } from '../AuthContext';
 import Header from '../components/Header';
 import HeroSection from '../components/HeroSection';
 import FeaturesSection from '../components/FeaturesSection';
+import FiveStarReviewCarousel from '../components/FiveStarReviewCarousel';
 import CTASection from '../components/CTASection';
 import Footer from '../components/Footer';
 
@@ -32,6 +33,7 @@ export default function LandingPage() {
       <main className="flex-grow">
         <HeroSection />
         <FeaturesSection />
+        <FiveStarReviewCarousel />
         <CTASection />
       </main>
       <Footer />

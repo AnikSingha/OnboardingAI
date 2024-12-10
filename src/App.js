@@ -28,6 +28,9 @@ import PricingPage from './components/PricingPage';
 import FAQPage from './components/FAQPage.js';
 import ContactUsPage from './components/ContactUsPage.js';
 import ReviewPage from './routes/ReviewPage';
+import TwoFactorSetupPage from './routes/TwoFactorSetupPage';
+
+
 
 function App() {
 
@@ -61,6 +64,7 @@ function App() {
           <Route path="/calls/:id" element={<CallDetailsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           <Route path="/scripts" element={<ScriptsPage />} />
+          <Route path="/two-factor-setup" element={<TwoFactorSetupPage />} />
         </Routes>
       </AuthProvider>
     </Router>

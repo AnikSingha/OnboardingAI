@@ -60,7 +60,7 @@ export default function LoginPage() {
 
       setAlertMessage('');
       if (!loading){
-        navigate('/dashboard')
+        navigate('/two-factor-setup');
       }
     } catch (err) {
       if (err.message === "Business already exists"){

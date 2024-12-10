@@ -6,15 +6,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Label } from "../components/ui/label"
 import { Switch } from "../components/ui/switch"
 import Layout from '../components/Layout'
-import { X, PlayCircle, Pause, Volume2, LogOut, Trash2 } from 'lucide-react' 
+import { X, PlayCircle, Pause, Volume2, LogOut, Trash2 }  from 'lucide-react' 
 import ConfirmationDialog from '../components/ConfirmationDialog'
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
 import CheckoutButton from '../components/CheckoutButton'
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, name, business, login, role, logout } = useContext(AuthContext);
+
+  const twoFactorSectionRef = useRef(null);
+
+  useEffect(() => {
+    if (location.state?.openTwoFactor) {
+      handleToggleTwoFactorAuth(true);
+      setTimeout(() => {
+        twoFactorSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [location]);
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
@@ -246,7 +258,7 @@ export default function SettingsPage() {
       } else {
         // Disable 2FA
         console.log('Disabling 2FA...');
-        const response = await fetch('https://api.onboardingai.org/auth/disable-two-factor', {
+        const response = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
           method: 'POST',
           credentials: 'include',
           headers: {
@@ -568,8 +580,6 @@ export default function SettingsPage() {
   const canAccessAISettings = role === 'Owner';
   const canAccessPhoneNumber = role === 'Owner';
 
-
-
   return (
     <Layout>
       <div className="p-8">
@@ -788,7 +798,7 @@ export default function SettingsPage() {
             </Card>
           )}
 
-          <Card>
+          <Card ref={twoFactorSectionRef}>
             <CardHeader>
               <CardTitle>Two-Factor Authentication</CardTitle>
               <CardDescription>Enhance your account security</CardDescription>

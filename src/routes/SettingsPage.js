@@ -848,10 +848,10 @@ export default function SettingsPage() {
                 <CardDescription>See</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button>
-                  <Link to="/pricing">Manage my Plan</Link>
+                <Button component={Link} to="/pricing">
+                  Manage my Plan
                 </Button>
-              </CardContent>
+            </CardContent>
             </Card>
           )}
 

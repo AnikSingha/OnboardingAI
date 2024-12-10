@@ -10,6 +10,7 @@ import { X, PlayCircle, Pause, Volume2, LogOut, Trash2 }  from 'lucide-react'
 import ConfirmationDialog from '../components/ConfirmationDialog'
 import { useNavigate, useLocation } from 'react-router-dom';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
+import { Link } from "react-router-dom";
 import CheckoutButton from '../components/CheckoutButton'
 
 export default function SettingsPage() {
@@ -844,11 +845,11 @@ export default function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Billing</CardTitle>
-                <CardDescription>Checkout</CardDescription>
+                <CardDescription>See</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button>
-                  <CheckoutButton amount={100} />
+                  <Link to="/pricing">Manage my Plan</Link>
                 </Button>
               </CardContent>
             </Card>

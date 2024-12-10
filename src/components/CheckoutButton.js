@@ -1,9 +1,4 @@
-import { useState } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
-
-const stripePromise = loadStripe('pk_test_51QRgcEKs98ZaHL9YIWP4cBqs0n0QKKcTa7kclEofcVMpx5orzazkkGFcao1IOSIpZ6to9zzfOfzhZvgePJARa5ci00ahPkmYxj');
-
-const CheckoutButton = ({ amount }) => {
+const CheckoutButton = ({ amount, description, buttonText = "Proceed to Checkout" }) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const handleClick = async () => {
@@ -15,8 +10,8 @@ const CheckoutButton = ({ amount }) => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ amount }),
-                credentials: 'include'
+                body: JSON.stringify({ amount, description }),
+                credentials: 'include',
             });
 
             const { id } = await response.json();
@@ -41,10 +36,13 @@ const CheckoutButton = ({ amount }) => {
     };
 
     return (
-        <button onClick={handleClick} disabled={isLoading}>
-            {isLoading ? 'Loading...' : 'Proceed to Checkout'}
+        <button
+            onClick={handleClick}
+            disabled={isLoading}
+            className="mt-8 block w-full rounded-lg px-6 py-4 text-center text-sm font-semibold bg-gray-600 text-white hover:bg-gray-700"
+        >
+            {isLoading ? 'Loading...' : buttonText}
         </button>
     );
 };
 
-export default CheckoutButton;

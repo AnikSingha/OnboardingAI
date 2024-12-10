@@ -1,3 +1,8 @@
+import { useState } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe('pk_test_51QRgcEKs98ZaHL9YIWP4cBqs0n0QKKcTa7kclEofcVMpx5orzazkkGFcao1IOSIpZ6to9zzfOfzhZvgePJARa5ci00ahPkmYxj');
+
 const CheckoutButton = ({ amount, description, buttonText = "Proceed to Checkout" }) => {
     const [isLoading, setIsLoading] = useState(false);
 
@@ -46,3 +51,4 @@ const CheckoutButton = ({ amount, description, buttonText = "Proceed to Checkout
     );
 };
 
+export default CheckoutButton

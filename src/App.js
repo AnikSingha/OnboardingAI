@@ -24,6 +24,8 @@ import { AuthProvider } from './AuthContext.js';
 import CallsPage from './routes/CallsPage';
 import CallDetailsPage from './routes/CallDetailsPage';
 import ScriptsPage from './routes/ScriptsPage';
+import TwoFactorSetupPage from './routes/TwoFactorSetupPage';
+
 
 
 function App() {
@@ -54,6 +56,7 @@ function App() {
           <Route path="/calls/:id" element={<CallDetailsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           <Route path="/scripts" element={<ScriptsPage />} />
+          <Route path="/two-factor-setup" element={<TwoFactorSetupPage />} />
         </Routes>
       </AuthProvider>
     </Router>

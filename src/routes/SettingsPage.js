@@ -14,7 +14,14 @@ import CheckoutButton from '../components/CheckoutButton'
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, name, business, login, role, logout } = useContext(AuthContext);
+
+  useEffect(() => {
+    if (location.state?.openTwoFactor) {
+      handleToggleTwoFactorAuth(true);
+    }
+  }, [location]);
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({

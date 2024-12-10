@@ -17,9 +17,14 @@ export default function SettingsPage() {
   const location = useLocation();
   const { user, name, business, login, role, logout } = useContext(AuthContext);
 
+  const twoFactorSectionRef = useRef(null);
+
   useEffect(() => {
     if (location.state?.openTwoFactor) {
       handleToggleTwoFactorAuth(true);
+      setTimeout(() => {
+        twoFactorSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     }
   }, [location]);
 
@@ -793,7 +798,7 @@ export default function SettingsPage() {
             </Card>
           )}
 
-          <Card>
+          <Card ref={twoFactorSectionRef}>
             <CardHeader>
               <CardTitle>Two-Factor Authentication</CardTitle>
               <CardDescription>Enhance your account security</CardDescription>

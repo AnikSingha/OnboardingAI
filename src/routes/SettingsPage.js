@@ -8,7 +8,7 @@ import { Switch } from "../components/ui/switch"
 import Layout from '../components/Layout'
 import { X, PlayCircle, Pause, Volume2, LogOut, Trash2 }  from 'lucide-react' 
 import ConfirmationDialog from '../components/ConfirmationDialog'
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
 import CheckoutButton from '../components/CheckoutButton'
 

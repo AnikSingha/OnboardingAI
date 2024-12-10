@@ -124,9 +124,6 @@ export const TwoFactorSetup = ({ qrCode, user, onSuccess, onError }) => {
       const enableResponse = await fetch('https://api.onboardingai.org/auth/enable-two-factor', {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
       });
 
       const enableData = await enableResponse.json();

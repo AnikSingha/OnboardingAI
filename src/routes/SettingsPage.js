@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Label } from "../components/ui/label"
 import { Switch } from "../components/ui/switch"
 import Layout from '../components/Layout'
-import { X, PlayCircle, Pause, Volume2, LogOut, Trash2 } from 'lucide-react' 
+import { X, PlayCircle, Pause, Volume2, LogOut, Trash2 }  from 'lucide-react' 
 import ConfirmationDialog from '../components/ConfirmationDialog'
 import { useNavigate } from 'react-router-dom';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';

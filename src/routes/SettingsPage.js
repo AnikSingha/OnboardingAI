@@ -16,15 +16,16 @@ import CheckoutButton from '../components/CheckoutButton'
 export default function SettingsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, name, business, login, role, logout } = useContext(AuthContext);
+  const { user, name, business, login, role, logout, loading} = useContext(AuthContext);
   
   const [data, setData] = useState(null);
   const [loadingSubscriptionPlan, setLoadingSubscriptionPlan] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!business) {
-        setError('No business found');
+    // Wait until business and loading state are ready
+    if (!business || loading) {
+        setError('No business found or still loading');
         setLoadingSubscriptionPlan(false);
         return;
     }
@@ -55,7 +56,7 @@ export default function SettingsPage() {
     };
 
     fetchPlanAndCredits();
-}, []);
+}, [business, loading]);
 
   const twoFactorSectionRef = useRef(null);
 

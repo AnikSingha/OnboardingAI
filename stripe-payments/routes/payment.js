@@ -22,16 +22,14 @@ router.post('/create-payment-intent', async (req, res) => {
 });
 
 router.post('/create-checkout-session', async (req, res) => {
-    const { amount, description, features } = req.body;
+    const { amount, description, features, business_id } = req.body;
 
     if (!amount || amount <= 0) {
         return res.status(400).json({ error: 'Invalid amount provided.' });
     }
 
-    const formattedDescription = `${description}\n\nFeatures:\n${features
-    .split('\n')
-    .map((feature) => `• ${feature}`) 
-    .join('\n')}`
+    const formattedDescription = `${description}<br><br>Features:<br>
+    ${features.split('\n').map((feature) => `• ${feature}<br>`).join('')}`;
 
 
     try {
@@ -53,6 +51,9 @@ router.post('/create-checkout-session', async (req, res) => {
             mode: 'payment',
             success_url: 'https://www.onboardingai.org/',
             cancel_url: 'https://www.onboardingai.org/',
+            metadata: {
+                business_id
+            },
         });
 
         res.json({ id: session.id });

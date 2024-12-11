@@ -17,6 +17,45 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, name, business, login, role, logout } = useContext(AuthContext);
+  
+  const [data, setData] = useState(null);
+  const [loadingSubscriptionPlan, setLoadingSubscriptionPlan] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!business) {
+        setError('No business found');
+        setLoadingSubscriptionPlan(false);
+        return;
+    }
+
+    const fetchPlanAndCredits = async () => {
+        try {
+            const response = await fetch('https://api.onboardingai.org/business/get-plan-and-credits', {
+                method: 'GET', 
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ business_name: business }),
+                credentials: 'include',
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                setData(result.data);
+            } else {
+                setError(result.message || 'Failed to fetch data');
+            }
+        } catch (err) {
+            setError(`An error occurred: ${err.message}`);
+        } finally {
+            setLoadingSubscriptionPlan(false);
+        }
+    };
+
+    fetchPlanAndCredits();
+}, []);
 
   const twoFactorSectionRef = useRef(null);
 
@@ -883,6 +922,12 @@ export default function SettingsPage() {
                 <CardDescription>Manage your payments</CardDescription>
               </CardHeader>
               <CardContent>
+                {data && (
+                  <div>
+                    <p><strong>Current Plan:</strong> {data.currentPlan || "You don't currently have a plan"}</p>
+                    <p><strong>Credits:</strong> {data.credits || "0"}</p>
+                  </div>
+                )}
                 <Button onClick={handleNavigate}>
                   Manage my Plan
                 </Button>

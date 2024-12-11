@@ -222,6 +222,26 @@ class BusinessManager {
         }
     }
 
+    async getPlanAndCredits(business_name) {
+        try {
+            const db = await getDb();
+            const businessCollection = db.collection('businesses');
+    
+            const business = await businessCollection.findOne({ name: business_name });
+    
+            if (!business) {
+                console.log(`Business with name ${business_name} not found`);
+                return false;
+            }
+    
+            return { credits: business.credits, currentPlan: business.currentPlan }
+        } catch (err) {
+            console.error(err);
+            return false;
+        }
+    }
+    
+
     async getLeads() {
         try {
             return await getLeads();

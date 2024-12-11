@@ -187,4 +187,25 @@ router.delete('/delete-phone-number', async (req, res) => {
     }
 })
 
+router.get('/get-plan-and-credits', async (req, res) => {
+    try {
+        const { business_name: businessName } = req.body;
+
+        if (!businessName) {
+            return res.status(400).json({ success: false, message: "Business name is required" });
+        }
+
+        const result = await getPlanAndCredits(businessName);
+
+        if (!result) {
+            return res.status(404).json({ success: false, message: "Business not found or error occurred" });
+        }
+
+        return res.status(200).json({ success: true, data: result });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal server error: ${err.message}` });
+    }
+});
+
+
 module.exports = router

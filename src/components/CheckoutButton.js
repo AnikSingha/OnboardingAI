@@ -7,7 +7,7 @@ const stripePromise = loadStripe('pk_test_51QRgcEKs98ZaHL9YIWP4cBqs0n0QKKcTa7kcl
 
 const CheckoutButton = ({ amount, description, features, buttonText }) => {
     const [isLoading, setIsLoading] = useState(false);
-    const { isAuthenticated } = useContext(AuthContext);
+    const { isAuthenticated, business } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const handleClick = async () => {
@@ -27,6 +27,7 @@ const CheckoutButton = ({ amount, description, features, buttonText }) => {
                 body: JSON.stringify({
                     amount,
                     description,
+                    bussiness_id: business,
                     features: features.join('\n'),
                 }),
                 credentials: 'include',

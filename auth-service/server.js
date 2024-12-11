@@ -5,12 +5,60 @@ const cookieParser = require('cookie-parser');
 const { verifyToken } = require('./utils/token.js');
 const cors = require('cors');
 const { handleWebSocket } = require('../ai-caller/twilioService');
+const { stripe, webhookKey } = require('../stripe-payments/stripeConfig.js');
+const { updatePlan, addCredits, decrementCredits } = require('../stripe-payments/utils/paymentUpdates.js')
 const fs = require('fs');
 const path = require('path');
 
 // Create express app and add websocket capability
 const app = express();
 expressWs(app);
+
+// webhook used by stripe
+app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const payload = req.body;
+
+  let event;
+  try {
+      event = stripe.webhooks.constructEvent(payload, sig, webhookKey);
+  } catch (err) {
+      console.error(`Webhook signature verification failed: ${err.message}`);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  switch (event.type) {
+      case 'invoice.payment_succeeded': {
+          const invoice = event.data.object;
+          const businessName = invoice.metadata.business_name;
+
+          const plan = invoice.metadata.plan;
+          let credits;
+
+          if (plan == 'Basic'){
+              credits = 30
+          } else if (plan == "Starter") {
+              credits = 60
+          } else if (plan == "Professional") {
+              credits = 120
+          }
+
+          const result = await updatePlan(businessName, plan, credits);
+          if (!result) {
+              console.error(`Failed to update plan for business: ${businessName}`);
+              return res.status(500).send('Failed to update plan');
+          }
+
+          console.log(`Successfully updated plan for ${businessName}`);
+          break;
+      }
+
+      default:
+          console.log(`Unhandled event type: ${event.type}`);
+  }
+
+  res.json({ received: true });
+});
 
 
 // Regular middleware
@@ -48,7 +96,7 @@ const openPaths = new Set([
   '/call-leads/call-status',
   '/logs',
   '/call-leads/inbound',
-  '/payment/webhook',
+  '/webhook',
 ]);
 
 // Token checking middleware (applied only to HTTP routes, not WebSocket)

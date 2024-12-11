@@ -28,7 +28,10 @@ router.post('/create-checkout-session', async (req, res) => {
         return res.status(400).json({ error: 'Invalid amount provided.' });
     }
 
-    const formattedDescription = `${description}\n\nFeatures:\n• ${features.replace(/\n/g, '\n• ')}`;
+    const formattedDescription = `${description}\n\nFeatures:\n${features
+    .split('\n')
+    .map((feature) => `• ${feature}`) 
+    .join('\n')}`
 
 
     try {

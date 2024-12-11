@@ -28,7 +28,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
   }
 
   switch (event.type) {
-      case 'invoice.payment_succeeded': {
+      case 'checkout.session.completed': {
           const invoice = event.data.object;
           const businessName = invoice.metadata.business_name;
 

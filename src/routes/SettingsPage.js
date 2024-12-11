@@ -922,10 +922,10 @@ export default function SettingsPage() {
                 <CardDescription>Manage your payments</CardDescription>
               </CardHeader>
               <CardContent>
-                  <div>
-                    <p><strong>Current Plan:</strong> {data.currentPlan || "You don't currently have a plan"}</p>
-                    <p><strong>Credits:</strong> {data.credits || "0"}</p>
-                  </div>
+              <div>
+                <p><strong>Current Plan:</strong> {data?.currentPlan || "You don't currently have a plan"}</p>
+                <p><strong>Credits:</strong> {data?.credits || "0"}</p>
+              </div>
                 <Button onClick={handleNavigate}>
                   Manage my Plan
                 </Button>

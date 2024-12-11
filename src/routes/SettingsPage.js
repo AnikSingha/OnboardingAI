@@ -32,7 +32,7 @@ export default function SettingsPage() {
     const fetchPlanAndCredits = async () => {
         try {
             const response = await fetch('https://api.onboardingai.org/business/get-plan-and-credits', {
-                method: 'GET', 
+                method: 'POST', 
                 headers: {
                     'Content-Type': 'application/json',
                 },

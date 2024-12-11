@@ -585,6 +585,37 @@ export default function SettingsPage() {
   const canAccessAISettings = role === 'Owner';
   const canAccessPhoneNumber = role === 'Owner';
 
+  const handleDeleteAccount = async () => {
+    try {
+      const response = await fetch('https://api.onboardingai.org/user/delete-account', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: user
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to delete account');
+      }
+
+      // If successful, log out and redirect to home
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setAlertMessage({
+        type: 'error',
+        text: error.message
+      });
+    }
+  };
+
   return (
     <Layout>
       <div className="p-8">
@@ -858,6 +889,36 @@ export default function SettingsPage() {
             </CardContent>
             </Card>
           )}
+
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-red-600">Delete Account</CardTitle>
+              <CardDescription className="text-red-600/80">
+                Permanently delete your account and all associated data
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-red-600/90">
+                  Warning: This action cannot be undone. This will permanently delete your account, 
+                  all your data, and remove you from any associated businesses.
+                </p>
+                <Button 
+                  variant="destructive"
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={() => {
+                    if (window.confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.')) {
+                      if (window.confirm('Please confirm once more that you want to permanently delete your account.')) {
+                        handleDeleteAccount();
+                      }
+                    }
+                  }}
+                >
+                  Delete Account
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
         </div>
       </div>

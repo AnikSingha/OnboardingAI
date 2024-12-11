@@ -195,7 +195,7 @@ router.get('/get-plan-and-credits', async (req, res) => {
             return res.status(400).json({ success: false, message: "Business name is required" });
         }
 
-        const result = await getPlanAndCredits(businessName);
+        const result = await businessManager.getPlanAndCredits(businessName);
 
         if (!result) {
             return res.status(404).json({ success: false, message: "Business not found or error occurred" });

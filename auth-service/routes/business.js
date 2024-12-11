@@ -187,7 +187,7 @@ router.delete('/delete-phone-number', async (req, res) => {
     }
 })
 
-router.get('/get-plan-and-credits', async (req, res) => {
+router.post('/get-plan-and-credits', async (req, res) => {
     try {
         const { business_name: businessName } = req.body;
 

@@ -22,7 +22,7 @@ router.post('/create-payment-intent', async (req, res) => {
 });
 
 router.post('/create-checkout-session', async (req, res) => {
-    const { amount, description, features, business_id } = req.body;
+    const { amount, description, features, business_name, plan } = req.body;
 
     if (!amount || amount <= 0) {
         return res.status(400).json({ error: 'Invalid amount provided.' });
@@ -54,7 +54,7 @@ router.post('/create-checkout-session', async (req, res) => {
             success_url: 'https://www.onboardingai.org/',
             cancel_url: 'https://www.onboardingai.org/',
             metadata: {
-                business_id
+                business_name, plan
             },
         });
 
@@ -83,8 +83,16 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
             const invoice = event.data.object;
             const businessName = invoice.metadata.business_name;
 
-            const plan = invoice.lines.data[0].plan.nickname; 
-            const credits = 100;
+            const plan = invoice.metadata.plan;
+            let credits;
+            
+            if (plan == 'Basic'){
+                credits = 30
+            } else if (plan == "Starter") {
+                credits = 60
+            } else if (plan == "Professional") {
+                credits = 120
+            }
 
             const result = await updatePlan(businessName, plan, credits);
             if (!result) {

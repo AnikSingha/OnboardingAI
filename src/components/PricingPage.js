@@ -1,9 +1,15 @@
-import React from 'react';
+import { useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
-import Header from './Header';
+import { ArrowLeft} from 'lucide-react'
 import CheckoutButton from './CheckoutButton';
+import { AuthContext } from '../AuthContext';
+import { Link } from 'react-router-dom';
 
 function PricingPage() {
+  const { isAuthenticated } = useContext(AuthContext);
+  const navigate = useNavigate();
+
   const plans = [
     {
       name: "Basic",
@@ -39,6 +45,11 @@ function PricingPage() {
 
   return (
     <div className="min-h-screen bg-[#E6E6FA]">
+      <ArrowLeft
+        onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}
+        className="h-10 w-10 absolute top-6 left-6 hover:text-gray-800 transition-transform duration-200 cursor-pointer"
+      />
+
       <main className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl">

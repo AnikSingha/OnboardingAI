@@ -227,7 +227,7 @@ class BusinessManager {
             const db = await getDb();
             const businessCollection = db.collection('businesses');
     
-            const business = await businessCollection.findOne({ name: business_name });
+            const business = await businessCollection.findOne({ business_name });
     
             if (!business) {
                 console.log(`Business with name ${business_name} not found`);

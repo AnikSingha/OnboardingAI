@@ -7,6 +7,9 @@ import { BarChart, Bell, Calendar, Phone, LogOut, Clock, CreditCard, AlertCircle
 import Layout from '../components/Layout';
 import { AuthContext } from '../AuthContext'
 import { useNavigate } from 'react-router-dom';
+import RecentCalls from "./RecentCalls"
+import Analytics from './Analytics'
+import Scripts from './Scripts'
 
 export default function Dashboard() {
   const { logout } = useContext(AuthContext)
@@ -127,7 +130,6 @@ export default function Dashboard() {
           <TabsContent value="scripts" className="space-y-4">
               <Scripts></Scripts>
           </TabsContent>
-                
         </Tabs>
       </div>
     </Layout>

@@ -1,5 +1,5 @@
 const express = require('express');
-const stripe = require('../stripeConfig.js');
+const { stripe, webhookKey } = require('../stripeConfig.js');
 const router = express.Router();
 
 const dollarsToCents = (dollars) => Math.round(dollars * 100);
@@ -66,7 +66,41 @@ router.post('/create-checkout-session', async (req, res) => {
 });
 
 
+app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    const payload = req.body;
 
+    let event;
+    try {
+        event = stripe.webhooks.constructEvent(payload, sig, webhookKey);
+    } catch (err) {
+        console.error(`Webhook signature verification failed: ${err.message}`);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
 
+    switch (event.type) {
+        case 'invoice.payment_succeeded': {
+            const invoice = event.data.object;
+            const businessName = invoice.metadata.business_name;
+
+            const plan = invoice.lines.data[0].plan.nickname; 
+            const credits = 100;
+
+            const result = await updatePlan(businessName, plan, credits);
+            if (!result) {
+                console.error(`Failed to update plan for business: ${businessName}`);
+                return res.status(500).send('Failed to update plan');
+            }
+
+            console.log(`Successfully updated plan for ${businessName}`);
+            break;
+        }
+
+        default:
+            console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    res.json({ received: true });
+});
 
 module.exports = router;

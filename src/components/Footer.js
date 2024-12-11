@@ -38,7 +38,7 @@ function Footer() {
               <li><a href="#" className="text-gray-600 hover:text-gray-900">AI Calling</a></li>
               <li><a href="#" className="text-gray-600 hover:text-gray-900">Dashboard</a></li>
               <li><a href="#" className="text-gray-600 hover:text-gray-900">Scheduling</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-900">Pricing</a></li>
+              <li><Link to="/pricing" className="text-gray-600 hover:text-gray-900">Pricing</Link></li>
             </ul>
           </div>
         </div>

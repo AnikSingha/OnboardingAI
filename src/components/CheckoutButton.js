@@ -1,12 +1,21 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
+import { AuthContext } from '../AuthContext';
 
 const stripePromise = loadStripe('pk_test_51QRgcEKs98ZaHL9YIWP4cBqs0n0QKKcTa7kclEofcVMpx5orzazkkGFcao1IOSIpZ6to9zzfOfzhZvgePJARa5ci00ahPkmYxj');
 
 const CheckoutButton = ({ amount, description, features, buttonText }) => {
     const [isLoading, setIsLoading] = useState(false);
+    const { isAuthenticated, business } = useContext(AuthContext);
+    const navigate = useNavigate();
 
     const handleClick = async () => {
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
+
         setIsLoading(true);
 
         try {
@@ -18,6 +27,7 @@ const CheckoutButton = ({ amount, description, features, buttonText }) => {
                 body: JSON.stringify({
                     amount,
                     description,
+                    bussiness_id: business,
                     features: features.join('\n'),
                 }),
                 credentials: 'include',

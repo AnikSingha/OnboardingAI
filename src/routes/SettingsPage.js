@@ -883,7 +883,7 @@ export default function SettingsPage() {
                 <CardDescription>Manage your payments</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button onClick={handleNavigate} variant="contained" color="primary">
+                <Button onClick={handleNavigate}>
                   Manage my Plan
                 </Button>
             </CardContent>

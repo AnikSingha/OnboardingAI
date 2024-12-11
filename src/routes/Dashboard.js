@@ -117,96 +117,17 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="calls" className="space-y-4">
-            <Card className="border border-gray-100 shadow-sm">
-              <CardHeader className="py-3 px-4">
-                <CardTitle className="text-lg text-gray-800">Recent Calls</CardTitle>
-                <CardDescription className="text-sm text-gray-600">Your latest AI-powered calls</CardDescription>
-              </CardHeader>
-              <CardContent className="px-4 py-2">
-                <div className="space-y-2">
-                  {[
-                    { name: "John Doe", time: "2 minutes ago", duration: "3:24" },
-                    { name: "Bobby Bill", time: "10 minutes ago", duration: "2:32" },
-                    { name: "Drill Sergeant", time: "22 minutes ago", duration: "10:01" }
-                  ].map((call, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                          <Phone className="h-3 w-3 text-blue-600" />
-                        </div>
-                        <div className="ml-3">
-                          <p className="font-medium text-gray-800">{call.name}</p>
-                          <p className="text-xs text-gray-600">{call.time} • {call.duration}</p>
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm" className="text-xs hover:bg-blue-50 hover:text-blue-600">
-                        View Details
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+              <RecentCalls></RecentCalls>
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4">
-            <Card className="border border-gray-100 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl text-gray-800">Call Analytics</CardTitle>
-                <CardDescription className="text-gray-600">Your AI-Caller performance metrics</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] bg-gray-50 rounded-lg flex items-center justify-center text-gray-500">
-                  Call Analytics Chart Placeholder
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border border-gray-100 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl text-gray-800">Call Success Rate</CardTitle>
-                <CardDescription className="text-gray-600">Percentage of successful calls over time</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] bg-gray-50 rounded-lg flex items-center justify-center text-gray-500">
-                  Success Rate Chart Placeholder
-                </div>
-              </CardContent>
-            </Card>
+              <Analytics></Analytics>
           </TabsContent>
 
           <TabsContent value="scripts" className="space-y-4">
-            <Card className="border border-gray-100 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl text-gray-800">AI Scripts</CardTitle>
-                <CardDescription className="text-gray-600">Manage and customize your AI call scripts</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {[
-                    { name: "Customer Onboarding", lastEdited: "2 days ago", uses: 45 },
-                    { name: "Product Demo", lastEdited: "1 week ago", uses: 32 },
-                    { name: "Follow-up Call", lastEdited: "3 days ago", uses: 28 },
-                    { name: "Feedback Collection", lastEdited: "5 days ago", uses: 15 },
-                    { name: "Appointment Scheduling", lastEdited: "1 day ago", uses: 52 }
-                  ].map((script, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div>
-                        <p className="font-medium text-gray-800">{script.name}</p>
-                        <p className="text-sm text-gray-600">Last edited: {script.lastEdited} • Used {script.uses} times</p>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                      >
-                        Edit
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+              <Scripts></Scripts>
           </TabsContent>
+                
         </Tabs>
       </div>
     </Layout>

@@ -66,7 +66,7 @@ router.post('/create-checkout-session', async (req, res) => {
 });
 
 
-app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     const payload = req.body;
 
@@ -85,7 +85,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
 
             const plan = invoice.metadata.plan;
             let credits;
-            
+
             if (plan == 'Basic'){
                 credits = 30
             } else if (plan == "Starter") {

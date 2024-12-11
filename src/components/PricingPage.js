@@ -100,7 +100,7 @@ function PricingPage() {
                 </ul>
               </div>
                 <CheckoutButton
-                  name = {plan.name}
+                  plan = {plan.name}
                   amount={parseInt(plan.price, 10)}
                   description={plan.description}
                   features={plan.features}

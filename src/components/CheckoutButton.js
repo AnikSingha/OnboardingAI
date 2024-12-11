@@ -5,7 +5,7 @@ import { AuthContext } from '../AuthContext';
 
 const stripePromise = loadStripe('pk_test_51QRgcEKs98ZaHL9YIWP4cBqs0n0QKKcTa7kclEofcVMpx5orzazkkGFcao1IOSIpZ6to9zzfOfzhZvgePJARa5ci00ahPkmYxj');
 
-const CheckoutButton = ({ amount, description, features, buttonText }) => {
+const CheckoutButton = ({ amount, description, features, buttonText, plan }) => {
     const [isLoading, setIsLoading] = useState(false);
     const { isAuthenticated, business } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -27,7 +27,8 @@ const CheckoutButton = ({ amount, description, features, buttonText }) => {
                 body: JSON.stringify({
                     amount,
                     description,
-                    bussiness_id: business,
+                    plan,
+                    business_name: business,
                     features: features.join('\n'),
                 }),
                 credentials: 'include',

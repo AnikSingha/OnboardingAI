@@ -886,7 +886,7 @@ export default function SettingsPage() {
                 <Button onClick={handleNavigate}>
                   Manage my Plan
                 </Button>
-            </CardContent>
+              </CardContent>
             </Card>
           )}
 

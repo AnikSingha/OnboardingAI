@@ -1,5 +1,6 @@
 const express = require('express');
 const { stripe, webhookKey } = require('../stripeConfig.js');
+const { updatePlan, addCredits, decrementCredits } = require('../utils/paymentUpdates.js')
 const router = express.Router();
 
 const dollarsToCents = (dollars) => Math.round(dollars * 100);
@@ -66,9 +67,9 @@ router.post('/create-checkout-session', async (req, res) => {
 });
 
 
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/webhook', async (req, res) => {
     const sig = req.headers['stripe-signature'];
-    const payload = req.body;
+    const payload = Buffer.from(JSON.stringify(req.body), 'utf8');
 
     let event;
     try {

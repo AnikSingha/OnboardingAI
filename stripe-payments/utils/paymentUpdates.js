@@ -81,3 +81,5 @@ async function decrementCredits(business_name, credits) {
         return false;
     }
 }
+
+module.exports = { updatePlan, addCredits, decrementCredits }

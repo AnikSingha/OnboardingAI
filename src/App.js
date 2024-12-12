@@ -28,6 +28,8 @@ import PricingPage from './components/PricingPage';
 import FAQPage from './components/FAQPage.js';
 import ContactUsPage from './components/ContactUsPage.js';
 import ReviewPage from './routes/ReviewPage';
+import ProductPage from './routes/product-page';
+
 
 function App() {
 
@@ -35,6 +37,7 @@ function App() {
     <Router>
       <AuthProvider>
         <Routes>
+          <Route path="/product" element={<ProductPage />} />
           <Route path="/reviews" element={<ReviewPage />} />
           <Route path="/contact" element={<ContactUsPage />} />
           <Route path="/faq" element={<FAQPage />} />

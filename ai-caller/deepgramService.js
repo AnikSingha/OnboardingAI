@@ -265,7 +265,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
     const response = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: messages,
-      functions: [nameExtractionFunction],
+      functions: [nameExtractionFunction, appointmentTimeExtractionFunction, scheduleAppointmentFunction],
       function_call: !currentName ? { name: 'extractName' } : 'auto'
     });
 
@@ -286,11 +286,29 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
       }
 
       if (message.function_call.name === "extractAppointmentTime" && args.hasSchedulingIntent) {
+        console.log('Attempting to schedule appointment:', {
+          appointmentTime: args.appointmentTime,
+          confidence: args.confidence,
+          currentName,
+          phoneNumber
+        });
+        
         const { appointmentTime, confidence } = args;
         if (confidence && appointmentTime) {
           const isAvailable = await checkAvailability(appointmentTime);
+          console.log('Availability check:', {
+            appointmentTime,
+            isAvailable
+          });
+          
           if (isAvailable) {
             const scheduled = await createAppointment(currentName, phoneNumber, appointmentTime);
+            console.log('Appointment creation result:', {
+              scheduled,
+              currentName,
+              phoneNumber,
+              appointmentTime
+            });
             aiResponse = scheduled 
               ? `Perfect! I've scheduled your appointment for ${new Date(appointmentTime).toLocaleString()}. We look forward to seeing you!`
               : `I apologize, but there was an error scheduling your appointment. Please try again or call our office directly.`;

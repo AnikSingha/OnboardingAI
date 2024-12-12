@@ -222,11 +222,14 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
     let conversationHistory = conversationCache.get(sessionId) || [];
     conversationHistory.push({ role: 'user', content: transcript.toString().trim() });
 
+    // Check if this is the first interaction
+    const isFirstInteraction = conversationHistory.length === 1;
+
     const messages = [
       { 
         role: 'system', 
         content: !currentName 
-          ? `${prompt}\nIMPORTANT: Only extract name when someone clearly states their name. Don't repeat greeting messages.`
+          ? `${prompt}\nIMPORTANT: First ask for the caller's name. Only after getting their name, proceed with asking how you can help.`
           : prompt
       },
       ...conversationHistory
@@ -248,8 +251,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
       
       if (message.function_call.name === "extractName" && args.confidence) {
         extractedName = args.name.trim();
-        // Only set greeting response if we haven't greeted this person before
-        if (!conversationHistory.some(msg => msg.role === 'assistant' && msg.content.includes(`Nice to meet you, ${extractedName}`))) {
+        if (!currentName) {
           aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
         }
       }
@@ -267,8 +269,16 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
       }
     }
 
-    // Only add response to history if it's not empty or a repeat
-    if (aiResponse && !conversationHistory.some(msg => msg.role === 'assistant' && msg.content === aiResponse)) {
+    // If no name extracted and no current name, ensure we ask for name first
+    if (!extractedName && !currentName && isFirstInteraction) {
+      aiResponse = "Hello! May I know your name, please?";
+    }
+
+    // Only add response to history if it's meaningful
+    if (aiResponse && !conversationHistory.some(msg => 
+      msg.role === 'assistant' && 
+      msg.content === aiResponse
+    )) {
       conversationHistory.push({ role: 'assistant', content: aiResponse });
     }
     

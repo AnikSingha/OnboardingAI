@@ -113,39 +113,16 @@ const checkAvailability = async (appointmentDate) => {
   try {
     const database = client.db('auth');
     const appointmentsCollection = database.collection('appointments');
-
-    let requestedDate = new Date(appointmentDate);
-      
-    // Validate appointmentDate
-    if (isNaN(requestedDate.getTime())) {
-      console.error('Invalid appointment date provided.');
-      return null; // Return null for invalid input
-    }
-
-    // Get current timestamp
-    let currentTimestamp = Date.now();
-
-    // Check if requested date is in the past
-    if (requestedDate.getTime() < currentTimestamp) {
-      console.log(`The appointment time ${appointmentDate} is in the past.`);
-      return false; // Return false for past dates
-    }
-      
-    // Query to check if the given appointment date already exists in the database
+    
+    const requestedDate = new Date(appointmentDate);
     const existingAppointment = await appointmentsCollection.findOne({
-      date: requestedDate, // Convert string to Date object
+      date: requestedDate
     });
 
-    if (existingAppointment) {
-      console.log(`The appointment time ${appointmentDate} is already booked.`);
-      return false; // Return false if the appointment is taken
-    } else {
-      console.log(`The appointment time ${appointmentDate} is available.`);
-      return true; // Return true if the appointment is available
-    }
+    return !existingAppointment;
   } catch (error) {
     console.error('Error checking availability:', error);
-    return null; // Return false in case of error
+    return false;
   }
 };
 

@@ -212,7 +212,6 @@ const scheduleAppointmentFunction = {
 
 const processTranscript = async (transcript, sessionId, currentName = null, phoneNumber = null) => {
   if (!transcript?.trim()) {
-    console.log('Received empty transcript.');
     return {
       response: 'I did not catch that. Could you please repeat?',
       extractedName: null
@@ -221,138 +220,68 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
 
   try {
     let conversationHistory = conversationCache.get(sessionId) || [];
-    const userMessage = { 
-      role: 'user', 
-      content: transcript.toString().trim() 
-    };
-    conversationHistory.push(userMessage);
+    conversationHistory.push({ role: 'user', content: transcript.toString().trim() });
 
     const messages = [
       { 
         role: 'system', 
         content: !currentName 
-          ? `${prompt}\nIMPORTANT: We don't have the caller's name yet. Please ask for their name if they haven't provided it.`
+          ? `${prompt}\nIMPORTANT: When scheduling appointments, validate and format the date and time before proceeding. Format dates as ISO 8601 strings (YYYY-MM-DDTHH:mm:ss.sssZ).`
           : prompt
       },
-      ...conversationHistory.filter(msg => msg.content != null)
+      ...conversationHistory
     ];
 
-    const response = await withTimeout(
-      openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: messages,
-        functions: [nameExtractionFunction, appointmentTimeExtractionFunction, scheduleAppointmentFunction],
-        function_call: currentName ? 'auto' : { name: 'extractName' }
-      }),
-      10000,
-      'OpenAI API request timed out'
-    );
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: messages,
+      functions: [nameExtractionFunction, appointmentTimeExtractionFunction],
+      function_call: 'auto'
+    });
 
     const message = response.choices[0].message;
     let aiResponse = message.content;
     let extractedName = null;
 
     if (message.function_call) {
-      try {
-        const args = JSON.parse(message.function_call.arguments);
-        
-        if (message.function_call.name === "extractName" && args.confidence) {
-          extractedName = args.name.trim();
-          aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
-        }
-        
-        if (message.function_call.name === "extractAppointmentTime" && args.hasSchedulingIntent) {
-          const { appointmentTime, confidence } = args;
-          
-          if (confidence) {
-            const isAvailable = await checkAvailability(appointmentTime);
-            if (isAvailable) {
-              aiResponse = `I can schedule you for ${appointmentTime}. Would you like me to book this appointment for you?`;
-            } else {
-              const nextAvailableTime = await nextTime(appointmentTime);
-              aiResponse = nextAvailableTime
-                ? `I apologize, but ${appointmentTime} is not available. The next available time is ${nextAvailableTime}. Would you like this time instead?`
-                : `I apologize, but that time is not available. Could you please suggest another time?`;
-            }
-          } else {
-            aiResponse = "I didn't quite catch the time you'd like to schedule. Could you please provide a specific date and time?";
-          }
-        }
-        
-        if (message.function_call.name === "scheduleAppointment") {
-          const { appointmentTime, action } = args;
-          
-          if (action === "check") {
+      const args = JSON.parse(message.function_call.arguments);
+      
+      if (message.function_call.name === "extractName" && args.confidence) {
+        extractedName = args.name.trim();
+        aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
+      }
+      
+      if (message.function_call.name === "extractAppointmentTime" && args.hasSchedulingIntent) {
+        if (args.confidence) {
+          const { appointmentTime } = args;
+          // Only proceed with availability check if we have a valid ISO date string
+          if (appointmentTime && !isNaN(new Date(appointmentTime).getTime())) {
             const isAvailable = await checkAvailability(appointmentTime);
             aiResponse = isAvailable 
-              ? `Yes, ${appointmentTime} is available. Would you like me to schedule this appointment for you?`
-              : `I apologize, but ${appointmentTime} is not available. Would you like me to find the next available time?`;
-          }
-          
-          else if (action === "suggest_next") {
-            const nextAvailableTime = await nextTime(appointmentTime);
-            aiResponse = nextAvailableTime
-              ? `The next available appointment time is ${nextAvailableTime}. Would you like to schedule this time instead?`
-              : `I'm having trouble finding the next available appointment time. Could you please try a different date or time?`;
-          }
-          
-          else if (action === "schedule") {
-            const isAvailable = await checkAvailability(appointmentTime);
-            if (isAvailable && currentName && phoneNumber) {
-              const appointmentCreated = await createAppointment(currentName, phoneNumber, appointmentTime);
-              if (appointmentCreated) {
-                aiResponse = `Perfect! I've scheduled your appointment for ${appointmentTime}. You'll receive a confirmation shortly. Is there anything else I can help you with?`;
-              } else {
-                aiResponse = `I apologize, but I encountered an error while scheduling your appointment. Could you please try again?`;
-              }
-            } else if (!currentName || !phoneNumber) {
-              aiResponse = `I apologize, but I need your name and phone number to schedule the appointment. Could you please provide those?`;
-            } else {
-              const nextAvailableTime = await nextTime(appointmentTime);
-              aiResponse = nextAvailableTime
-                ? `I apologize, but that time was just taken. The next available time is ${nextAvailableTime}. Would you like this time instead?`
-                : `I apologize, but that time is no longer available. Could you please provide another preferred time?`;
-            }
+              ? `I can schedule you for ${new Date(appointmentTime).toLocaleString()}. Would you like me to book this appointment for you?`
+              : `I apologize, but that time isn't available. Could you please suggest another time?`;
+          } else {
+            aiResponse = "Could you please provide a specific date and time for the appointment?";
           }
         }
-      } catch (error) {
-        console.error('Error handling function call:', error);
-        aiResponse = "I apologize, but I'm having trouble processing your appointment request. Could you please try again?";
       }
     }
 
-    if (!aiResponse) {
-      aiResponse = message.content || 'How can I assist you today?';
-    }
-
-    // Update conversation history with AI's response
-    conversationHistory.push({ 
-      role: 'assistant', 
-      content: aiResponse 
-    });
-    
-    // Maintain max history size
+    conversationHistory.push({ role: 'assistant', content: aiResponse });
     if (conversationHistory.length > CACHE_CONFIG.MAX_HISTORY) {
       conversationHistory = conversationHistory.slice(-CACHE_CONFIG.MAX_HISTORY);
     }
-    
-    // Update cache
     conversationCache.set(sessionId, conversationHistory);
-    manageCache(conversationCache);
 
     return {
       response: aiResponse,
-      extractedName: extractedName
+      extractedName
     };
 
   } catch (error) {
-    console.error(
-      'Error in processTranscript:',
-      error.response ? error.response.data : error.message
-    );
-    
+    console.error('Error in processTranscript:', error);
     return {
-      response: 'Sorry, I am unable to process your request at the moment.',
+      response: 'I apologize, but I am having trouble understanding. Could you please rephrase that?',
       extractedName: null
     };
   }

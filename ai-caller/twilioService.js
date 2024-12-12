@@ -1,7 +1,7 @@
 // twilioservice.js
 
 const twilio = require('twilio');
-const { generateTTS, processTranscript, initializeDeepgram } = require('./deepgramService.js');
+const { generateTTS, processTranscript, initializeDeepgram, cleanupSession } = require('./deepgramService.js');
 const dotenv = require('dotenv');
 const { getDb, updateLeadInfo } = require('../auth-service/db.js');
 
@@ -61,89 +61,86 @@ const handleWebSocket = (ws) => {
   let callerName = '';
   let isProcessing = false;
   let finalTranscript = '';
+  let dgLive;
 
-  const dgLive = initializeDeepgram({
-    onOpen: async () => {
-      console.log('Deepgram connection opened');
-      if (streamSid) {
-        const result = await processTranscript('', streamSid, null, phoneNumber);
-        if (result.response) {
-          const ttsAudioBuffer = await generateTTS(result.response);
-          await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-          interactionCount++;
-        }
-      }
-    },
-    onTranscript: async (transcription) => {
-      if (!transcription.is_final) return;
-
-      const transcript = transcription.channel.alternatives[0].transcript.trim();
-      if (!transcript) return;
-
-      finalTranscript += ` ${transcript}`;
-
-      if (!transcription.speech_final && transcription.type !== 'UtteranceEnd') return;
-
-      const completeTranscript = finalTranscript.trim();
-      finalTranscript = '';
-
-      if (isProcessing) return;
-
-      isProcessing = true;
-
-      try {
-        const result = await processTranscript(completeTranscript, streamSid, callerName, phoneNumber);
-        
-        if (result.extractedName && !callerName) {
-          callerName = result.extractedName;
-          console.log(`Caller name captured: ${callerName}`);
-
-          if (phoneNumber) {
-            await updateLeadInfo(phoneNumber, {
-              _number: phoneNumber,
-              name: callerName,
-            });
-          }
-        }
-
-        if (result.response) {
-          const ttsAudioBuffer = await generateTTS(result.response);
-          await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
-          interactionCount++;
-        }
-      } catch (error) {
-        console.error('Error processing transcript:', error);
-      } finally {
-        isProcessing = false;
-      }
-    },
-    onError: (error) => {
-      console.error('Deepgram error:', error);
-    },
-    onClose: () => {
-      console.log('Deepgram connection closed');
-    },
-  });
-
-  ws.on('message', async (data) => {
+  ws.on('message', async (msg) => {
     try {
-      const msg = JSON.parse(data);
+      const data = JSON.parse(msg);
 
-      if (msg.event === 'start') {
-        streamSid = msg.start.streamSid;
-        phoneNumber = msg.start.customParameters?.phoneNumber;
-        console.log(`Stream started, streamSid: ${streamSid}, phoneNumber: ${phoneNumber}`);
-      } else if (msg.event === 'media') {
-        if (dgLive && dgLive.getReadyState() === 1) {
-          dgLive.send(Buffer.from(msg.media.payload, 'base64'));
-        }
-      } else if (msg.event === 'stop') {
+      if (data.event === 'start') {
+        streamSid = data.streamSid;
+        phoneNumber = data.start.customParameters?.phoneNumber;
+        console.log('Stream started, streamSid:', streamSid, 'phoneNumber:', phoneNumber);
+        dgLive = initializeDeepgram({
+          onOpen: async () => {
+            console.log('Deepgram connection opened');
+            if (streamSid) {
+              const result = await processTranscript('', streamSid, null, phoneNumber);
+              if (result.response) {
+                const ttsAudioBuffer = await generateTTS(result.response);
+                await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+                interactionCount++;
+              }
+            }
+          },
+          onTranscript: async (transcription) => {
+            if (!transcription.is_final) return;
+
+            const transcript = transcription.channel.alternatives[0].transcript.trim();
+            if (!transcript) return;
+
+            finalTranscript += ` ${transcript}`;
+
+            if (!transcription.speech_final && transcription.type !== 'UtteranceEnd') return;
+
+            const completeTranscript = finalTranscript.trim();
+            finalTranscript = '';
+
+            if (isProcessing) return;
+
+            isProcessing = true;
+
+            try {
+              const result = await processTranscript(completeTranscript, streamSid, callerName, phoneNumber);
+              
+              if (result.extractedName && !callerName) {
+                callerName = result.extractedName;
+                console.log(`Caller name captured: ${callerName}`);
+
+                if (phoneNumber) {
+                  await updateLeadInfo(phoneNumber, {
+                    _number: phoneNumber,
+                    name: callerName,
+                  });
+                }
+              }
+
+              if (result.response) {
+                const ttsAudioBuffer = await generateTTS(result.response);
+                await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+                interactionCount++;
+              }
+            } catch (error) {
+              console.error('Error processing transcript:', error);
+            } finally {
+              isProcessing = false;
+            }
+          },
+          onError: (error) => {
+            console.error('Deepgram error:', error);
+          },
+          onClose: () => {
+            console.log('Deepgram connection closed');
+          },
+        });
+      } else if (data.event === 'media') {
+        dgLive?.send(Buffer.from(data.media.payload, 'base64'));
+      } else if (data.event === 'stop') {
         console.log('Stream stopped, cleaning up...');
-        // Clear caches for this session
-        conversationCache.delete(streamSid);
-        ttsCache.delete(streamSid);
-        responseCache.delete(streamSid);
-        dgLive.finish();
+        if (streamSid) {
+          cleanupSession(streamSid);
+        }
+        dgLive?.finish();
         ws.close();
       }
     } catch (error) {
@@ -166,13 +163,13 @@ const handleWebSocket = (ws) => {
   ws.on('close', () => {
     console.log('WebSocket connection closed');
     clearInterval(pingInterval);
-    dgLive.finish();
+    dgLive?.finish();
   });
 
   ws.on('error', (error) => {
     console.error('WebSocket error:', error);
     clearInterval(pingInterval);
-    dgLive.finish();
+    dgLive?.finish();
   });
 };
 

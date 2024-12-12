@@ -229,28 +229,28 @@ const scheduleAppointmentFunction = {
 };
 
 const processTranscript = async (transcript, sessionId, currentName = null, phoneNumber = null) => {
-  let conversationHistory = conversationCache.get(sessionId) || [];
-  const isFirstInteraction = conversationHistory.length === 0;
-
-  if (isFirstInteraction && !transcript) {
-    const initialResponse = {
-      response: "Hello! May I know your name, please?",
-      extractedName: null
-    };
-    conversationHistory.push({ role: 'assistant', content: initialResponse.response });
-    conversationCache.set(sessionId, conversationHistory);
-    return initialResponse;
-  }
-
-  if (!transcript?.trim()) {
-    return {
-      response: 'I did not catch that. Could you please repeat?',
-      extractedName: null
-    };
-  }
-
   try {
-    conversationHistory.push({ role: 'user', content: transcript.toString().trim() });
+    // Get or initialize conversation history
+    let conversationHistory = conversationCache.get(sessionId) || [];
+    const isFirstInteraction = conversationHistory.length === 0;
+
+    if (isFirstInteraction && !transcript) {
+      const initialResponse = {
+        response: "Hello! May I know your name, please?",
+        extractedName: null
+      };
+      conversationHistory.push({ role: 'assistant', content: initialResponse.response });
+      conversationCache.set(sessionId, conversationHistory);
+      return initialResponse;
+    }
+
+    // Only add valid transcripts to conversation history
+    if (transcript?.trim()) {
+      conversationHistory.push({ role: 'user', content: transcript.trim() });
+    }
+
+    // Filter out any messages with null content
+    conversationHistory = conversationHistory.filter(msg => msg.content != null);
 
     const messages = [
       { 
@@ -261,6 +261,8 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
       },
       ...conversationHistory
     ];
+
+    console.log('Sending messages to OpenAI:', JSON.stringify(messages, null, 2));
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4',

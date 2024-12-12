@@ -6,14 +6,24 @@ const dotenv = require('dotenv');
 // Load environment variables first
 dotenv.config();
 
-// Then use them
+// Verify Deepgram API key exists
+if (!process.env.DEEPGRAM_API_KEY) {
+  throw new Error('DEEPGRAM_API_KEY is not set in environment variables');
+}
+
+// Then initialize services
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 
-const { checkAvailability, nextTime, createAppointment, connectToMongoDB } = require('../auth-service/db.js');
+// Verify OpenAI API key exists
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error('OPENAI_API_KEY is not set in environment variables');
+}
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const { checkAvailability, nextTime, createAppointment, connectToMongoDB } = require('../auth-service/db.js');
 
 const prompt = `You are a professional and friendly AI dental receptionist for [Dental Office Name]. Your primary role is to:
 

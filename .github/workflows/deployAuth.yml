@@ -54,6 +54,7 @@ jobs:
             echo "Terminating any previously running Node.js instances..."
             start_time=$(date +%s)
             sudo pkill -f node || echo "No Node.js processes found."
+            sleep 2
             echo "Starting the Express server..."
             nohup sudo ~/.nvm/versions/node/v22.9.0/bin/node server.js > output.log 2>&1 &
             end_time=$(date +%s)

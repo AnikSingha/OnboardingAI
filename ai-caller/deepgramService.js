@@ -226,7 +226,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
       { 
         role: 'system', 
         content: !currentName 
-          ? `${prompt}\nIMPORTANT: When scheduling appointments, validate and format the date and time before proceeding. Format dates as ISO 8601 strings (YYYY-MM-DDTHH:mm:ss.sssZ).`
+          ? `${prompt}\nIMPORTANT: Only extract name when someone clearly states their name. Don't repeat greeting messages.`
           : prompt
       },
       ...conversationHistory
@@ -235,7 +235,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
     const response = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: messages,
-      functions: [nameExtractionFunction, appointmentTimeExtractionFunction],
+      functions: [nameExtractionFunction, appointmentTimeExtractionFunction, scheduleAppointmentFunction],
       function_call: 'auto'
     });
 
@@ -248,26 +248,30 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
       
       if (message.function_call.name === "extractName" && args.confidence) {
         extractedName = args.name.trim();
-        aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
+        // Only set greeting response if we haven't greeted this person before
+        if (!conversationHistory.some(msg => msg.role === 'assistant' && msg.content.includes(`Nice to meet you, ${extractedName}`))) {
+          aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
+        }
       }
       
       if (message.function_call.name === "extractAppointmentTime" && args.hasSchedulingIntent) {
-        if (args.confidence) {
-          const { appointmentTime } = args;
-          // Only proceed with availability check if we have a valid ISO date string
-          if (appointmentTime && !isNaN(new Date(appointmentTime).getTime())) {
-            const isAvailable = await checkAvailability(appointmentTime);
-            aiResponse = isAvailable 
-              ? `I can schedule you for ${new Date(appointmentTime).toLocaleString()}. Would you like me to book this appointment for you?`
-              : `I apologize, but that time isn't available. Could you please suggest another time?`;
+        const { appointmentTime, confidence } = args;
+        if (confidence && appointmentTime) {
+          const isAvailable = await checkAvailability(appointmentTime);
+          if (isAvailable) {
+            aiResponse = `I can schedule you for ${new Date(appointmentTime).toLocaleString()}. Would you like me to book this appointment for you?`;
           } else {
-            aiResponse = "Could you please provide a specific date and time for the appointment?";
+            aiResponse = `I apologize, but that time isn't available. Could you please suggest another time?`;
           }
         }
       }
     }
 
-    conversationHistory.push({ role: 'assistant', content: aiResponse });
+    // Only add response to history if it's not empty or a repeat
+    if (aiResponse && !conversationHistory.some(msg => msg.role === 'assistant' && msg.content === aiResponse)) {
+      conversationHistory.push({ role: 'assistant', content: aiResponse });
+    }
+    
     if (conversationHistory.length > CACHE_CONFIG.MAX_HISTORY) {
       conversationHistory = conversationHistory.slice(-CACHE_CONFIG.MAX_HISTORY);
     }

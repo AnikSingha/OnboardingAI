@@ -2,9 +2,16 @@ const axios = require('axios');
 const { LiveTranscriptionEvents, createClient } = require('@deepgram/sdk');
 const OpenAI = require('openai');
 const dotenv = require('dotenv');
+const path = require('path');
 
 // Load environment variables first
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
+
+console.log('Environment check:', {
+  hasDeepgram: !!process.env.DEEPGRAM_API_KEY,
+  hasOpenAI: !!process.env.OPENAI_API_KEY,
+  envPath: path.join(__dirname, '..', '.env')
+});
 
 // Verify Deepgram API key exists
 if (!process.env.DEEPGRAM_API_KEY) {

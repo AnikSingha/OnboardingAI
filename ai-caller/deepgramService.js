@@ -3,6 +3,7 @@ const { LiveTranscriptionEvents, createClient } = require('@deepgram/sdk');
 const OpenAI = require('openai');
 const dotenv = require('dotenv');
 const path = require('path');
+const { checkAvailability, nextTime, createAppointment, connectToMongoDB } = require('../auth-service/db.js');
 
 // Load environment variables first
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -29,8 +30,6 @@ if (!process.env.OPENAI_API_KEY) {
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const { checkAvailability, nextTime, createAppointment, connectToMongoDB } = require('../auth-service/db.js');
 
 const prompt = `You are a professional and friendly AI dental receptionist for [Dental Office Name]. Your primary role is to:
 
@@ -230,11 +229,9 @@ const scheduleAppointmentFunction = {
 };
 
 const processTranscript = async (transcript, sessionId, currentName = null, phoneNumber = null) => {
-  // Get or initialize conversation history
   let conversationHistory = conversationCache.get(sessionId) || [];
   const isFirstInteraction = conversationHistory.length === 0;
 
-  // If it's the first interaction, send initial greeting
   if (isFirstInteraction && !transcript) {
     const initialResponse = {
       response: "Hello! May I know your name, please?",
@@ -253,7 +250,6 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
   }
 
   try {
-    // Add user's message to history
     conversationHistory.push({ role: 'user', content: transcript.toString().trim() });
 
     const messages = [
@@ -277,20 +273,39 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
     let aiResponse = message.content;
     let extractedName = null;
 
-    if (message.function_call?.name === "extractName") {
+    if (message.function_call) {
       const args = JSON.parse(message.function_call.arguments);
-      if (args.confidence) {
-        extractedName = args.name.trim();
-        aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
-      } else {
-        aiResponse = "I'm sorry, I didn't catch your name. Could you please repeat it?";
+      
+      if (message.function_call.name === "extractName") {
+        if (args.confidence) {
+          extractedName = args.name.trim();
+          aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
+        } else {
+          aiResponse = "I'm sorry, I didn't catch your name. Could you please repeat it?";
+        }
+      }
+
+      if (message.function_call.name === "extractAppointmentTime" && args.hasSchedulingIntent) {
+        const { appointmentTime, confidence } = args;
+        if (confidence && appointmentTime) {
+          const isAvailable = await checkAvailability(appointmentTime);
+          if (isAvailable) {
+            const scheduled = await createAppointment(currentName, phoneNumber, appointmentTime);
+            aiResponse = scheduled 
+              ? `Perfect! I've scheduled your appointment for ${new Date(appointmentTime).toLocaleString()}. We look forward to seeing you!`
+              : `I apologize, but there was an error scheduling your appointment. Please try again or call our office directly.`;
+          } else {
+            const nextAvailableTime = await nextTime(appointmentTime);
+            aiResponse = nextAvailableTime 
+              ? `I apologize, but that time isn't available. The next available time is ${new Date(nextAvailableTime).toLocaleString()}. Would that work for you?`
+              : `I apologize, but that time isn't available. Could you please suggest another time?`;
+          }
+        }
       }
     }
 
-    // Add AI's response to history
     conversationHistory.push({ role: 'assistant', content: aiResponse });
     
-    // Trim history if too long
     if (conversationHistory.length > CACHE_CONFIG.MAX_HISTORY) {
       conversationHistory = conversationHistory.slice(-CACHE_CONFIG.MAX_HISTORY);
     }
@@ -303,6 +318,16 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
 
   } catch (error) {
     console.error('Error in processTranscript:', error);
+    
+    // Handle rate limit and quota errors specifically
+    if (error.code === 'insufficient_quota' || error.status === 429) {
+      return {
+        response: "I apologize, but I'm experiencing technical difficulties at the moment. Please try again later or contact support for assistance.",
+        extractedName: null
+      };
+    }
+
+    // Handle other errors
     return {
       response: 'I apologize, but I am having trouble understanding. Could you please rephrase that?',
       extractedName: null

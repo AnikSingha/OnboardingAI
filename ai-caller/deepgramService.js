@@ -2,15 +2,18 @@ const axios = require('axios');
 const { LiveTranscriptionEvents, createClient } = require('@deepgram/sdk');
 const OpenAI = require('openai');
 const dotenv = require('dotenv');
-const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
+
+// Load environment variables first
 dotenv.config();
+
+// Then use them
+const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 
 const { checkAvailability, nextTime, createAppointment, connectToMongoDB } = require('../auth-service/db.js');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
 
 const prompt = `You are a professional and friendly AI dental receptionist for [Dental Office Name]. Your primary role is to:
 
@@ -27,14 +30,17 @@ Communication Style:
 - Patient and Understanding: Show empathy, especially with anxious or upset patients.
 - Professional: Reflect the values and standards of [Dental Office Name] in all interactions.`;
 
+// Cache configuration
 const CACHE_CONFIG = {
-  MAX_SIZE: 1000,  // Maximum number of items in cache
-  TTL: 1000 * 60 * 60, // Cache TTL: 1 hour
+  MAX_SIZE: 1000,
+  TTL: 1000 * 60 * 60,
   MAX_HISTORY: 10
-}
+};
 
+// Initialize all caches once
 const ttsCache = new Map();
 const responseCache = new Map();
+const conversationCache = new Map();
 
 const manageCache = (cache) => {
   if (cache.size > CACHE_CONFIG.MAX_SIZE) {
@@ -55,7 +61,6 @@ const withTimeout = (promise, timeoutMs, errorMessage) => {
     return result;
   });
 };
-
 
 const initializeDeepgram = ({ onOpen, onTranscript, onError, onClose }) => {
   const dgLive = deepgram.listen.live({
@@ -145,9 +150,6 @@ const generateTTS = async (text) => {
   }
 };
 
-// Add conversation context cache
-const conversationCache = new Map();
-
 const nameExtractionFunction = {
   name: "extractName",
   description: "Extract a person's name when they introduce themselves",
@@ -166,7 +168,7 @@ const nameExtractionFunction = {
     required: ["name", "confidence"]
   }
 };
-// Add appointmentTime extraction function definition
+
 const appointmentTimeExtractionFunction = {
   name: "extractAppointmentTime",
   description: "Extract appointment scheduling intent and time from the conversation",
@@ -211,6 +213,21 @@ const scheduleAppointmentFunction = {
 };
 
 const processTranscript = async (transcript, sessionId, currentName = null, phoneNumber = null) => {
+  // Get or initialize conversation history
+  let conversationHistory = conversationCache.get(sessionId) || [];
+  const isFirstInteraction = conversationHistory.length === 0;
+
+  // If it's the first interaction, we need to send the initial greeting
+  if (isFirstInteraction) {
+    const initialResponse = {
+      response: "Hello! May I know your name, please?",
+      extractedName: null
+    };
+    conversationHistory.push({ role: 'assistant', content: initialResponse.response });
+    conversationCache.set(sessionId, conversationHistory);
+    return initialResponse;
+  }
+
   if (!transcript?.trim()) {
     return {
       response: 'I did not catch that. Could you please repeat?',
@@ -219,11 +236,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
   }
 
   try {
-    let conversationHistory = conversationCache.get(sessionId) || [];
     conversationHistory.push({ role: 'user', content: transcript.toString().trim() });
-
-    // Check if this is the first interaction
-    const isFirstInteraction = conversationHistory.length === 1;
 
     const messages = [
       { 

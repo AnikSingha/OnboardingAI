@@ -65,6 +65,14 @@ const handleWebSocket = (ws) => {
   const dgLive = initializeDeepgram({
     onOpen: async () => {
       console.log('Deepgram connection opened');
+      if (streamSid) {
+        const result = await processTranscript('', streamSid, null, phoneNumber);
+        if (result.response) {
+          const ttsAudioBuffer = await generateTTS(result.response);
+          await sendAudioFrames(ttsAudioBuffer, ws, streamSid, interactionCount);
+          interactionCount++;
+        }
+      }
     },
     onTranscript: async (transcription) => {
       if (!transcription.is_final) return;

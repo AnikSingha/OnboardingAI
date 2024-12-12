@@ -13,25 +13,7 @@ export default function AboutPageHeader() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white py-4 px-6 flex justify-between items-center border-b">
-        <div className="flex items-center">
-          <a href="/" className="flex items-center">
-            <div className="text-2xl font-bold px-3 py-1 border-2 border-black rounded-xl">
-              <span className="text-[#4285F4]">Onboard</span>
-              <span className="text-black">AI</span>
-            </div>
-          </a>
-        </div>
-        <nav className="hidden md:flex space-x-6">
-          <NavItem text="Product" />
-          <NavItem text="Resource" />
-          <NavItem text="Tool" />
-        </nav>
-        <div className="flex items-center space-x-4">
-          <ButtonAboutPage variant="outline">Sign In</ButtonAboutPage>
-          <ButtonAboutPage style={{ backgroundColor: 'rgba(93, 100, 255, 1)' }}>Sign Up</ButtonAboutPage>
-        </div>
-      </header>
+
 
       {/* Main Content */}
       <main className="flex-grow bg-gray-50">

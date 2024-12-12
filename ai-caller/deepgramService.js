@@ -331,8 +331,15 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
   }
 };
 
+const cleanupSession = (sessionId) => {
+  conversationCache.delete(sessionId);
+  ttsCache.delete(sessionId);
+  responseCache.delete(sessionId);
+};
+
 module.exports = {
   generateTTS,
   processTranscript,
-  initializeDeepgram
+  initializeDeepgram,
+  cleanupSession
 };

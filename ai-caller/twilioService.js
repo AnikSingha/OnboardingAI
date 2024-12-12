@@ -139,6 +139,10 @@ const handleWebSocket = (ws) => {
         }
       } else if (msg.event === 'stop') {
         console.log('Stream stopped, cleaning up...');
+        // Clear caches for this session
+        conversationCache.delete(streamSid);
+        ttsCache.delete(streamSid);
+        responseCache.delete(streamSid);
         dgLive.finish();
         ws.close();
       }

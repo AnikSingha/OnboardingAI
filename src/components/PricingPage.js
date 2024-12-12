@@ -1,18 +1,21 @@
-import React from 'react';
+import { useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
-import Header from './Header';
+import { ArrowLeft} from 'lucide-react'
+import CheckoutButton from './CheckoutButton';
+import { AuthContext } from '../AuthContext';
+import { Link } from 'react-router-dom';
 
 function PricingPage() {
+  const { isAuthenticated } = useContext(AuthContext);
+  const navigate = useNavigate();
+
   const plans = [
     {
       name: "Basic",
       price: "19",
       description: "Unleash the power of automation.",
-      features: [
-        "up to 200 calls",
-        "Dashboard",
-        "10 Users team"
-      ]
+      features: ["up to 200 calls", "Dashboard", "10 Users team"],
     },
     {
       name: "Starter",
@@ -22,8 +25,8 @@ function PricingPage() {
         "Up to 600 calls",
         "Dashboard",
         "AI scheduling",
-        "30 users team"
-      ]
+        "30 users team",
+      ],
     },
     {
       name: "Professional",
@@ -34,15 +37,19 @@ function PricingPage() {
         "Dashboard",
         "AI scheduling",
         "Feedback",
-        "100 user team*"
+        "100 user team*",
       ],
-      popular: true
-    }
+      popular: true,
+    },
   ];
 
   return (
     <div className="min-h-screen bg-[#E6E6FA]">
-      <Header />
+      <ArrowLeft
+        onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}
+        className="h-10 w-10 absolute top-6 left-6 hover:text-gray-800 transition-transform duration-200 cursor-pointer"
+      />
+
       <main className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl">
@@ -60,8 +67,8 @@ function PricingPage() {
             <div
               key={plan.name}
               className={`relative flex flex-col rounded-2xl ${
-                plan.popular 
-                  ? 'bg-[#1a1a3c] text-white transform hover:scale-105' 
+                plan.popular
+                  ? 'bg-[#1a1a3c] text-white transform hover:scale-105'
                   : 'bg-white text-gray-900 hover:bg-gray-50'
               } shadow-xl transition-all duration-300 ease-in-out p-8`}
             >
@@ -80,7 +87,11 @@ function PricingPage() {
                 <ul className="mt-6 space-y-4">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start">
-                      <div className={`flex-shrink-0 ${plan.popular ? 'text-purple-400' : 'text-purple-600'}`}>
+                      <div
+                        className={`flex-shrink-0 ${
+                          plan.popular ? 'text-purple-400' : 'text-purple-600'
+                        }`}
+                      >
                         <Check className="h-6 w-6" />
                       </div>
                       <span className="ml-3">{feature}</span>
@@ -88,15 +99,13 @@ function PricingPage() {
                   ))}
                 </ul>
               </div>
-              <button
-                className={`mt-8 block w-full rounded-lg px-6 py-4 text-center text-sm font-semibold transition-all duration-200 ${
-                  plan.popular
-                    ? 'bg-purple-500 text-white hover:bg-purple-600'
-                    : 'bg-gray-600 text-white hover:bg-gray-700'
-                }`}
-              >
-                Choose plan
-              </button>
+                <CheckoutButton
+                  plan = {plan.name}
+                  amount={parseInt(plan.price, 10)}
+                  description={plan.description}
+                  features={plan.features}
+                  buttonText="Choose Plan"
+                />
             </div>
           ))}
         </div>

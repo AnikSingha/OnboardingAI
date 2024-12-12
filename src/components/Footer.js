@@ -58,6 +58,8 @@ function Footer() {
                 <Icon className="w-6 h-6" />
               </a>
             ))}
+
+    
           </div>
         </div>
       </div>

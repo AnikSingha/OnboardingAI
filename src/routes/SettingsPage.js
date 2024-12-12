@@ -6,15 +6,68 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Label } from "../components/ui/label"
 import { Switch } from "../components/ui/switch"
 import Layout from '../components/Layout'
-import { X, PlayCircle, Pause, Volume2, LogOut, Trash2 } from 'lucide-react' 
+import { X, PlayCircle, Pause, Volume2, LogOut, Trash2 }  from 'lucide-react' 
 import ConfirmationDialog from '../components/ConfirmationDialog'
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
+import { Link } from "react-router-dom";
 import CheckoutButton from '../components/CheckoutButton'
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { user, name, business, login, role, logout } = useContext(AuthContext);
+  const location = useLocation();
+  const { user, name, business, login, role, logout, loading} = useContext(AuthContext);
+  
+  const [data, setData] = useState(null);
+  const [loadingSubscriptionPlan, setLoadingSubscriptionPlan] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Wait until business and loading state are ready
+    if (!business || loading) {
+        setError('No business found or still loading');
+        setLoadingSubscriptionPlan(false);
+        return;
+    }
+
+    const fetchPlanAndCredits = async () => {
+        try {
+            const response = await fetch('https://api.onboardingai.org/business/get-plan-and-credits', {
+                method: 'POST', 
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ business_name: business }),
+                credentials: 'include',
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                setData(result.data);
+            } else {
+                setError(result.message || 'Failed to fetch data');
+            }
+        } catch (err) {
+            setError(`An error occurred: ${err.message}`);
+        } finally {
+            setLoadingSubscriptionPlan(false);
+        }
+    };
+
+    fetchPlanAndCredits();
+}, [business, loading]);
+
+  const twoFactorSectionRef = useRef(null);
+
+  useEffect(() => {
+    if (location.state?.openTwoFactor) {
+      handleToggleTwoFactorAuth(true);
+      setTimeout(() => {
+        twoFactorSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [location]);
 
   // Account Information
   const [accountInfo, setAccountInfo] = useState({
@@ -246,7 +299,7 @@ export default function SettingsPage() {
       } else {
         // Disable 2FA
         console.log('Disabling 2FA...');
-        const response = await fetch('https://api.onboardingai.org/auth/disable-two-factor', {
+        const response = await fetch('https://api.onboardingai.org/auth/toggle-two-factor', {
           method: 'POST',
           credentials: 'include',
           headers: {
@@ -537,6 +590,10 @@ export default function SettingsPage() {
     }
   };
   
+    const handleNavigate = () => {
+      navigate('/pricing');
+    };
+
   // Handle deleting a phone number
   const handleDeletePhoneNumber = async (number) => {
     try {
@@ -568,7 +625,36 @@ export default function SettingsPage() {
   const canAccessAISettings = role === 'Owner';
   const canAccessPhoneNumber = role === 'Owner';
 
+  const handleDeleteAccount = async () => {
+    try {
+      const response = await fetch('https://api.onboardingai.org/user/delete-account', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: user
+        })
+      });
 
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to delete account');
+      }
+
+      // If successful, log out and redirect to home
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setAlertMessage({
+        type: 'error',
+        text: error.message
+      });
+    }
+  };
 
   return (
     <Layout>
@@ -788,7 +874,7 @@ export default function SettingsPage() {
             </Card>
           )}
 
-          <Card>
+          <Card ref={twoFactorSectionRef}>
             <CardHeader>
               <CardTitle>Two-Factor Authentication</CardTitle>
               <CardDescription>Enhance your account security</CardDescription>
@@ -834,15 +920,49 @@ export default function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Billing</CardTitle>
-                <CardDescription>Checkout</CardDescription>
+                <CardDescription>Manage your payments</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button>
-                  <CheckoutButton amount={100} />
+              <div className="text-sm text-gray-500">
+                <p>Current Plan: {data?.currentPlan || "You don't currently have a plan"}</p>
+                <p>Credits: {data?.credits || "0"}</p>
+              </div>
+                <Button onClick={handleNavigate}>
+                  Manage my Plan
                 </Button>
               </CardContent>
             </Card>
           )}
+
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-red-600">Delete Account</CardTitle>
+              <CardDescription className="text-red-600/80">
+                Permanently delete your account and all associated data
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-red-600/90">
+                  Warning: This action cannot be undone. This will permanently delete your account, 
+                  all your data, and remove you from any associated businesses.
+                </p>
+                <Button 
+                  variant="destructive"
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={() => {
+                    if (window.confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.')) {
+                      if (window.confirm('Please confirm once more that you want to permanently delete your account.')) {
+                        handleDeleteAccount();
+                      }
+                    }
+                  }}
+                >
+                  Delete Account
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
         </div>
       </div>

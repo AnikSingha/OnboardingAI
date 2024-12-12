@@ -1,12 +1,21 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
+import { AuthContext } from '../AuthContext';
 
 const stripePromise = loadStripe('pk_test_51QRgcEKs98ZaHL9YIWP4cBqs0n0QKKcTa7kclEofcVMpx5orzazkkGFcao1IOSIpZ6to9zzfOfzhZvgePJARa5ci00ahPkmYxj');
 
-const CheckoutButton = ({ amount }) => {
+const CheckoutButton = ({ amount, description, features, buttonText, plan }) => {
     const [isLoading, setIsLoading] = useState(false);
+    const { isAuthenticated, business } = useContext(AuthContext);
+    const navigate = useNavigate();
 
     const handleClick = async () => {
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
+
         setIsLoading(true);
 
         try {
@@ -15,8 +24,14 @@ const CheckoutButton = ({ amount }) => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ amount }),
-                credentials: 'include'
+                body: JSON.stringify({
+                    amount,
+                    description,
+                    plan,
+                    business_name: business,
+                    features: features.join('\n'),
+                }),
+                credentials: 'include',
             });
 
             const { id } = await response.json();
@@ -41,8 +56,8 @@ const CheckoutButton = ({ amount }) => {
     };
 
     return (
-        <button onClick={handleClick} disabled={isLoading}>
-            {isLoading ? 'Loading...' : 'Proceed to Checkout'}
+        <button onClick={handleClick} disabled={isLoading} className="mt-8 block w-full rounded-lg px-6 py-4 text-center text-sm font-semibold transition-all duration-200 bg-gray-600 text-white hover:bg-gray-700">
+            {isLoading ? 'Loading...' : buttonText}
         </button>
     );
 };

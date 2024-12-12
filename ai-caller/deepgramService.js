@@ -234,8 +234,8 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
   let conversationHistory = conversationCache.get(sessionId) || [];
   const isFirstInteraction = conversationHistory.length === 0;
 
-  // If it's the first interaction, we need to send the initial greeting
-  if (isFirstInteraction) {
+  // If it's the first interaction, send initial greeting
+  if (isFirstInteraction && !transcript) {
     const initialResponse = {
       response: "Hello! May I know your name, please?",
       extractedName: null
@@ -253,13 +253,14 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
   }
 
   try {
+    // Add user's message to history
     conversationHistory.push({ role: 'user', content: transcript.toString().trim() });
 
     const messages = [
       { 
         role: 'system', 
         content: !currentName 
-          ? `${prompt}\nIMPORTANT: First ask for the caller's name. Only after getting their name, proceed with asking how you can help.`
+          ? `${prompt}\nIMPORTANT: The caller is responding to your question about their name. Extract their name and respond warmly.`
           : prompt
       },
       ...conversationHistory
@@ -268,50 +269,28 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
     const response = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: messages,
-      functions: [nameExtractionFunction, appointmentTimeExtractionFunction, scheduleAppointmentFunction],
-      function_call: 'auto'
+      functions: [nameExtractionFunction],
+      function_call: !currentName ? { name: 'extractName' } : 'auto'
     });
 
     const message = response.choices[0].message;
     let aiResponse = message.content;
     let extractedName = null;
 
-    if (message.function_call) {
+    if (message.function_call?.name === "extractName") {
       const args = JSON.parse(message.function_call.arguments);
-      
-      if (message.function_call.name === "extractName" && args.confidence) {
+      if (args.confidence) {
         extractedName = args.name.trim();
-        if (!currentName) {
-          aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
-        }
-      }
-      
-      if (message.function_call.name === "extractAppointmentTime" && args.hasSchedulingIntent) {
-        const { appointmentTime, confidence } = args;
-        if (confidence && appointmentTime) {
-          const isAvailable = await checkAvailability(appointmentTime);
-          if (isAvailable) {
-            aiResponse = `I can schedule you for ${new Date(appointmentTime).toLocaleString()}. Would you like me to book this appointment for you?`;
-          } else {
-            aiResponse = `I apologize, but that time isn't available. Could you please suggest another time?`;
-          }
-        }
+        aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
+      } else {
+        aiResponse = "I'm sorry, I didn't catch your name. Could you please repeat it?";
       }
     }
 
-    // If no name extracted and no current name, ensure we ask for name first
-    if (!extractedName && !currentName && isFirstInteraction) {
-      aiResponse = "Hello! May I know your name, please?";
-    }
-
-    // Only add response to history if it's meaningful
-    if (aiResponse && !conversationHistory.some(msg => 
-      msg.role === 'assistant' && 
-      msg.content === aiResponse
-    )) {
-      conversationHistory.push({ role: 'assistant', content: aiResponse });
-    }
+    // Add AI's response to history
+    conversationHistory.push({ role: 'assistant', content: aiResponse });
     
+    // Trim history if too long
     if (conversationHistory.length > CACHE_CONFIG.MAX_HISTORY) {
       conversationHistory = conversationHistory.slice(-CACHE_CONFIG.MAX_HISTORY);
     }

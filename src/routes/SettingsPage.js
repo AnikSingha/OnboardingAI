@@ -371,14 +371,12 @@ export default function SettingsPage() {
         }
       }
 
-
       if (accountInfo.email !== user) {
         let payload = {
           email: user,
           newEmail: accountInfo.email,
           business_name: business
         }
-        console.log(payload)
         
         const emailResponse = await fetch('https://api.onboardingai.org/user/update-email', {
           method: 'PUT',
@@ -386,9 +384,7 @@ export default function SettingsPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(
-            payload
-          )
+          body: JSON.stringify(payload)
         });
 
         if (!emailResponse.ok) {
@@ -396,13 +392,20 @@ export default function SettingsPage() {
         }
       }
 
-      await login()
+      // Update local AuthContext state before login refresh
+      if (accountInfo.name !== name || accountInfo.email !== user) {
+        await login();
+      }
 
       setShowUpdateConfirm(false);
-      
       setAlertMessage({ type: 'success', text: 'Account information updated successfully' });
-      window.location.reload();
       
+      // Instead of window.location.reload(), update the form data
+      setAccountInfo({
+        name: accountInfo.name,
+        email: accountInfo.email
+      });
+
     } catch (error) {
       console.error('Error updating account:', error);
       setAlertMessage({ type: 'error', text: error.message });

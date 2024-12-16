@@ -12,7 +12,8 @@ const {
   setMinutes,
   addDays,
   nextDay,
-  isFuture
+  isFuture,
+  startOfDay
 } = require('date-fns');
 const { zonedTimeToUtc, utcToZonedTime } = require('date-fns-tz');
 
@@ -256,35 +257,54 @@ const scheduleAppointmentFunction = {
   }
 };
 
-// Helper function to normalize time strings
-const normalizeTimeString = (timeStr) => {
-  timeStr = timeStr.toLowerCase().trim();
-  // Remove any extra spaces
-  timeStr = timeStr.replace(/\s+/g, ' ');
-  // Standardize AM/PM format
-  timeStr = timeStr.replace(/([ap])\.?m\.?/i, '$1m');
-  // Add :00 if no minutes specified
-  if (!timeStr.includes(':')) {
-    timeStr = timeStr.replace(/(\d+)(\s*[ap]m)/, '$1:00$2');
-  }
-  return timeStr;
+// Define office timezone and operating hours
+const OFFICE_TIMEZONE = 'America/New_York';
+const OFFICE_HOURS = {
+  start: 9, // 9 AM
+  end: 17   // 5 PM
 };
 
-// Helper function to parse time string
+// Helper function to get next valid date for a day of week
+const getNextValidDate = (dayName, referenceDate = new Date()) => {
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const targetDay = days.indexOf(dayName.toLowerCase());
+  if (targetDay === -1) return null;
+
+  let date = utcToZonedTime(referenceDate, OFFICE_TIMEZONE);
+  date = startOfDay(date);
+
+  while (date.getDay() !== targetDay || !isFuture(date)) {
+    date = addDays(date, 1);
+  }
+
+  return date;
+};
+
+// Helper function to parse and validate time
 const parseTimeString = (timeStr) => {
-  const match = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*([ap]m)/i);
+  const normalized = timeStr.toLowerCase().trim()
+    .replace(/\s+/g, ' ')
+    .replace(/([ap])\.?m\.?/i, '$1m');
+
+  const match = normalized.match(/(\d{1,2})(?::(\d{2}))?\s*([ap]m)/i);
   if (!match) return null;
 
   let [_, hours, minutes = '00', meridiem] = match;
   hours = parseInt(hours);
+  minutes = parseInt(minutes);
+
+  // Validate hours and minutes
+  if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) return null;
+
+  // Convert to 24-hour format
   if (meridiem.toLowerCase() === 'pm' && hours !== 12) hours += 12;
   if (meridiem.toLowerCase() === 'am' && hours === 12) hours = 0;
 
-  return { hours, minutes: parseInt(minutes) };
-};
+  // Validate against office hours
+  if (hours < OFFICE_HOURS.start || hours >= OFFICE_HOURS.end) return null;
 
-// Add timezone constant
-const TIMEZONE = 'America/New_York'; // or your specific timezone
+  return { hours, minutes };
+};
 
 const processTranscript = async (transcript, sessionId, currentName = null, phoneNumber = null) => {
   try {
@@ -362,81 +382,79 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
 
       if (message.function_call.name === "extractAppointmentTime") {
         try {
-          console.log('Received appointment data:', args);
+          console.log('Raw appointment request:', args);
 
           if (args.needsMoreInfo) {
             aiResponse = "What specific day and time would you prefer for your appointment?";
             return { response: aiResponse, extractedName: null };
           }
 
-          if (!args.appointmentTime || !args.specifiedTime) {
-            throw new Error('Missing required appointment data');
+          // Parse the time first
+          const parsedTime = parseTimeString(args.specifiedTime);
+          if (!parsedTime) {
+            console.error('Invalid time format or outside office hours:', args.specifiedTime);
+            throw new Error('Invalid time or outside office hours');
           }
 
-          // Parse the appointment date and handle timezone
-          const appointmentDate = new Date(args.appointmentTime);
-          if (!isValid(appointmentDate)) {
-            throw new Error('Invalid date format');
+          // Extract day information and get the next valid date
+          const dayMatch = args.appointmentTime.match(/(\w+day)/i);
+          if (!dayMatch) {
+            console.error('No valid day found in:', args.appointmentTime);
+            throw new Error('Invalid day specification');
           }
 
-          // Parse the user-specified time
-          const normalizedUserTime = normalizeTimeString(args.specifiedTime);
-          const parsedUserTime = parseTimeString(normalizedUserTime);
-          
-          if (!parsedUserTime) {
-            throw new Error('Invalid time format');
+          // Get next valid date for the specified day
+          const baseDate = getNextValidDate(dayMatch[1]);
+          if (!baseDate) {
+            console.error('Could not determine next valid date for:', dayMatch[1]);
+            throw new Error('Invalid day');
           }
 
-          // Create date in local timezone
-          const localDate = utcToZonedTime(appointmentDate, TIMEZONE);
-          
-          // Set the exact time specified by user
-          const correctedDate = setMinutes(
-            setHours(localDate, parsedUserTime.hours),
-            parsedUserTime.minutes
+          // Set the exact time on the date
+          const appointmentDate = setMinutes(
+            setHours(baseDate, parsedTime.hours),
+            parsedTime.minutes
           );
 
-          // Convert back to UTC for storage
-          const finalDate = zonedTimeToUtc(correctedDate, TIMEZONE);
+          // Convert to UTC for storage
+          const utcAppointmentDate = zonedTimeToUtc(appointmentDate, OFFICE_TIMEZONE);
 
-          console.log('Time validation:', {
-            original: args.specifiedTime,
-            normalized: normalizedUserTime,
-            parsedHours: parsedUserTime.hours,
-            parsedMinutes: parsedUserTime.minutes,
-            localTime: format(correctedDate, 'h:mm a'),
-            utcTime: format(finalDate, 'h:mm a'),
-            finalISO: finalDate.toISOString()
+          console.log('Appointment processing:', {
+            requestedDay: dayMatch[1],
+            requestedTime: args.specifiedTime,
+            parsedTime: `${parsedTime.hours}:${parsedTime.minutes}`,
+            localDateTime: format(appointmentDate, 'yyyy-MM-dd HH:mm:ss'),
+            utcDateTime: format(utcAppointmentDate, 'yyyy-MM-dd HH:mm:ss'),
+            timezone: OFFICE_TIMEZONE
           });
 
-          // Ensure the appointment is in the future
-          if (!isFuture(finalDate)) {
-            const tomorrow = addDays(new Date(), 1);
-            aiResponse = "That time has already passed. Would you like to schedule for tomorrow instead?";
+          if (!isFuture(utcAppointmentDate)) {
+            aiResponse = "That time has already passed. Would you like to schedule for next week instead?";
             return { response: aiResponse, extractedName: null };
           }
 
-          const isAvailable = await checkAvailability(finalDate);
+          const isAvailable = await checkAvailability(utcAppointmentDate);
           
           if (isAvailable) {
-            const scheduled = await createAppointment(currentName, phoneNumber, finalDate);
+            const scheduled = await createAppointment(currentName, phoneNumber, utcAppointmentDate);
             
             if (scheduled && !await leadExists(phoneNumber)) {
               await addLead(phoneNumber, currentName);
             }
             
-            // Use local timezone for display
-            const displayDate = utcToZonedTime(finalDate, TIMEZONE);
+            // Convert back to local timezone for display
+            const localDateTime = utcToZonedTime(utcAppointmentDate, OFFICE_TIMEZONE);
             aiResponse = scheduled 
-              ? `Perfect! I've scheduled your appointment for ${format(displayDate, 'EEEE, MMMM d')} at ${format(displayDate, 'h:mm a')}. We look forward to seeing you!`
+              ? `Perfect! I've scheduled your appointment for ${format(localDateTime, 'EEEE, MMMM d')} at ${format(localDateTime, 'h:mm a')}. We look forward to seeing you!`
               : `I apologize, but there was an error scheduling your appointment. Please try again or call our office directly.`;
           } else {
-            const nextAvailableTime = await nextTime(finalDate);
-            const nextAvailableLocal = nextAvailableTime ? utcToZonedTime(new Date(nextAvailableTime), TIMEZONE) : null;
-            
-            aiResponse = nextAvailableTime 
-              ? `I apologize, but that time isn't available. The next available time is ${format(nextAvailableLocal, 'EEEE, MMMM d')} at ${format(nextAvailableLocal, 'h:mm a')}. Would that work for you?`
-              : `I apologize, but that time isn't available. Could you please suggest another time?`;
+            const nextAvailableTime = await nextTime(utcAppointmentDate);
+            if (nextAvailableTime) {
+              const localNextTime = utcToZonedTime(new Date(nextAvailableTime), OFFICE_TIMEZONE);
+              aiResponse = `I apologize, but that time isn't available. The next available time is ${format(localNextTime, 'EEEE, MMMM d')} at ${format(localNextTime, 'h:mm a')}. Would that work for you?`;
+            } else {
+              aiResponse = `I apologize, but that time isn't available. Could you please suggest another time?`;
+            }
           }
         } catch (error) {
           console.error('Error processing appointment:', error);

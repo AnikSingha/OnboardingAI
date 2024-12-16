@@ -202,35 +202,53 @@ const appointmentTimeExtractionFunction = {
   description: `Extract appointment details from natural language conversation.
   Current date and time is ${new Date().toLocaleString()}.
   
-  CRITICAL REQUIREMENTS:
-  1. Always return times in ISO 8601 format with timezone
-  2. For relative dates (e.g., "Wednesday at 3 PM"), calculate the next occurrence
-  3. Preserve exact times specified by user
-  4. Include timezone offset in response
+  CRITICAL: You must ALWAYS parse any date/time mention into proper format.
   
-  EXAMPLE OUTPUTS:
-  "Wednesday at 3 PM" → {
-    appointmentTime: "2024-[date]T15:00:00.000-05:00",
+  EXAMPLES:
+  "this friday at three pm" → {
+    appointmentTime: "2024-12-20T15:00:00",
     specifiedTime: "3 PM",
     needsMoreInfo: false,
     confidence: true
-  }`,
+  }
+  
+  "friday at 3" → {
+    appointmentTime: "2024-12-20T15:00:00",
+    specifiedTime: "3 PM",
+    needsMoreInfo: false,
+    confidence: true
+  }
+  
+  "tomorrow afternoon" → {
+    appointmentTime: null,
+    specifiedTime: null,
+    needsMoreInfo: true,
+    confidence: false
+  }
+  
+  REQUIREMENTS:
+  - Convert all number words to digits (three → 3)
+  - Always include AM/PM in specifiedTime
+  - Return full ISO date string for appointmentTime
+  - Set needsMoreInfo true only if time is ambiguous`,
   parameters: {
     type: "object",
     properties: {
       appointmentTime: {
         type: "string",
-        description: "Full ISO 8601 date-time string with timezone offset"
+        description: "Full ISO date-time string (YYYY-MM-DDTHH:mm:ss)"
       },
       specifiedTime: {
         type: "string",
-        description: "Raw time specified by user (e.g., '3 PM')"
+        description: "Exact time in 12-hour format (e.g., '3 PM', '2:30 PM')"
       },
       needsMoreInfo: {
-        type: "boolean"
+        type: "boolean",
+        description: "True if time/date is unclear"
       },
       confidence: {
-        type: "boolean"
+        type: "boolean",
+        description: "True if both day and time are clearly specified"
       }
     },
     required: ["appointmentTime", "specifiedTime", "needsMoreInfo", "confidence"]
@@ -384,74 +402,72 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
         try {
           console.log('Raw appointment request:', args);
 
+          // Validate all required fields are present
+          if (!args.appointmentTime || !args.specifiedTime || args.needsMoreInfo === undefined || args.confidence === undefined) {
+            console.error('Incomplete appointment data:', args);
+            throw new Error('Incomplete appointment data');
+          }
+
           if (args.needsMoreInfo) {
             aiResponse = "What specific day and time would you prefer for your appointment?";
             return { response: aiResponse, extractedName: null };
           }
 
-          // Parse the time first
-          const parsedTime = parseTimeString(args.specifiedTime);
-          if (!parsedTime) {
-            console.error('Invalid time format or outside office hours:', args.specifiedTime);
-            throw new Error('Invalid time or outside office hours');
+          // Parse the appointment date
+          const appointmentDate = new Date(args.appointmentTime);
+          if (!isValid(appointmentDate)) {
+            console.error('Invalid date:', args.appointmentTime);
+            throw new Error('Invalid date format');
           }
 
-          // Extract day information and get the next valid date
-          const dayMatch = args.appointmentTime.match(/(\w+day)/i);
-          if (!dayMatch) {
-            console.error('No valid day found in:', args.appointmentTime);
-            throw new Error('Invalid day specification');
+          // Parse the time
+          const timeMatch = args.specifiedTime.match(/(\d{1,2})(?::(\d{2}))?\s*([ap]m)/i);
+          if (!timeMatch) {
+            console.error('Invalid time format:', args.specifiedTime);
+            throw new Error('Invalid time format');
           }
 
-          // Get next valid date for the specified day
-          const baseDate = getNextValidDate(dayMatch[1]);
-          if (!baseDate) {
-            console.error('Could not determine next valid date for:', dayMatch[1]);
-            throw new Error('Invalid day');
-          }
+          let [_, hours, minutes = '00', meridiem] = timeMatch;
+          hours = parseInt(hours);
+          minutes = parseInt(minutes);
 
-          // Set the exact time on the date
-          const appointmentDate = setMinutes(
-            setHours(baseDate, parsedTime.hours),
-            parsedTime.minutes
-          );
+          // Convert to 24-hour format
+          if (meridiem.toLowerCase() === 'pm' && hours !== 12) hours += 12;
+          if (meridiem.toLowerCase() === 'am' && hours === 12) hours = 0;
 
-          // Convert to UTC for storage
-          const utcAppointmentDate = zonedTimeToUtc(appointmentDate, OFFICE_TIMEZONE);
+          // Set the correct time
+          const correctedDate = new Date(appointmentDate);
+          correctedDate.setHours(hours, minutes, 0, 0);
 
           console.log('Appointment processing:', {
-            requestedDay: dayMatch[1],
-            requestedTime: args.specifiedTime,
-            parsedTime: `${parsedTime.hours}:${parsedTime.minutes}`,
-            localDateTime: format(appointmentDate, 'yyyy-MM-dd HH:mm:ss'),
-            utcDateTime: format(utcAppointmentDate, 'yyyy-MM-dd HH:mm:ss'),
-            timezone: OFFICE_TIMEZONE
+            original: args,
+            parsedDate: appointmentDate.toISOString(),
+            parsedTime: `${hours}:${minutes}`,
+            final: correctedDate.toISOString()
           });
 
-          if (!isFuture(utcAppointmentDate)) {
+          if (!isFuture(correctedDate)) {
             aiResponse = "That time has already passed. Would you like to schedule for next week instead?";
             return { response: aiResponse, extractedName: null };
           }
 
-          const isAvailable = await checkAvailability(utcAppointmentDate);
+          const isAvailable = await checkAvailability(correctedDate);
           
           if (isAvailable) {
-            const scheduled = await createAppointment(currentName, phoneNumber, utcAppointmentDate);
+            const scheduled = await createAppointment(currentName, phoneNumber, correctedDate);
             
             if (scheduled && !await leadExists(phoneNumber)) {
               await addLead(phoneNumber, currentName);
             }
             
-            // Convert back to local timezone for display
-            const localDateTime = utcToZonedTime(utcAppointmentDate, OFFICE_TIMEZONE);
             aiResponse = scheduled 
-              ? `Perfect! I've scheduled your appointment for ${format(localDateTime, 'EEEE, MMMM d')} at ${format(localDateTime, 'h:mm a')}. We look forward to seeing you!`
+              ? `Perfect! I've scheduled your appointment for ${format(correctedDate, 'EEEE, MMMM d')} at ${format(correctedDate, 'h:mm a')}. We look forward to seeing you!`
               : `I apologize, but there was an error scheduling your appointment. Please try again or call our office directly.`;
           } else {
-            const nextAvailableTime = await nextTime(utcAppointmentDate);
+            const nextAvailableTime = await nextTime(correctedDate);
             if (nextAvailableTime) {
-              const localNextTime = utcToZonedTime(new Date(nextAvailableTime), OFFICE_TIMEZONE);
-              aiResponse = `I apologize, but that time isn't available. The next available time is ${format(localNextTime, 'EEEE, MMMM d')} at ${format(localNextTime, 'h:mm a')}. Would that work for you?`;
+              const nextTime = new Date(nextAvailableTime);
+              aiResponse = `I apologize, but that time isn't available. The next available time is ${format(nextTime, 'EEEE, MMMM d')} at ${format(nextTime, 'h:mm a')}. Would that work for you?`;
             } else {
               aiResponse = `I apologize, but that time isn't available. Could you please suggest another time?`;
             }

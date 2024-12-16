@@ -1,6 +1,6 @@
 const { MongoClient, ObjectId, ServerApiVersion } = require('mongodb');
 const dotenv = require('dotenv');
-const { zonedTimeToUtc, utcToZonedTime } = require('date-fns-tz');
+const dateFnsTz = require('date-fns-tz');
 const OFFICE_TIMEZONE = process.env.TIMEZONE || 'America/New_York';
 dotenv.config();
 
@@ -116,8 +116,7 @@ const checkAvailability = async (appointmentDate) => {
     const db = await getDb();
     const schedulesCollection = db.collection('schedules');
     
-    // Convert the check date to UTC for comparison
-    const utcDate = zonedTimeToUtc(appointmentDate, OFFICE_TIMEZONE);
+    const utcDate = dateFnsTz.zonedTimeToUtc(appointmentDate, OFFICE_TIMEZONE);
     
     const existingAppointment = await schedulesCollection.findOne({
       date: utcDate
@@ -133,8 +132,10 @@ const checkAvailability = async (appointmentDate) => {
 const nextTime = async (appointmentDate) => {
   try {
     let requestedDate = new Date(appointmentDate);
+    let attempts = 0;
+    const MAX_ATTEMPTS = 48;
 
-    while (true) {
+    while (attempts < MAX_ATTEMPTS) {
       const isAvailable = await checkAvailability(requestedDate);
 
       if (isAvailable) {
@@ -143,8 +144,10 @@ const nextTime = async (appointmentDate) => {
       } else {
         requestedDate = new Date(requestedDate.getTime() + 15 * 60 * 1000);
         console.log(`Trying the next available slot at ${requestedDate}`);
+        attempts++;
       }
     }
+    return null;
   } catch (error) {
     console.error('Error finding next available time:', error);
     return null;
@@ -156,10 +159,12 @@ const createAppointment = async (name, number, appointmentDate) => {
     const db = await getDb();
     const schedulesCollection = db.collection('schedules');
     
+    const utcDate = dateFnsTz.zonedTimeToUtc(appointmentDate, OFFICE_TIMEZONE);
+    
     const newAppointment = {
       name: name,
       number: number,
-      date: appointmentDate, // This should already be in UTC from zonedTimeToUtc
+      date: utcDate,
       created_at: new Date()
     };
     

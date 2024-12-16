@@ -168,17 +168,17 @@ const generateTTS = async (text) => {
 
 const nameExtractionFunction = {
   name: "extractName",
-  description: "Extract a person's name when they introduce themselves. Be lenient and accept any reasonable name-like response.",
+  description: "Extract a person's name when they introduce themselves. Be very lenient and accept any name-like response, even single words or nicknames.",
   parameters: {
     type: "object",
     properties: {
       name: {
         type: "string",
-        description: "The extracted name from the conversation. If multiple words are present, try to identify the most likely name."
+        description: "The extracted name from the conversation. Accept any reasonable response as a name."
       },
       confidence: {
         type: "boolean",
-        description: "Whether the name was confidently extracted. Set to true unless the input is clearly not a name."
+        description: "Whether the input could reasonably be a name. Only set to false if the input is clearly not a name (like 'yes', 'no', or numbers)."
       }
     },
     required: ["name", "confidence"]
@@ -238,7 +238,7 @@ const scheduleAppointmentFunction = {
 
 const processTranscript = async (transcript, sessionId, currentName = null, phoneNumber = null) => {
   try {
-    // First check if we have the caller's info in leads collection
+    // Check if we have the caller's info in leads collection
     if (!currentName && phoneNumber) {
       const db = await getDb();
       const leadsCollection = db.collection('leads');
@@ -246,7 +246,6 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
       
       if (existingLead?.name) {
         currentName = existingLead.name;
-        // Update conversation history with personalized greeting
         const initialResponse = {
           response: `Hello ${currentName}! How can I assist you today?`,
           extractedName: currentName
@@ -258,7 +257,6 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
       }
     }
 
-    // Get or initialize conversation history
     let conversationHistory = conversationCache.get(sessionId) || [];
     const isFirstInteraction = conversationHistory.length === 0;
 
@@ -272,12 +270,10 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
       return initialResponse;
     }
 
-    // Only add valid transcripts to conversation history
     if (transcript?.trim()) {
       conversationHistory.push({ role: 'user', content: transcript.trim() });
     }
 
-    // Filter out any messages with null content
     conversationHistory = conversationHistory.filter(msg => msg.content != null);
 
     const messages = [
@@ -289,8 +285,6 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
       },
       ...conversationHistory
     ];
-
-    console.log('Sending messages to OpenAI:', JSON.stringify(messages, null, 2));
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4',
@@ -311,7 +305,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
           extractedName = args.name.trim();
           aiResponse = `Nice to meet you, ${extractedName}! How can I assist you today?`;
         } else {
-          aiResponse = "I'm sorry, I didn't catch your name. Could you please repeat it?";
+          aiResponse = "I'm sorry, I didn't catch your name. Could you please say it again clearly?";
         }
       }
 
@@ -319,17 +313,27 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
         if (args.needsMoreInfo) {
           aiResponse = "What day would you prefer for your appointment? And what time works best for you?";
         } else if (args.confidence && args.appointmentTime) {
-          let appointmentDate;
           try {
+            let appointmentDate;
             const now = new Date();
+            
             if (args.isRelativeDate) {
-              // Handle relative dates
-              const today = new Date();
+              // Handle "tomorrow"
               if (args.appointmentTime.toLowerCase().includes('tomorrow')) {
-                appointmentDate = new Date(today.setDate(today.getDate() + 1));
-                // Set the time portion from the original request
-                const requestedTime = new Date(args.appointmentTime);
-                appointmentDate.setHours(requestedTime.getHours(), requestedTime.getMinutes(), 0, 0);
+                appointmentDate = new Date(now);
+                appointmentDate.setDate(now.getDate() + 1);
+                
+                // Extract time if provided
+                const timeMatch = args.appointmentTime.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+                if (timeMatch) {
+                  let [_, hours, minutes = '00', meridiem] = timeMatch;
+                  hours = parseInt(hours);
+                  if (meridiem.toLowerCase() === 'pm' && hours !== 12) hours += 12;
+                  if (meridiem.toLowerCase() === 'am' && hours === 12) hours = 0;
+                  appointmentDate.setHours(hours, parseInt(minutes), 0, 0);
+                } else {
+                  appointmentDate.setHours(9, 0, 0, 0); // Default to 9 AM if no time specified
+                }
               } else {
                 appointmentDate = new Date(args.appointmentTime);
               }
@@ -337,21 +341,14 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
               appointmentDate = new Date(args.appointmentTime);
             }
 
-            // Validate the date is valid
             if (isNaN(appointmentDate.getTime())) {
               throw new Error('Invalid date');
             }
 
             // Ensure date is in the future
             if (appointmentDate < now) {
-              if (appointmentDate.getDate() === now.getDate()) {
-                // Same day but earlier time - keep date but suggest next available time
-                aiResponse = "That time has already passed for today. Would you like to see the next available time?";
-                return;
-              } else {
-                // Past date - assume next year if not specified
-                appointmentDate.setFullYear(now.getFullYear() + 1);
-              }
+              aiResponse = "That time has already passed. Would you like to schedule for tomorrow instead?";
+              return { response: aiResponse, extractedName: null };
             }
 
             const isAvailable = await checkAvailability(appointmentDate);
@@ -359,6 +356,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
             if (isAvailable) {
               const scheduled = await createAppointment(currentName, phoneNumber, appointmentDate);
               
+              // Add to leads if new patient
               if (scheduled && !await leadExists(phoneNumber)) {
                 await addLead(phoneNumber, currentName);
               }
@@ -374,7 +372,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
             }
           } catch (error) {
             console.error('Error processing appointment date:', error);
-            aiResponse = "I apologize, but I couldn't understand the appointment time. Could you please specify the date and time again?";
+            aiResponse = "I apologize, but I couldn't understand the appointment time. Could you please specify the date and time again? For example, 'tomorrow at 2 PM' or '3 PM on Friday'";
           }
         }
       }
@@ -395,7 +393,6 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
   } catch (error) {
     console.error('Error in processTranscript:', error);
     
-    // Handle rate limit and quota errors specifically
     if (error.code === 'insufficient_quota' || error.status === 429) {
       return {
         response: "I apologize, but I'm experiencing technical difficulties at the moment. Please try again later or contact support for assistance.",
@@ -403,7 +400,6 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
       };
     }
 
-    // Handle other errors
     return {
       response: 'I apologize, but I am having trouble understanding. Could you please rephrase that?',
       extractedName: null

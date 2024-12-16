@@ -3,7 +3,7 @@ const { LiveTranscriptionEvents, createClient } = require('@deepgram/sdk');
 const OpenAI = require('openai');
 const dotenv = require('dotenv');
 const path = require('path');
-const { checkAvailability, nextTime, createAppointment, connectToMongoDB } = require('../auth-service/db.js');
+const { checkAvailability, nextTime, createAppointment, connectToMongoDB, addLead, leadExists } = require('../auth-service/db.js');
 
 // Load environment variables first
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -33,18 +33,16 @@ const openai = new OpenAI({
 
 const prompt = `You are a professional and friendly AI dental receptionist for [Dental Office Name]. Your primary role is to:
 
-- Assist patients with scheduling appointments: Provide available dates and times, and help with rescheduling or canceling appointments.
-- Provide office information: Share details about office hours, location, contact information, services offered, insurance accepted, and pricing.
-- Onboard new patients: Collect necessary information such as name and contact details, and explain the onboarding process.
-- Respond to general inquiries: Answer questions about dental procedures, office policies, and staff. Direct complex queries to the appropriate team member.
-- Handle patient information with confidentiality: Comply with HIPAA regulations and ensure all sensitive information is processed securely.
+- Assist patients with scheduling appointments: When a patient expresses interest in making an appointment, proactively ask for their preferred day and time. If they don't specify a complete date/time, guide them by asking specific questions.
+- Always use the current year for appointments unless explicitly specified otherwise
+- If a requested time is not available, immediately suggest the next available time
+- Provide office information: Share details about office hours, location, contact information, services offered, insurance accepted, and pricing
+- Handle patient information with confidentiality: Comply with HIPAA regulations
 
 Communication Style:
-
-- Friendly and Approachable: Greet patients warmly with a positive tone.
-- Clear and Concise: Provide easy-to-understand information without unnecessary jargon.
-- Patient and Understanding: Show empathy, especially with anxious or upset patients.
-- Professional: Reflect the values and standards of [Dental Office Name] in all interactions.`;
+- Proactive: When someone mentions booking/scheduling, immediately help guide them through the process
+- Clear and Specific: Ask for date and time separately if needed (e.g., "What day would you prefer? And what time works best for you?")
+- Helpful: Always suggest alternatives if requested times are unavailable`;
 
 // Cache configuration
 const CACHE_CONFIG = {
@@ -193,18 +191,22 @@ const appointmentTimeExtractionFunction = {
     properties: {
       appointmentTime: {
         type: "string",
-        description: "The extracted appointment time in ISO 8601 format"
+        description: "The extracted appointment time in ISO 8601 format. If year is not specified, use current year."
       },
       hasSchedulingIntent: {
         type: "boolean",
         description: "Whether the user is trying to schedule an appointment"
+      },
+      needsMoreInfo: {
+        type: "boolean",
+        description: "Whether we need to ask for more specific date/time information"
       },
       confidence: {
         type: "boolean",
         description: "Whether the time was confidently extracted"
       }
     },
-    required: ["appointmentTime", "hasSchedulingIntent", "confidence"]
+    required: ["appointmentTime", "hasSchedulingIntent", "needsMoreInfo", "confidence"]
   }
 };
 
@@ -230,6 +232,26 @@ const scheduleAppointmentFunction = {
 
 const processTranscript = async (transcript, sessionId, currentName = null, phoneNumber = null) => {
   try {
+    // First check if we have the caller's info in leads collection
+    if (!currentName && phoneNumber) {
+      const db = await getDb();
+      const leadsCollection = db.collection('leads');
+      const existingLead = await leadsCollection.findOne({ _number: phoneNumber });
+      
+      if (existingLead?.name) {
+        currentName = existingLead.name;
+        // Update conversation history with personalized greeting
+        const initialResponse = {
+          response: `Hello ${currentName}! How can I assist you today?`,
+          extractedName: currentName
+        };
+        conversationCache.set(sessionId, [
+          { role: 'assistant', content: initialResponse.response }
+        ]);
+        return initialResponse;
+      }
+    }
+
     // Get or initialize conversation history
     let conversationHistory = conversationCache.get(sessionId) || [];
     const isFirstInteraction = conversationHistory.length === 0;
@@ -288,34 +310,30 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
       }
 
       if (message.function_call.name === "extractAppointmentTime" && args.hasSchedulingIntent) {
-        console.log('Attempting to schedule appointment:', {
-          appointmentTime: args.appointmentTime,
-          confidence: args.confidence,
-          currentName,
-          phoneNumber
-        });
-        
-        const { appointmentTime, confidence } = args;
-        if (confidence && appointmentTime) {
-          const isAvailable = await checkAvailability(appointmentTime);
-          console.log('Availability check:', {
-            appointmentTime,
-            isAvailable
-          });
+        if (args.needsMoreInfo) {
+          aiResponse = "What day would you prefer for your appointment? And what time works best for you?";
+        } else if (args.confidence && args.appointmentTime) {
+          // Ensure we're using current year if not specified
+          let appointmentDate = new Date(args.appointmentTime);
+          if (appointmentDate.getFullYear() < new Date().getFullYear()) {
+            appointmentDate.setFullYear(new Date().getFullYear());
+          }
+
+          const isAvailable = await checkAvailability(appointmentDate);
           
           if (isAvailable) {
-            const scheduled = await createAppointment(currentName, phoneNumber, appointmentTime);
-            console.log('Appointment creation result:', {
-              scheduled,
-              currentName,
-              phoneNumber,
-              appointmentTime
-            });
+            const scheduled = await createAppointment(currentName, phoneNumber, appointmentDate);
+            
+            // If we have a new patient, add them to leads
+            if (scheduled && !await leadExists(phoneNumber)) {
+              await addLead(phoneNumber, currentName);
+            }
+            
             aiResponse = scheduled 
-              ? `Perfect! I've scheduled your appointment for ${new Date(appointmentTime).toLocaleString()}. We look forward to seeing you!`
+              ? `Perfect! I've scheduled your appointment for ${appointmentDate.toLocaleString()}. We look forward to seeing you!`
               : `I apologize, but there was an error scheduling your appointment. Please try again or call our office directly.`;
           } else {
-            const nextAvailableTime = await nextTime(appointmentTime);
+            const nextAvailableTime = await nextTime(appointmentDate);
             aiResponse = nextAvailableTime 
               ? `I apologize, but that time isn't available. The next available time is ${new Date(nextAvailableTime).toLocaleString()}. Would that work for you?`
               : `I apologize, but that time isn't available. Could you please suggest another time?`;

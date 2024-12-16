@@ -275,7 +275,7 @@ export default function SettingsPage() {
   // Check 2FA status on component mount
   useEffect(() => {
     checkTwoFactorStatus();
-  }, []);
+  }, [loading]);
 
   const handleToggleTwoFactorAuth = async (enable) => {
     setIsToggling2FA(true);

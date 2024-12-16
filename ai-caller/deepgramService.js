@@ -193,7 +193,7 @@ const appointmentTimeExtractionFunction = {
     properties: {
       appointmentTime: {
         type: "string",
-        description: "The extracted appointment time in ISO 8601 format. For relative times like 'tomorrow' or 'next Monday', convert to actual dates based on current time."
+        description: "The extracted appointment time in ISO 8601 format. For relative dates like 'tomorrow' or 'next week', calculate the actual date based on current time. Example: If user says 'tomorrow at 3pm', convert to full ISO date."
       },
       hasSchedulingIntent: {
         type: "boolean",
@@ -206,9 +206,13 @@ const appointmentTimeExtractionFunction = {
       confidence: {
         type: "boolean",
         description: "Whether the time was confidently extracted"
+      },
+      isRelativeDate: {
+        type: "boolean",
+        description: "Whether the date mentioned was relative (like 'tomorrow', 'next week')"
       }
     },
-    required: ["appointmentTime", "hasSchedulingIntent", "needsMoreInfo", "confidence"]
+    required: ["appointmentTime", "hasSchedulingIntent", "needsMoreInfo", "confidence", "isRelativeDate"]
   }
 };
 
@@ -315,30 +319,50 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
         if (args.needsMoreInfo) {
           aiResponse = "What day would you prefer for your appointment? And what time works best for you?";
         } else if (args.confidence && args.appointmentTime) {
-          // Ensure we're using current year if not specified
-          let appointmentDate = new Date(args.appointmentTime);
-          if (appointmentDate.getFullYear() < new Date().getFullYear()) {
-            appointmentDate.setFullYear(new Date().getFullYear());
-          }
-
-          const isAvailable = await checkAvailability(appointmentDate);
-          
-          if (isAvailable) {
-            const scheduled = await createAppointment(currentName, phoneNumber, appointmentDate);
+          let appointmentDate;
+          try {
+            appointmentDate = new Date(args.appointmentTime);
             
-            // If we have a new patient, add them to leads
-            if (scheduled && !await leadExists(phoneNumber)) {
-              await addLead(phoneNumber, currentName);
+            // Validate the date is valid
+            if (isNaN(appointmentDate.getTime())) {
+              throw new Error('Invalid date');
             }
+
+            // If it's a relative date (tomorrow, next week, etc.), ensure it's properly set
+            if (args.isRelativeDate) {
+              // Ensure the date is in the future
+              if (appointmentDate < new Date()) {
+                appointmentDate.setDate(appointmentDate.getDate() + 1);
+              }
+            }
+
+            // Ensure we're using current year if not specified
+            if (appointmentDate.getFullYear() < new Date().getFullYear()) {
+              appointmentDate.setFullYear(new Date().getFullYear());
+            }
+
+            const isAvailable = await checkAvailability(appointmentDate);
             
-            aiResponse = scheduled 
-              ? `Perfect! I've scheduled your appointment for ${appointmentDate.toLocaleString()}. We look forward to seeing you!`
-              : `I apologize, but there was an error scheduling your appointment. Please try again or call our office directly.`;
-          } else {
-            const nextAvailableTime = await nextTime(appointmentDate);
-            aiResponse = nextAvailableTime 
-              ? `I apologize, but that time isn't available. The next available time is ${new Date(nextAvailableTime).toLocaleString()}. Would that work for you?`
-              : `I apologize, but that time isn't available. Could you please suggest another time?`;
+            if (isAvailable) {
+              const scheduled = await createAppointment(currentName, phoneNumber, appointmentDate);
+              
+              // If we have a new patient, add them to leads
+              if (scheduled && !await leadExists(phoneNumber)) {
+                await addLead(phoneNumber, currentName);
+              }
+              
+              aiResponse = scheduled 
+                ? `Perfect! I've scheduled your appointment for ${appointmentDate.toLocaleString()}. We look forward to seeing you!`
+                : `I apologize, but there was an error scheduling your appointment. Please try again or call our office directly.`;
+            } else {
+              const nextAvailableTime = await nextTime(appointmentDate);
+              aiResponse = nextAvailableTime 
+                ? `I apologize, but that time isn't available. The next available time is ${new Date(nextAvailableTime).toLocaleString()}. Would that work for you?`
+                : `I apologize, but that time isn't available. Could you please suggest another time?`;
+            }
+          } catch (error) {
+            console.error('Error processing appointment date:', error);
+            aiResponse = "I apologize, but I couldn't understand the appointment time. Could you please specify the date and time again?";
           }
         }
       }

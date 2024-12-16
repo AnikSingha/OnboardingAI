@@ -15,8 +15,9 @@ router.delete('/delete-account', async (req, res) => {
         }
 
         const success = await accountManager.deleteUser(email)
+        const success2 = await businessManager.deleteEmployeeFromBusiness(decoded.business_name, email)
 
-        if (success) {
+        if (success && success2) {
             return res.status(200).json({ success: true, message: 'Account successfully deleted' })
         } else {
             return res.status(400).json({ success: false, message: 'Failed to delete account' })

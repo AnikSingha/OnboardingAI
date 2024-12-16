@@ -222,6 +222,22 @@ class BusinessManager {
         }
     }
 
+    async deleteEmployeeFromBusiness(business_name, email) {
+        try {
+            const db = await getDb();
+            const businessCollection = db.collection('businesses');
+            
+            const result = await businessCollection.updateOne(
+                { business_name: business_name },
+                { $pull: { employees: { email: email } } }
+            );
+            return result.modifiedCount > 0;
+        } catch (err) {
+            console.error("Error deleting employee:", err);
+            return false;
+        }
+    }    
+
     async getPlanAndCredits(business_name) {
         try {
             const db = await getDb();

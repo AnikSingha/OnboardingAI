@@ -240,7 +240,7 @@ const appointmentTimeExtractionFunction = {
       },
       specifiedTime: {
         type: "string",
-        description: "Exact time in 12-hour format (e.g., '3 PM', '2:30 PM')"
+        description: "Exact time specified by user (e.g., '3 PM')"
       },
       needsMoreInfo: {
         type: "boolean",
@@ -402,69 +402,84 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
         try {
           console.log('Raw appointment request:', args);
 
-          // Validate all required fields are present
-          if (!args.appointmentTime || !args.specifiedTime || args.needsMoreInfo === undefined || args.confidence === undefined) {
-            console.error('Incomplete appointment data:', args);
-            throw new Error('Incomplete appointment data');
-          }
-
           if (args.needsMoreInfo) {
             aiResponse = "What specific day and time would you prefer for your appointment?";
             return { response: aiResponse, extractedName: null };
           }
 
-          // Parse the appointment date
-          const appointmentDate = new Date(args.appointmentTime);
+          // Handle both ISO string and natural language formats
+          let appointmentDate;
+          if (args.appointmentTime.includes('T')) {
+            // It's an ISO string
+            appointmentDate = new Date(args.appointmentTime);
+          } else {
+            // It's natural language - parse it
+            const dayMatch = args.appointmentTime.match(/(this|next)?\s*(\w+day)/i);
+            const timeMatch = args.specifiedTime.match(/(\d{1,2})(?::(\d{2}))?\s*([ap]m)/i);
+            
+            if (!dayMatch || !timeMatch) {
+              throw new Error('Invalid date/time format');
+            }
+
+            let [_, prefix, day] = dayMatch;
+            let [__, hours, minutes = '00', meridiem] = timeMatch;
+            
+            hours = parseInt(hours);
+            minutes = parseInt(minutes);
+
+            // Convert to 24-hour format
+            if (meridiem.toLowerCase() === 'pm' && hours !== 12) hours += 12;
+            if (meridiem.toLowerCase() === 'am' && hours === 12) hours = 0;
+
+            // Get the next occurrence of the specified day
+            const today = new Date();
+            const daysOfWeek = {
+              sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+              thursday: 4, friday: 5, saturday: 6
+            };
+
+            const targetDay = daysOfWeek[day.toLowerCase()];
+            let targetDate = new Date(today);
+
+            // Calculate days to add
+            while (targetDate.getDay() !== targetDay || !isFuture(targetDate)) {
+              targetDate.setDate(targetDate.getDate() + 1);
+            }
+
+            // Set the time
+            appointmentDate = setMinutes(setHours(targetDate, hours), minutes);
+          }
+
           if (!isValid(appointmentDate)) {
-            console.error('Invalid date:', args.appointmentTime);
-            throw new Error('Invalid date format');
+            throw new Error('Invalid date');
           }
-
-          // Parse the time
-          const timeMatch = args.specifiedTime.match(/(\d{1,2})(?::(\d{2}))?\s*([ap]m)/i);
-          if (!timeMatch) {
-            console.error('Invalid time format:', args.specifiedTime);
-            throw new Error('Invalid time format');
-          }
-
-          let [_, hours, minutes = '00', meridiem] = timeMatch;
-          hours = parseInt(hours);
-          minutes = parseInt(minutes);
-
-          // Convert to 24-hour format
-          if (meridiem.toLowerCase() === 'pm' && hours !== 12) hours += 12;
-          if (meridiem.toLowerCase() === 'am' && hours === 12) hours = 0;
-
-          // Set the correct time
-          const correctedDate = new Date(appointmentDate);
-          correctedDate.setHours(hours, minutes, 0, 0);
 
           console.log('Appointment processing:', {
             original: args,
             parsedDate: appointmentDate.toISOString(),
-            parsedTime: `${hours}:${minutes}`,
-            final: correctedDate.toISOString()
+            finalTime: format(appointmentDate, 'h:mm a'),
+            finalDate: format(appointmentDate, 'EEEE, MMMM d')
           });
 
-          if (!isFuture(correctedDate)) {
+          if (!isFuture(appointmentDate)) {
             aiResponse = "That time has already passed. Would you like to schedule for next week instead?";
             return { response: aiResponse, extractedName: null };
           }
 
-          const isAvailable = await checkAvailability(correctedDate);
+          const isAvailable = await checkAvailability(appointmentDate);
           
           if (isAvailable) {
-            const scheduled = await createAppointment(currentName, phoneNumber, correctedDate);
+            const scheduled = await createAppointment(currentName, phoneNumber, appointmentDate);
             
             if (scheduled && !await leadExists(phoneNumber)) {
               await addLead(phoneNumber, currentName);
             }
             
             aiResponse = scheduled 
-              ? `Perfect! I've scheduled your appointment for ${format(correctedDate, 'EEEE, MMMM d')} at ${format(correctedDate, 'h:mm a')}. We look forward to seeing you!`
+              ? `Perfect! I've scheduled your appointment for ${format(appointmentDate, 'EEEE, MMMM d')} at ${format(appointmentDate, 'h:mm a')}. We look forward to seeing you!`
               : `I apologize, but there was an error scheduling your appointment. Please try again or call our office directly.`;
           } else {
-            const nextAvailableTime = await nextTime(correctedDate);
+            const nextAvailableTime = await nextTime(appointmentDate);
             if (nextAvailableTime) {
               const nextTime = new Date(nextAvailableTime);
               aiResponse = `I apologize, but that time isn't available. The next available time is ${format(nextTime, 'EEEE, MMMM d')} at ${format(nextTime, 'h:mm a')}. Would that work for you?`;
@@ -474,7 +489,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
           }
         } catch (error) {
           console.error('Error processing appointment:', error);
-          aiResponse = "I apologize, but I couldn't understand the appointment time. Could you please specify the day and time again? For example, 'Thursday at 3 PM' or 'next Friday at 2:30 PM'";
+          aiResponse = "I apologize, but I couldn't understand the appointment time. Could you please specify the day and time again? For example, 'Wednesday at 2 PM' or 'next Friday at 2:30 PM'";
         }
       }
     }

@@ -469,7 +469,8 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
           const isAvailable = await checkAvailability(appointmentDate);
           
           if (isAvailable) {
-            const scheduled = await createAppointment(currentName, phoneNumber, appointmentDate);
+            const zonedAppointmentDate = zonedTimeToUtc(appointmentDate, OFFICE_TIMEZONE);
+            const scheduled = await createAppointment(currentName, phoneNumber, zonedAppointmentDate);
             
             if (scheduled && !await leadExists(phoneNumber)) {
               await addLead(phoneNumber, currentName);

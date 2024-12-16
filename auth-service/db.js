@@ -157,7 +157,7 @@ const createAppointment = async (name, number, appointmentDate) => {
     const newAppointment = {
       name: name,
       number: number,
-      date: new Date(appointmentDate),
+      date: appointmentDate,
       created_at: new Date()
     };
     

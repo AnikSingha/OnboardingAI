@@ -15,7 +15,7 @@ const {
   isFuture,
   startOfDay
 } = require('date-fns');
-const { zonedTimeToUtc, utcToZonedTime } = require('date-fns-tz');
+const { zonedTimeToUtc, utcToZonedTime, formatInTimeZone } = require('date-fns-tz');
 
 // Load environment variables first
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -276,7 +276,7 @@ const scheduleAppointmentFunction = {
 };
 
 // Define office timezone and operating hours
-const OFFICE_TIMEZONE = 'America/New_York';
+const OFFICE_TIMEZONE = process.env.TIMEZONE || 'America/New_York';
 const OFFICE_HOURS = {
   start: 9, // 9 AM
   end: 17   // 5 PM
@@ -469,21 +469,27 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
           const isAvailable = await checkAvailability(appointmentDate);
           
           if (isAvailable) {
-            const zonedAppointmentDate = zonedTimeToUtc(appointmentDate, OFFICE_TIMEZONE);
-            const scheduled = await createAppointment(currentName, phoneNumber, zonedAppointmentDate);
+            const scheduled = await createAppointment(currentName, phoneNumber, appointmentDate);
             
             if (scheduled && !await leadExists(phoneNumber)) {
               await addLead(phoneNumber, currentName);
             }
             
             aiResponse = scheduled 
-              ? `Perfect! I've scheduled your appointment for ${format(appointmentDate, 'EEEE, MMMM d')} at ${format(appointmentDate, 'h:mm a')}. We look forward to seeing you!`
+              ? `Perfect! I've scheduled your appointment for ${formatInTimeZone(
+                  appointmentDate,
+                  OFFICE_TIMEZONE,
+                  'EEEE, MMMM d, yyyy \'at\' h:mm a zzz'
+                )}. We look forward to seeing you!`
               : `I apologize, but there was an error scheduling your appointment. Please try again or call our office directly.`;
           } else {
             const nextAvailableTime = await nextTime(appointmentDate);
             if (nextAvailableTime) {
-              const nextTime = new Date(nextAvailableTime);
-              aiResponse = `I apologize, but that time isn't available. The next available time is ${format(nextTime, 'EEEE, MMMM d')} at ${format(nextTime, 'h:mm a')}. Would that work for you?`;
+              aiResponse = `I apologize, but that time isn't available. The next available time is ${formatInTimeZone(
+                nextAvailableTime,
+                OFFICE_TIMEZONE,
+                'EEEE, MMMM d, yyyy \'at\' h:mm a zzz'
+              )}. Would that work for you?`;
             } else {
               aiResponse = `I apologize, but that time isn't available. Could you please suggest another time?`;
             }

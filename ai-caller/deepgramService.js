@@ -187,13 +187,22 @@ const nameExtractionFunction = {
 
 const appointmentTimeExtractionFunction = {
   name: "extractAppointmentTime",
-  description: `Extract appointment details from natural language. 
-  Current date is ${new Date().toLocaleString()}.
-  ALWAYS return dates in the future.
-  If a time is mentioned, use exactly that time.
-  If no time specified, ask for preferred time.
-  For relative dates like 'tomorrow' or 'next week', calculate the actual future date.
-  Never return dates in the past.`,
+  description: `Extract appointment details from natural language conversation.
+  Current date and time is ${new Date().toLocaleString()}.
+  
+  REQUIREMENTS:
+  - Convert any date/time mention into a future appointment time
+  - For "tomorrow", add 1 day to current date
+  - For days of week (e.g., "Friday"), use the next occurrence
+  - For "next week", add 7 days to the mentioned day
+  - Use exactly the time mentioned (e.g., "3 PM", "2:30 PM")
+  - If no specific time mentioned, set needsMoreInfo to true
+  
+  EXAMPLES:
+  - "tomorrow at 3 PM" → next day at 3:00 PM
+  - "Friday at 2:30 PM" → next Friday at 2:30 PM
+  - "next week Tuesday at 1 PM" → Tuesday next week at 1:00 PM
+  - "3 PM" → today/tomorrow at 3:00 PM (depending on current time)`,
   parameters: {
     type: "object",
     properties: {
@@ -203,11 +212,11 @@ const appointmentTimeExtractionFunction = {
       },
       needsMoreInfo: {
         type: "boolean",
-        description: "True if time/date is unclear or missing"
+        description: "True ONLY if no date or time is mentioned at all. False if either a date or time is provided."
       },
       confidence: {
         type: "boolean",
-        description: "Whether the date/time was clearly understood"
+        description: "True if any date/time information is provided, even if partial. Only false if no date/time information at all."
       }
     },
     required: ["appointmentTime", "needsMoreInfo", "confidence"]
@@ -315,11 +324,6 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
             return { response: aiResponse, extractedName: null };
           }
 
-          if (!args.confidence) {
-            aiResponse = "I didn't quite catch that. Could you please specify when you'd like to schedule the appointment?";
-            return { response: aiResponse, extractedName: null };
-          }
-
           const appointmentDate = new Date(args.appointmentTime);
           const now = new Date();
 
@@ -352,7 +356,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
           }
         } catch (error) {
           console.error('Error processing appointment:', error);
-          aiResponse = "I apologize, but I couldn't understand the appointment time. Could you please specify when you'd like to schedule?";
+          aiResponse = "I apologize, but I couldn't understand the appointment time. Could you please specify when you'd like to schedule? For example, 'tomorrow at 2 PM' or 'Friday at 3 PM'";
         }
       }
     }

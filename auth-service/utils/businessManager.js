@@ -215,7 +215,8 @@ class BusinessManager {
                 { business_name: business_name },
                 { $push: { employees: employee } }
             );
-            return result.modifiedCount > 0;
+            
+            return true
         } catch (err) {
             console.error("Error adding employee:", err);
             return false;

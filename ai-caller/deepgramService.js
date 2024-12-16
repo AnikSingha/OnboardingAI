@@ -322,32 +322,65 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
             let appointmentDate;
             const now = new Date();
             
+            // Enhanced regex patterns
+            const timeRegex = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i;
+            const dayRegex = /(this|next)?\s*(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i;
+            const weekRegex = /next\s+week/i;
+            
+            const timeMatch = args.appointmentTime.toLowerCase().match(timeRegex);
+            const dayMatch = args.appointmentTime.toLowerCase().match(dayRegex);
+            const weekMatch = args.appointmentTime.toLowerCase().match(weekRegex);
+
             if (args.isRelativeDate) {
+              appointmentDate = new Date(now);
+              
               if (args.appointmentTime.toLowerCase().includes('tomorrow')) {
-                appointmentDate = new Date(now);
                 appointmentDate.setDate(now.getDate() + 1);
-              } else if (args.dayOfWeek) {
-                appointmentDate = new Date(now);
+              } else if (weekMatch) {
+                // Handle "next week" - add 7 days to current date
+                appointmentDate.setDate(now.getDate() + 7);
+                
+                // If a specific day is also mentioned, adjust to that day
+                if (dayMatch) {
+                  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                  const targetDay = days.indexOf(dayMatch[2]);
+                  const futureDay = appointmentDate.getDay();
+                  const daysToAdd = (targetDay - futureDay + 7) % 7;
+                  appointmentDate.setDate(appointmentDate.getDate() + daysToAdd);
+                }
+              } else if (dayMatch) {
                 const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                const targetDay = days.indexOf(args.dayOfWeek.toLowerCase());
+                const targetDay = days.indexOf(dayMatch[2]);
                 const currentDay = now.getDay();
                 let daysToAdd = targetDay - currentDay;
-                if (daysToAdd <= 0) daysToAdd += 7; // Move to next week if day has passed
+                
+                // If it's "next" [day], add a week
+                if (dayMatch[1] === 'next') {
+                  daysToAdd += 7;
+                }
+                // If the day has passed this week and it's not explicitly "this", move to next week
+                else if (daysToAdd <= 0 && dayMatch[1] !== 'this') {
+                  daysToAdd += 7;
+                }
+                
                 appointmentDate.setDate(now.getDate() + daysToAdd);
               } else {
-                appointmentDate = new Date(args.appointmentTime);
+                throw new Error('Could not parse day');
               }
 
-              // Extract time if provided
-              const timeMatch = args.appointmentTime.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+              // Set the time if provided
               if (timeMatch) {
                 let [_, hours, minutes = '00', meridiem] = timeMatch;
                 hours = parseInt(hours);
                 if (meridiem.toLowerCase() === 'pm' && hours !== 12) hours += 12;
                 if (meridiem.toLowerCase() === 'am' && hours === 12) hours = 0;
                 appointmentDate.setHours(hours, parseInt(minutes), 0, 0);
+              } else {
+                // Default to 9 AM if no time specified
+                appointmentDate.setHours(9, 0, 0, 0);
               }
             } else {
+              // Handle absolute dates
               appointmentDate = new Date(args.appointmentTime);
             }
 
@@ -357,16 +390,22 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
 
             // Ensure date is in the future
             if (appointmentDate < now) {
-              aiResponse = "That time has already passed. Would you like to schedule for tomorrow instead?";
-              return { response: aiResponse, extractedName: null };
+              if (appointmentDate.getDate() === now.getDate()) {
+                aiResponse = "That time has already passed for today. Would you like to see the next available time?";
+                return { response: aiResponse, extractedName: null };
+              } else {
+                // If the date is in the past, move it to next week
+                appointmentDate.setDate(appointmentDate.getDate() + 7);
+              }
             }
+
+            console.log('Processed appointment date:', appointmentDate);
 
             const isAvailable = await checkAvailability(appointmentDate);
             
             if (isAvailable) {
               const scheduled = await createAppointment(currentName, phoneNumber, appointmentDate);
               
-              // Add to leads if new patient
               if (scheduled && !await leadExists(phoneNumber)) {
                 await addLead(phoneNumber, currentName);
               }
@@ -382,7 +421,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
             }
           } catch (error) {
             console.error('Error processing appointment date:', error);
-            aiResponse = "I apologize, but I couldn't understand the appointment time. Could you please specify the date and time again? For example, 'tomorrow at 2 PM' or '3 PM on Friday'";
+            aiResponse = "I apologize, but I couldn't understand the appointment time. Could you please specify the date and time again? For example, 'tomorrow at 2 PM', '3 PM on Friday', or 'next week Tuesday at 2 PM'";
           }
         }
       }

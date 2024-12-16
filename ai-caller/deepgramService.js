@@ -62,7 +62,7 @@ Communication Style:
 const CACHE_CONFIG = {
   MAX_SIZE: 1000,
   TTL: 1000 * 60 * 60,
-  MAX_HISTORY: 10
+  MAX_HISTORY: 4
 };
 
 // Initialize all caches once
@@ -347,6 +347,12 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
     }
 
     let conversationHistory = conversationCache.get(sessionId) || [];
+    
+    // Only keep last 4 messages to reduce context size
+    if (conversationHistory.length > CACHE_CONFIG.MAX_HISTORY) {
+      conversationHistory = conversationHistory.slice(-CACHE_CONFIG.MAX_HISTORY);
+    }
+
     const isFirstInteraction = conversationHistory.length === 0;
 
     if (isFirstInteraction && !transcript) {
@@ -372,14 +378,34 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
           ? `${prompt}\nIMPORTANT: The caller is responding to your question about their name. Extract their name and respond warmly.`
           : prompt
       },
-      ...conversationHistory
+      ...conversationHistory.slice(-4) // Ensure we only use last 4 turns
     ];
+
+    const functions = [];
+    if (!currentName) {
+      functions.push(nameExtractionFunction);
+    } else if (transcript.toLowerCase().includes('appoint')) {
+      functions.push(appointmentTimeExtractionFunction, scheduleAppointmentFunction);
+    }
+
+    if (transcript?.trim().length > 100) {
+      return {
+        response: "I apologize, but could you please keep your response shorter and more focused?",
+        extractedName: null
+      };
+    }
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4',
-      messages: messages,
-      functions: [nameExtractionFunction, appointmentTimeExtractionFunction, scheduleAppointmentFunction],
-      function_call: !currentName ? { name: 'extractName' } : 'auto'
+      messages: messages.slice(-4), // Limit to last 4 turns to reduce context size
+      functions: functions, // Ensure concise schema
+      function_call: !currentName ? { name: 'extractName' } : 'auto',
+      max_tokens: 100, // Further limit response length
+      temperature: 0.7, 
+      presence_penalty: 0.0,
+      frequency_penalty: 0.0,
+      top_p: 0.9,
+      stop: ["###"], // Simplify stop sequences
     });
 
     const message = response.choices[0].message;

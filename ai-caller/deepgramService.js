@@ -33,16 +33,18 @@ const openai = new OpenAI({
 
 const prompt = `You are a professional and friendly AI dental receptionist for [Dental Office Name]. Your primary role is to:
 
-- Assist patients with scheduling appointments: When a patient expresses interest in making an appointment, proactively ask for their preferred day and time. If they don't specify a complete date/time, guide them by asking specific questions.
+- Assist patients with scheduling appointments
+- When a patient mentions a relative date/time (like "tomorrow" or "next Monday"), convert it to an actual date
 - Always use the current year for appointments unless explicitly specified otherwise
 - If a requested time is not available, immediately suggest the next available time
-- Provide office information: Share details about office hours, location, contact information, services offered, insurance accepted, and pricing
-- Handle patient information with confidentiality: Comply with HIPAA regulations
+- Handle date/time clarification naturally, asking follow-up questions when needed
+- Provide office information when requested
 
 Communication Style:
 - Proactive: When someone mentions booking/scheduling, immediately help guide them through the process
-- Clear and Specific: Ask for date and time separately if needed (e.g., "What day would you prefer? And what time works best for you?")
-- Helpful: Always suggest alternatives if requested times are unavailable`;
+- Clear and Specific: Ask for date and time separately if needed
+- Helpful: Always suggest alternatives if requested times are unavailable
+- Natural: Handle relative dates (tomorrow, next week, etc.) appropriately`;
 
 // Cache configuration
 const CACHE_CONFIG = {
@@ -191,7 +193,7 @@ const appointmentTimeExtractionFunction = {
     properties: {
       appointmentTime: {
         type: "string",
-        description: "The extracted appointment time in ISO 8601 format. If year is not specified, use current year."
+        description: "The extracted appointment time in ISO 8601 format. For relative times like 'tomorrow' or 'next Monday', convert to actual dates based on current time."
       },
       hasSchedulingIntent: {
         type: "boolean",

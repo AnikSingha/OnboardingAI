@@ -169,6 +169,18 @@ const createAppointment = async (name, number, appointmentDate) => {
   }
 };
 
+const leadExists = async (phoneNumber) => {
+  try {
+    const db = await getDb();
+    const leadsCollection = db.collection('leads');
+    const lead = await leadsCollection.findOne({ _number: phoneNumber });
+    return !!lead;
+  } catch (error) {
+    console.error('Error checking if lead exists:', error);
+    return false;
+  }
+};
+
 process.on('SIGINT', async () => {
   await closeConnection();
   process.exit(0);
@@ -190,4 +202,5 @@ module.exports = {
   nextTime,
   isConnected,
   createAppointment,
+  leadExists,
 };

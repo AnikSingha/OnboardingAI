@@ -1,6 +1,6 @@
 const { MongoClient, ObjectId, ServerApiVersion } = require('mongodb');
 const dotenv = require('dotenv');
-const dateFnsTz = require('date-fns-tz');
+const { formatInTimeZone } = require('date-fns-tz');
 const OFFICE_TIMEZONE = process.env.TIMEZONE || 'America/New_York';
 dotenv.config();
 
@@ -116,7 +116,8 @@ const checkAvailability = async (appointmentDate) => {
     const db = await getDb();
     const schedulesCollection = db.collection('schedules');
     
-    const utcDate = dateFnsTz.zonedTimeToUtc(appointmentDate, OFFICE_TIMEZONE);
+    const formattedDate = formatInTimeZone(appointmentDate, OFFICE_TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    const utcDate = new Date(formattedDate);
     
     const existingAppointment = await schedulesCollection.findOne({
       date: utcDate
@@ -159,7 +160,8 @@ const createAppointment = async (name, number, appointmentDate) => {
     const db = await getDb();
     const schedulesCollection = db.collection('schedules');
     
-    const utcDate = dateFnsTz.zonedTimeToUtc(appointmentDate, OFFICE_TIMEZONE);
+    const formattedDate = formatInTimeZone(appointmentDate, OFFICE_TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    const utcDate = new Date(formattedDate);
     
     const newAppointment = {
       name: name,

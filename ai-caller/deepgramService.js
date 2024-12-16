@@ -15,7 +15,7 @@ const {
   isFuture,
   startOfDay
 } = require('date-fns');
-const { zonedTimeToUtc, utcToZonedTime, formatInTimeZone } = require('date-fns-tz');
+const { formatInTimeZone } = require('date-fns-tz');
 
 // Load environment variables first
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -288,7 +288,7 @@ const getNextValidDate = (dayName, referenceDate = new Date()) => {
   const targetDay = days.indexOf(dayName.toLowerCase());
   if (targetDay === -1) return null;
 
-  let date = utcToZonedTime(referenceDate, OFFICE_TIMEZONE);
+  let date = new Date(formatInTimeZone(referenceDate, OFFICE_TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
   date = startOfDay(date);
 
   while (date.getDay() !== targetDay || !isFuture(date)) {
@@ -407,13 +407,12 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
             return { response: aiResponse, extractedName: null };
           }
 
-          // Handle both ISO string and natural language formats
           let appointmentDate;
           if (args.appointmentTime.includes('T')) {
             // It's an ISO string
             appointmentDate = new Date(args.appointmentTime);
           } else {
-            // It's natural language - parse it
+            // Handle natural language parsing
             const dayMatch = args.appointmentTime.match(/(this|next)?\s*(\w+day)/i);
             const timeMatch = args.specifiedTime.match(/(\d{1,2})(?::(\d{2}))?\s*([ap]m)/i);
             
@@ -439,11 +438,11 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
             };
 
             const targetDay = daysOfWeek[day.toLowerCase()];
-            let targetDate = new Date(today);
+            let targetDate = new Date(formatInTimeZone(today, OFFICE_TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
 
             // Calculate days to add
             while (targetDate.getDay() !== targetDay || !isFuture(targetDate)) {
-              targetDate.setDate(targetDate.getDate() + 1);
+              targetDate = addDays(targetDate, 1);
             }
 
             // Set the time
@@ -456,9 +455,9 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
 
           console.log('Appointment processing:', {
             original: args,
-            parsedDate: appointmentDate.toISOString(),
-            finalTime: format(appointmentDate, 'h:mm a'),
-            finalDate: format(appointmentDate, 'EEEE, MMMM d')
+            parsedDate: formatInTimeZone(appointmentDate, OFFICE_TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"),
+            finalTime: formatInTimeZone(appointmentDate, OFFICE_TIMEZONE, 'h:mm a'),
+            finalDate: formatInTimeZone(appointmentDate, OFFICE_TIMEZONE, 'EEEE, MMMM d')
           });
 
           if (!isFuture(appointmentDate)) {
@@ -466,12 +465,11 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
             return { response: aiResponse, extractedName: null };
           }
 
-          const isAvailable = await checkAvailability(appointmentDate);
+          const formattedAppointmentDate = formatInTimeZone(appointmentDate, OFFICE_TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+          const isAvailable = await checkAvailability(formattedAppointmentDate);
           
           if (isAvailable) {
-            // Convert the appointment date to UTC while preserving the intended local time
-            const utcAppointmentDate = zonedTimeToUtc(appointmentDate, OFFICE_TIMEZONE);
-            const scheduled = await createAppointment(currentName, phoneNumber, utcAppointmentDate);
+            const scheduled = await createAppointment(currentName, phoneNumber, formattedAppointmentDate);
             
             if (scheduled && !await leadExists(phoneNumber)) {
               await addLead(phoneNumber, currentName);
@@ -485,7 +483,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
                 )}. We look forward to seeing you!`
               : `I apologize, but there was an error scheduling your appointment. Please try again or call our office directly.`;
           } else {
-            const nextAvailableTime = await nextTime(appointmentDate);
+            const nextAvailableTime = await nextTime(formattedAppointmentDate);
             if (nextAvailableTime) {
               aiResponse = `I apologize, but that time isn't available. The next available time is ${formatInTimeZone(
                 nextAvailableTime,

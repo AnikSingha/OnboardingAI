@@ -187,36 +187,30 @@ const nameExtractionFunction = {
 
 const appointmentTimeExtractionFunction = {
   name: "extractAppointmentTime",
-  description: "Extract appointment scheduling intent and time from the conversation. Always preserve the exact time mentioned by the user.",
+  description: `Extract appointment details from natural language. 
+  Current date is ${new Date().toLocaleString()}.
+  ALWAYS return dates in the future.
+  If a time is mentioned, use exactly that time.
+  If no time specified, ask for preferred time.
+  For relative dates like 'tomorrow' or 'next week', calculate the actual future date.
+  Never return dates in the past.`,
   parameters: {
     type: "object",
     properties: {
       appointmentTime: {
         type: "string",
-        description: "The extracted appointment time in ISO 8601 format. IMPORTANT: Use the exact time specified by the user. Do not default to any time if a specific time is mentioned."
-      },
-      hasSchedulingIntent: {
-        type: "boolean",
-        description: "Whether the user is trying to schedule an appointment"
+        description: "The exact date and time in ISO 8601 format (YYYY-MM-DDTHH:mm:ss). Must be a future date."
       },
       needsMoreInfo: {
         type: "boolean",
-        description: "Whether we need to ask for more specific date/time information"
+        description: "True if time/date is unclear or missing"
       },
       confidence: {
         type: "boolean",
-        description: "Whether the time was confidently extracted"
-      },
-      isRelativeDate: {
-        type: "boolean",
-        description: "Whether the date mentioned was relative (like 'tomorrow', 'next week')"
-      },
-      specifiedTime: {
-        type: "string",
-        description: "The exact time mentioned by the user (e.g., '1 PM', '2:30 PM'). Required if user specifies a time."
+        description: "Whether the date/time was clearly understood"
       }
     },
-    required: ["appointmentTime", "hasSchedulingIntent", "needsMoreInfo", "confidence", "isRelativeDate", "specifiedTime"]
+    required: ["appointmentTime", "needsMoreInfo", "confidence"]
   }
 };
 
@@ -314,124 +308,51 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
         }
       }
 
-      if (message.function_call.name === "extractAppointmentTime" && args.hasSchedulingIntent) {
-        if (args.needsMoreInfo) {
-          aiResponse = "What day would you prefer for your appointment? And what time works best for you?";
-        } else if (args.confidence && args.appointmentTime) {
-          try {
-            let appointmentDate;
-            const now = new Date();
-            
-            // Enhanced regex patterns
-            const timeRegex = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i;
-            const dayRegex = /(this|next)?\s*(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i;
-            const weekRegex = /next\s+week/i;
-            
-            const timeMatch = args.appointmentTime.toLowerCase().match(timeRegex);
-            const dayMatch = args.appointmentTime.toLowerCase().match(dayRegex);
-            const weekMatch = args.appointmentTime.toLowerCase().match(weekRegex);
-
-            if (args.isRelativeDate) {
-              appointmentDate = new Date(now);
-              
-              if (args.appointmentTime.toLowerCase().includes('tomorrow')) {
-                appointmentDate.setDate(now.getDate() + 1);
-              } else if (weekMatch) {
-                // Handle "next week" - add 7 days to current date
-                appointmentDate.setDate(now.getDate() + 7);
-                
-                // If a specific day is also mentioned, adjust to that day
-                if (dayMatch) {
-                  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                  const targetDay = days.indexOf(dayMatch[2]);
-                  const futureDay = appointmentDate.getDay();
-                  const daysToAdd = (targetDay - futureDay + 7) % 7;
-                  appointmentDate.setDate(appointmentDate.getDate() + daysToAdd);
-                }
-              } else if (dayMatch) {
-                const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                const targetDay = days.indexOf(dayMatch[2]);
-                const currentDay = now.getDay();
-                let daysToAdd = targetDay - currentDay;
-                
-                // If it's "next" [day], add a week
-                if (dayMatch[1] === 'next') {
-                  daysToAdd += 7;
-                }
-                // If the day has passed this week and it's not explicitly "this", move to next week
-                else if (daysToAdd <= 0 && dayMatch[1] !== 'this') {
-                  daysToAdd += 7;
-                }
-                
-                appointmentDate.setDate(now.getDate() + daysToAdd);
-              } else {
-                throw new Error('Could not parse day');
-              }
-
-              // Set the time if provided
-              if (args.specifiedTime) {
-                const timeMatch = args.specifiedTime.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
-                if (timeMatch) {
-                  let [_, hours, minutes = '00', meridiem] = timeMatch;
-                  hours = parseInt(hours);
-                  if (meridiem.toLowerCase() === 'pm' && hours !== 12) hours += 12;
-                  if (meridiem.toLowerCase() === 'am' && hours === 12) hours = 0;
-                  appointmentDate.setHours(hours, parseInt(minutes), 0, 0);
-                }
-              } else if (timeMatch) {
-                let [_, hours, minutes = '00', meridiem] = timeMatch;
-                hours = parseInt(hours);
-                if (meridiem.toLowerCase() === 'pm' && hours !== 12) hours += 12;
-                if (meridiem.toLowerCase() === 'am' && hours === 12) hours = 0;
-                appointmentDate.setHours(hours, parseInt(minutes), 0, 0);
-              } else {
-                // Only default to 9 AM if no time was specified at all
-                appointmentDate.setHours(9, 0, 0, 0);
-              }
-            } else {
-              // Handle absolute dates
-              appointmentDate = new Date(args.appointmentTime);
-            }
-
-            if (isNaN(appointmentDate.getTime())) {
-              throw new Error('Invalid date');
-            }
-
-            // Ensure date is in the future
-            if (appointmentDate < now) {
-              if (appointmentDate.getDate() === now.getDate()) {
-                aiResponse = "That time has already passed for today. Would you like to see the next available time?";
-                return { response: aiResponse, extractedName: null };
-              } else {
-                // If the date is in the past, move it to next week
-                appointmentDate.setDate(appointmentDate.getDate() + 7);
-              }
-            }
-
-            console.log('Processed appointment date:', appointmentDate);
-
-            const isAvailable = await checkAvailability(appointmentDate);
-            
-            if (isAvailable) {
-              const scheduled = await createAppointment(currentName, phoneNumber, appointmentDate);
-              
-              if (scheduled && !await leadExists(phoneNumber)) {
-                await addLead(phoneNumber, currentName);
-              }
-              
-              aiResponse = scheduled 
-                ? `Perfect! I've scheduled your appointment for ${appointmentDate.toLocaleString()}. We look forward to seeing you!`
-                : `I apologize, but there was an error scheduling your appointment. Please try again or call our office directly.`;
-            } else {
-              const nextAvailableTime = await nextTime(appointmentDate);
-              aiResponse = nextAvailableTime 
-                ? `I apologize, but that time isn't available. The next available time is ${new Date(nextAvailableTime).toLocaleString()}. Would that work for you?`
-                : `I apologize, but that time isn't available. Could you please suggest another time?`;
-            }
-          } catch (error) {
-            console.error('Error processing appointment date:', error);
-            aiResponse = "I apologize, but I couldn't understand the appointment time. Could you please specify the date and time again? For example, 'tomorrow at 2 PM', '3 PM on Friday', or 'next week Tuesday at 2 PM'";
+      if (message.function_call.name === "extractAppointmentTime") {
+        try {
+          if (args.needsMoreInfo) {
+            aiResponse = "What day and time would work best for you?";
+            return { response: aiResponse, extractedName: null };
           }
+
+          if (!args.confidence) {
+            aiResponse = "I didn't quite catch that. Could you please specify when you'd like to schedule the appointment?";
+            return { response: aiResponse, extractedName: null };
+          }
+
+          const appointmentDate = new Date(args.appointmentTime);
+          const now = new Date();
+
+          if (isNaN(appointmentDate.getTime())) {
+            throw new Error('Invalid date');
+          }
+
+          if (appointmentDate < now) {
+            aiResponse = "That time has already passed. Would you like to schedule for a future date?";
+            return { response: aiResponse, extractedName: null };
+          }
+
+          const isAvailable = await checkAvailability(appointmentDate);
+          
+          if (isAvailable) {
+            const scheduled = await createAppointment(currentName, phoneNumber, appointmentDate);
+            
+            if (scheduled && !await leadExists(phoneNumber)) {
+              await addLead(phoneNumber, currentName);
+            }
+            
+            aiResponse = scheduled 
+              ? `Perfect! I've scheduled your appointment for ${appointmentDate.toLocaleString()}. We look forward to seeing you!`
+              : `I apologize, but there was an error scheduling your appointment. Please try again or call our office directly.`;
+          } else {
+            const nextAvailableTime = await nextTime(appointmentDate);
+            aiResponse = nextAvailableTime 
+              ? `I apologize, but that time isn't available. The next available time is ${new Date(nextAvailableTime).toLocaleString()}. Would that work for you?`
+              : `I apologize, but that time isn't available. Could you please suggest another time?`;
+          }
+        } catch (error) {
+          console.error('Error processing appointment:', error);
+          aiResponse = "I apologize, but I couldn't understand the appointment time. Could you please specify when you'd like to schedule?";
         }
       }
     }

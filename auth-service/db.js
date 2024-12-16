@@ -111,12 +111,14 @@ const closeConnection = async () => {
 
 const checkAvailability = async (appointmentDate) => {
   try {
-    const database = client.db('auth');
-    const appointmentsCollection = database.collection('appointments');
+    const db = await getDb();
+    const schedulesCollection = db.collection('schedules');
     
-    const requestedDate = new Date(appointmentDate);
-    const existingAppointment = await appointmentsCollection.findOne({
-      date: requestedDate
+    // Convert the check date to UTC for comparison
+    const utcDate = zonedTimeToUtc(appointmentDate, OFFICE_TIMEZONE);
+    
+    const existingAppointment = await schedulesCollection.findOne({
+      date: utcDate
     });
 
     return !existingAppointment;
@@ -154,10 +156,11 @@ const createAppointment = async (name, number, appointmentDate) => {
     const db = await getDb();
     const schedulesCollection = db.collection('schedules');
     
+    // Store the UTC date directly
     const newAppointment = {
       name: name,
       number: number,
-      date: appointmentDate,
+      date: appointmentDate, // This is already in UTC from zonedTimeToUtc
       created_at: new Date()
     };
     

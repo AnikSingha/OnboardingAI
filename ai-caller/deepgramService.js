@@ -469,7 +469,9 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
           const isAvailable = await checkAvailability(appointmentDate);
           
           if (isAvailable) {
-            const scheduled = await createAppointment(currentName, phoneNumber, appointmentDate);
+            // Convert the appointment date to UTC while preserving the intended local time
+            const utcAppointmentDate = zonedTimeToUtc(appointmentDate, OFFICE_TIMEZONE);
+            const scheduled = await createAppointment(currentName, phoneNumber, utcAppointmentDate);
             
             if (scheduled && !await leadExists(phoneNumber)) {
               await addLead(phoneNumber, currentName);

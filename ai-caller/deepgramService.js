@@ -409,8 +409,16 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
 
           let appointmentDate;
           if (args.appointmentTime.includes('T')) {
-            // It's an ISO string
-            appointmentDate = new Date(args.appointmentTime);
+            // Convert the appointment time to the office timezone
+            appointmentDate = new Date(formatInTimeZone(
+              args.appointmentTime,
+              OFFICE_TIMEZONE,
+              "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+            ));
+            
+            // Adjust for timezone offset
+            const tzOffset = new Date().getTimezoneOffset() * 60000;
+            appointmentDate = new Date(appointmentDate.getTime() + tzOffset);
           } else {
             // Handle natural language parsing
             const dayMatch = args.appointmentTime.match(/(this|next)?\s*(\w+day)/i);

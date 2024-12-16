@@ -187,13 +187,13 @@ const nameExtractionFunction = {
 
 const appointmentTimeExtractionFunction = {
   name: "extractAppointmentTime",
-  description: "Extract appointment scheduling intent and time from the conversation. Parse relative dates like 'this Wednesday' or 'next Monday' into actual dates.",
+  description: "Extract appointment scheduling intent and time from the conversation. Always preserve the exact time mentioned by the user.",
   parameters: {
     type: "object",
     properties: {
       appointmentTime: {
         type: "string",
-        description: "The extracted appointment time in ISO 8601 format. For relative dates, calculate the actual date. Examples: 'this Wednesday at 2:30 PM', 'next Monday at 3 PM', 'tomorrow at 2 PM'"
+        description: "The extracted appointment time in ISO 8601 format. IMPORTANT: Use the exact time specified by the user. Do not default to any time if a specific time is mentioned."
       },
       hasSchedulingIntent: {
         type: "boolean",
@@ -209,14 +209,14 @@ const appointmentTimeExtractionFunction = {
       },
       isRelativeDate: {
         type: "boolean",
-        description: "Whether the date mentioned was relative (like 'tomorrow', 'this Wednesday', 'next week')"
+        description: "Whether the date mentioned was relative (like 'tomorrow', 'next week')"
       },
-      dayOfWeek: {
+      specifiedTime: {
         type: "string",
-        description: "If a day of week was mentioned (e.g., 'Wednesday', 'Monday'), specify it here"
+        description: "The exact time mentioned by the user (e.g., '1 PM', '2:30 PM'). Required if user specifies a time."
       }
     },
-    required: ["appointmentTime", "hasSchedulingIntent", "needsMoreInfo", "confidence", "isRelativeDate"]
+    required: ["appointmentTime", "hasSchedulingIntent", "needsMoreInfo", "confidence", "isRelativeDate", "specifiedTime"]
   }
 };
 
@@ -369,14 +369,23 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
               }
 
               // Set the time if provided
-              if (timeMatch) {
+              if (args.specifiedTime) {
+                const timeMatch = args.specifiedTime.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+                if (timeMatch) {
+                  let [_, hours, minutes = '00', meridiem] = timeMatch;
+                  hours = parseInt(hours);
+                  if (meridiem.toLowerCase() === 'pm' && hours !== 12) hours += 12;
+                  if (meridiem.toLowerCase() === 'am' && hours === 12) hours = 0;
+                  appointmentDate.setHours(hours, parseInt(minutes), 0, 0);
+                }
+              } else if (timeMatch) {
                 let [_, hours, minutes = '00', meridiem] = timeMatch;
                 hours = parseInt(hours);
                 if (meridiem.toLowerCase() === 'pm' && hours !== 12) hours += 12;
                 if (meridiem.toLowerCase() === 'am' && hours === 12) hours = 0;
                 appointmentDate.setHours(hours, parseInt(minutes), 0, 0);
               } else {
-                // Default to 9 AM if no time specified
+                // Only default to 9 AM if no time was specified at all
                 appointmentDate.setHours(9, 0, 0, 0);
               }
             } else {

@@ -187,13 +187,13 @@ const nameExtractionFunction = {
 
 const appointmentTimeExtractionFunction = {
   name: "extractAppointmentTime",
-  description: "Extract appointment scheduling intent and time from the conversation",
+  description: "Extract appointment scheduling intent and time from the conversation. Parse relative dates like 'this Wednesday' or 'next Monday' into actual dates.",
   parameters: {
     type: "object",
     properties: {
       appointmentTime: {
         type: "string",
-        description: "The extracted appointment time in ISO 8601 format. For relative dates like 'tomorrow' or 'next week', calculate the actual date based on current time. Example: If user says 'tomorrow at 3pm', convert to full ISO date."
+        description: "The extracted appointment time in ISO 8601 format. For relative dates, calculate the actual date. Examples: 'this Wednesday at 2:30 PM', 'next Monday at 3 PM', 'tomorrow at 2 PM'"
       },
       hasSchedulingIntent: {
         type: "boolean",
@@ -209,7 +209,11 @@ const appointmentTimeExtractionFunction = {
       },
       isRelativeDate: {
         type: "boolean",
-        description: "Whether the date mentioned was relative (like 'tomorrow', 'next week')"
+        description: "Whether the date mentioned was relative (like 'tomorrow', 'this Wednesday', 'next week')"
+      },
+      dayOfWeek: {
+        type: "string",
+        description: "If a day of week was mentioned (e.g., 'Wednesday', 'Monday'), specify it here"
       }
     },
     required: ["appointmentTime", "hasSchedulingIntent", "needsMoreInfo", "confidence", "isRelativeDate"]
@@ -238,7 +242,7 @@ const scheduleAppointmentFunction = {
 
 const processTranscript = async (transcript, sessionId, currentName = null, phoneNumber = null) => {
   try {
-    // Check if we have the caller's info in leads collection
+    // First check if we have the caller's info in leads collection
     if (!currentName && phoneNumber) {
       const db = await getDb();
       const leadsCollection = db.collection('leads');
@@ -246,6 +250,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
       
       if (existingLead?.name) {
         currentName = existingLead.name;
+        // Update conversation history with personalized greeting
         const initialResponse = {
           response: `Hello ${currentName}! How can I assist you today?`,
           extractedName: currentName
@@ -318,24 +323,29 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
             const now = new Date();
             
             if (args.isRelativeDate) {
-              // Handle "tomorrow"
               if (args.appointmentTime.toLowerCase().includes('tomorrow')) {
                 appointmentDate = new Date(now);
                 appointmentDate.setDate(now.getDate() + 1);
-                
-                // Extract time if provided
-                const timeMatch = args.appointmentTime.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
-                if (timeMatch) {
-                  let [_, hours, minutes = '00', meridiem] = timeMatch;
-                  hours = parseInt(hours);
-                  if (meridiem.toLowerCase() === 'pm' && hours !== 12) hours += 12;
-                  if (meridiem.toLowerCase() === 'am' && hours === 12) hours = 0;
-                  appointmentDate.setHours(hours, parseInt(minutes), 0, 0);
-                } else {
-                  appointmentDate.setHours(9, 0, 0, 0); // Default to 9 AM if no time specified
-                }
+              } else if (args.dayOfWeek) {
+                appointmentDate = new Date(now);
+                const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const targetDay = days.indexOf(args.dayOfWeek.toLowerCase());
+                const currentDay = now.getDay();
+                let daysToAdd = targetDay - currentDay;
+                if (daysToAdd <= 0) daysToAdd += 7; // Move to next week if day has passed
+                appointmentDate.setDate(now.getDate() + daysToAdd);
               } else {
                 appointmentDate = new Date(args.appointmentTime);
+              }
+
+              // Extract time if provided
+              const timeMatch = args.appointmentTime.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+              if (timeMatch) {
+                let [_, hours, minutes = '00', meridiem] = timeMatch;
+                hours = parseInt(hours);
+                if (meridiem.toLowerCase() === 'pm' && hours !== 12) hours += 12;
+                if (meridiem.toLowerCase() === 'am' && hours === 12) hours = 0;
+                appointmentDate.setHours(hours, parseInt(minutes), 0, 0);
               }
             } else {
               appointmentDate = new Date(args.appointmentTime);

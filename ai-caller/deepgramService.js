@@ -190,37 +190,48 @@ const appointmentTimeExtractionFunction = {
   description: `Extract appointment details from natural language conversation.
   Current date and time is ${new Date().toLocaleString()}.
   
-  CRITICAL: 
-  - ALWAYS use the EXACT time mentioned by the user
-  - Return the time in 24-hour format ISO string
-  - For "2 PM" → return "14:00"
-  - For "3:30 PM" → return "15:30"
-  - If no specific time mentioned, set needsMoreInfo to true
+  CRITICAL REQUIREMENTS:
+  1. For relative dates (e.g., "Wednesday at 3 PM"):
+     - Calculate the next occurrence of that day
+     - Use exact time specified (e.g., "3 PM" → 15:00)
   
-  EXAMPLES:
-  "2 PM" → {appointmentTime: "2024-[date]T14:00:00", specifiedTime: "2 PM"}
-  "3:30 PM" → {appointmentTime: "2024-[date]T15:30:00", specifiedTime: "3:30 PM"}`,
+  2. Time format:
+     - "3 PM" → 15:00:00
+     - "3:30 PM" → 15:30:00
+     
+  3. Date format:
+     - Must return full ISO date string
+     - Include current year (${new Date().getFullYear()})
+     - For "Wednesday at 3 PM" → calculate next Wednesday's date
+  
+  EXAMPLE OUTPUTS:
+  "Wednesday at 3 PM" → {
+    appointmentTime: "2024-[next-wednesday-date]T15:00:00.000Z",
+    specifiedTime: "3 PM",
+    needsMoreInfo: false,
+    confidence: true
+  }`,
   parameters: {
     type: "object",
     properties: {
       appointmentTime: {
         type: "string",
-        description: "ISO 8601 format with exact time specified by user"
-      },
-      needsMoreInfo: {
-        type: "boolean",
-        description: "True if no specific time mentioned"
-      },
-      confidence: {
-        type: "boolean",
-        description: "True if time was clearly stated"
+        description: "Full ISO 8601 date-time string for the next occurrence of specified day and time"
       },
       specifiedTime: {
         type: "string",
-        description: "Raw time as specified by user (e.g., '2 PM', '3:30 PM')"
+        description: "The exact time portion specified by user (e.g., '3 PM')"
+      },
+      needsMoreInfo: {
+        type: "boolean",
+        description: "True only if time or day is unclear"
+      },
+      confidence: {
+        type: "boolean",
+        description: "True if both day and time are clearly specified"
       }
     },
-    required: ["appointmentTime", "needsMoreInfo", "confidence", "specifiedTime"]
+    required: ["appointmentTime", "specifiedTime", "needsMoreInfo", "confidence"]
   }
 };
 
@@ -320,34 +331,57 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
 
       if (message.function_call.name === "extractAppointmentTime") {
         try {
+          console.log('Received appointment data:', args);
+
           if (args.needsMoreInfo) {
-            aiResponse = "What specific time would you prefer for your appointment?";
+            aiResponse = "What specific day and time would you prefer for your appointment?";
             return { response: aiResponse, extractedName: null };
+          }
+
+          if (!args.appointmentTime || !args.specifiedTime) {
+            console.error('Missing required appointment data:', args);
+            throw new Error('Invalid appointment data');
           }
 
           const appointmentDate = new Date(args.appointmentTime);
           const now = new Date();
 
           if (isNaN(appointmentDate.getTime())) {
-            throw new Error('Invalid date');
+            console.error('Invalid date from:', args.appointmentTime);
+            throw new Error('Invalid date format');
           }
 
-          // Simple time validation
+          console.log('Parsed appointment date:', {
+            original: args.appointmentTime,
+            parsed: appointmentDate.toLocaleString(),
+            specifiedTime: args.specifiedTime
+          });
+
+          // Validate the time matches what user specified
           const hour = appointmentDate.getHours();
           const minutes = appointmentDate.getMinutes();
-          const userTime = args.specifiedTime.toLowerCase();
+          const userTime = args.specifiedTime.toLowerCase().replace(/\s+/g, ' ').trim();
           
-          // Convert 24-hour time to 12-hour format for comparison
+          // Convert to 12-hour format for comparison
           const period = hour >= 12 ? 'pm' : 'am';
           const hour12 = hour % 12 || 12;
           const timeStr = minutes > 0 ? 
             `${hour12}:${minutes.toString().padStart(2, '0')} ${period}` : 
             `${hour12} ${period}`;
 
-          console.log(`Validating time - User specified: "${userTime}", Converted: "${timeStr}"`);
+          console.log('Time validation:', {
+            userSpecified: userTime,
+            converted: timeStr,
+            hour24: hour,
+            minutes: minutes
+          });
 
-          if (!userTime.includes(timeStr) && !timeStr.includes(userTime.replace(/\s+/g, ' ').trim())) {
-            console.error(`Time validation failed - User: "${userTime}", Scheduled: "${timeStr}"`);
+          if (!userTime.includes(timeStr) && !timeStr.includes(userTime)) {
+            console.error('Time mismatch:', {
+              userTime,
+              convertedTime: timeStr,
+              fullDate: appointmentDate
+            });
             throw new Error('Time mismatch');
           }
 
@@ -355,8 +389,6 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
             aiResponse = "That time has already passed. Would you like to schedule for a future date?";
             return { response: aiResponse, extractedName: null };
           }
-
-          console.log(`Processing appointment for: ${appointmentDate.toLocaleString()}`);
 
           const isAvailable = await checkAvailability(appointmentDate);
           
@@ -378,7 +410,7 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
           }
         } catch (error) {
           console.error('Error processing appointment:', error);
-          aiResponse = "I apologize, but I couldn't understand the exact time you'd like. Could you please specify the time again? For example, '2 PM' or '3:30 PM'";
+          aiResponse = "I apologize, but I couldn't understand the appointment time. Could you please specify the day and time again? For example, 'Wednesday at 3 PM' or 'next Friday at 2:30 PM'";
         }
       }
     }

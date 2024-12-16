@@ -1,5 +1,7 @@
 const { MongoClient, ObjectId, ServerApiVersion } = require('mongodb');
 const dotenv = require('dotenv');
+const { zonedTimeToUtc, utcToZonedTime } = require('date-fns-tz');
+const OFFICE_TIMEZONE = process.env.TIMEZONE || 'America/New_York';
 dotenv.config();
 
 const uri = process.env.DB_URI;
@@ -130,24 +132,22 @@ const checkAvailability = async (appointmentDate) => {
 
 const nextTime = async (appointmentDate) => {
   try {
-        let requestedDate = new Date(appointmentDate); // Convert input date to Date object
+    let requestedDate = new Date(appointmentDate);
 
-        // Keep checking until an available slot is found
-        while (true) {
-        const isAvailable = await checkAvailability(requestedDate);
+    while (true) {
+      const isAvailable = await checkAvailability(requestedDate);
 
-        if (isAvailable) {
-            console.log(`Next available appointment is at ${requestedDate}`);
-            return requestedDate; // Return the available date
-        } else {
-            // If the requested time is not available, increment by 15 minutes (or any other interval)
-            requestedDate = new Date(requestedDate.getTime() + 15 * 60 * 1000); // 15 minutes
-            console.log(`Trying the next available slot at ${requestedDate}`);
-        }
-        }
-    } catch (error) {
-        console.error('Error finding next available time:', error);
-        return null; // Return null if there's an error
+      if (isAvailable) {
+        console.log(`Next available appointment is at ${requestedDate}`);
+        return requestedDate;
+      } else {
+        requestedDate = new Date(requestedDate.getTime() + 15 * 60 * 1000);
+        console.log(`Trying the next available slot at ${requestedDate}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error finding next available time:', error);
+    return null;
   }
 };
 
@@ -156,11 +156,10 @@ const createAppointment = async (name, number, appointmentDate) => {
     const db = await getDb();
     const schedulesCollection = db.collection('schedules');
     
-    // Store the UTC date directly
     const newAppointment = {
       name: name,
       number: number,
-      date: appointmentDate, // This is already in UTC from zonedTimeToUtc
+      date: appointmentDate, // This should already be in UTC from zonedTimeToUtc
       created_at: new Date()
     };
     

@@ -168,17 +168,17 @@ const generateTTS = async (text) => {
 
 const nameExtractionFunction = {
   name: "extractName",
-  description: "Extract a person's name when they introduce themselves",
+  description: "Extract a person's name when they introduce themselves. Be lenient and accept any reasonable name-like response.",
   parameters: {
     type: "object",
     properties: {
       name: {
         type: "string",
-        description: "The extracted name from the conversation"
+        description: "The extracted name from the conversation. If multiple words are present, try to identify the most likely name."
       },
       confidence: {
         type: "boolean",
-        description: "Whether the name was confidently extracted"
+        description: "Whether the name was confidently extracted. Set to true unless the input is clearly not a name."
       }
     },
     required: ["name", "confidence"]
@@ -321,24 +321,37 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
         } else if (args.confidence && args.appointmentTime) {
           let appointmentDate;
           try {
-            appointmentDate = new Date(args.appointmentTime);
-            
+            const now = new Date();
+            if (args.isRelativeDate) {
+              // Handle relative dates
+              const today = new Date();
+              if (args.appointmentTime.toLowerCase().includes('tomorrow')) {
+                appointmentDate = new Date(today.setDate(today.getDate() + 1));
+                // Set the time portion from the original request
+                const requestedTime = new Date(args.appointmentTime);
+                appointmentDate.setHours(requestedTime.getHours(), requestedTime.getMinutes(), 0, 0);
+              } else {
+                appointmentDate = new Date(args.appointmentTime);
+              }
+            } else {
+              appointmentDate = new Date(args.appointmentTime);
+            }
+
             // Validate the date is valid
             if (isNaN(appointmentDate.getTime())) {
               throw new Error('Invalid date');
             }
 
-            // If it's a relative date (tomorrow, next week, etc.), ensure it's properly set
-            if (args.isRelativeDate) {
-              // Ensure the date is in the future
-              if (appointmentDate < new Date()) {
-                appointmentDate.setDate(appointmentDate.getDate() + 1);
+            // Ensure date is in the future
+            if (appointmentDate < now) {
+              if (appointmentDate.getDate() === now.getDate()) {
+                // Same day but earlier time - keep date but suggest next available time
+                aiResponse = "That time has already passed for today. Would you like to see the next available time?";
+                return;
+              } else {
+                // Past date - assume next year if not specified
+                appointmentDate.setFullYear(now.getFullYear() + 1);
               }
-            }
-
-            // Ensure we're using current year if not specified
-            if (appointmentDate.getFullYear() < new Date().getFullYear()) {
-              appointmentDate.setFullYear(new Date().getFullYear());
             }
 
             const isAvailable = await checkAvailability(appointmentDate);
@@ -346,7 +359,6 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
             if (isAvailable) {
               const scheduled = await createAppointment(currentName, phoneNumber, appointmentDate);
               
-              // If we have a new patient, add them to leads
               if (scheduled && !await leadExists(phoneNumber)) {
                 await addLead(phoneNumber, currentName);
               }

@@ -135,8 +135,8 @@ class AccountManager {
 
     async updateEmail(oldEmail, newEmail) {
         try {
-            let client = await getDb()
-            let userCollection = client.db('auth').collection('users')
+            let db = await getDb()
+            let userCollection = db.collection('users')
             
             const result = await userCollection.updateOne(
                 { email: oldEmail },

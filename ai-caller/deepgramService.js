@@ -4,6 +4,16 @@ const OpenAI = require('openai');
 const dotenv = require('dotenv');
 const path = require('path');
 const { checkAvailability, nextTime, createAppointment, connectToMongoDB, addLead, leadExists } = require('../auth-service/db.js');
+const { 
+  parse, 
+  format, 
+  isValid, 
+  setHours, 
+  setMinutes,
+  addDays,
+  nextDay,
+  isFuture
+} = require('date-fns');
 
 // Load environment variables first
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -191,22 +201,14 @@ const appointmentTimeExtractionFunction = {
   Current date and time is ${new Date().toLocaleString()}.
   
   CRITICAL REQUIREMENTS:
-  1. For relative dates (e.g., "Wednesday at 3 PM"):
-     - Calculate the next occurrence of that day
-     - Use exact time specified (e.g., "3 PM" → 15:00)
-  
-  2. Time format:
-     - "3 PM" → 15:00:00
-     - "3:30 PM" → 15:30:00
-     
-  3. Date format:
-     - Must return full ISO date string
-     - Include current year (${new Date().getFullYear()})
-     - For "Wednesday at 3 PM" → calculate next Wednesday's date
+  1. Always return times in ISO 8601 format with timezone
+  2. For relative dates (e.g., "Wednesday at 3 PM"), calculate the next occurrence
+  3. Preserve exact times specified by user
+  4. Include timezone offset in response
   
   EXAMPLE OUTPUTS:
   "Wednesday at 3 PM" → {
-    appointmentTime: "2024-[next-wednesday-date]T15:00:00.000Z",
+    appointmentTime: "2024-[date]T15:00:00.000-05:00",
     specifiedTime: "3 PM",
     needsMoreInfo: false,
     confidence: true
@@ -216,19 +218,17 @@ const appointmentTimeExtractionFunction = {
     properties: {
       appointmentTime: {
         type: "string",
-        description: "Full ISO 8601 date-time string for the next occurrence of specified day and time"
+        description: "Full ISO 8601 date-time string with timezone offset"
       },
       specifiedTime: {
         type: "string",
-        description: "The exact time portion specified by user (e.g., '3 PM')"
+        description: "Raw time specified by user (e.g., '3 PM')"
       },
       needsMoreInfo: {
-        type: "boolean",
-        description: "True only if time or day is unclear"
+        type: "boolean"
       },
       confidence: {
-        type: "boolean",
-        description: "True if both day and time are clearly specified"
+        type: "boolean"
       }
     },
     required: ["appointmentTime", "specifiedTime", "needsMoreInfo", "confidence"]
@@ -253,6 +253,33 @@ const scheduleAppointmentFunction = {
     },
     required: ["appointmentTime", "action"]
   }
+};
+
+// Helper function to normalize time strings
+const normalizeTimeString = (timeStr) => {
+  timeStr = timeStr.toLowerCase().trim();
+  // Remove any extra spaces
+  timeStr = timeStr.replace(/\s+/g, ' ');
+  // Standardize AM/PM format
+  timeStr = timeStr.replace(/([ap])\.?m\.?/i, '$1m');
+  // Add :00 if no minutes specified
+  if (!timeStr.includes(':')) {
+    timeStr = timeStr.replace(/(\d+)(\s*[ap]m)/, '$1:00$2');
+  }
+  return timeStr;
+};
+
+// Helper function to parse time string
+const parseTimeString = (timeStr) => {
+  const match = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*([ap]m)/i);
+  if (!match) return null;
+
+  let [_, hours, minutes = '00', meridiem] = match;
+  hours = parseInt(hours);
+  if (meridiem.toLowerCase() === 'pm' && hours !== 12) hours += 12;
+  if (meridiem.toLowerCase() === 'am' && hours === 12) hours = 0;
+
+  return { hours, minutes: parseInt(minutes) };
 };
 
 const processTranscript = async (transcript, sessionId, currentName = null, phoneNumber = null) => {
@@ -339,73 +366,60 @@ const processTranscript = async (transcript, sessionId, currentName = null, phon
           }
 
           if (!args.appointmentTime || !args.specifiedTime) {
-            console.error('Missing required appointment data:', args);
-            throw new Error('Invalid appointment data');
+            throw new Error('Missing required appointment data');
           }
 
+          // Parse the appointment date from ISO string
           const appointmentDate = new Date(args.appointmentTime);
-          const now = new Date();
-
-          if (isNaN(appointmentDate.getTime())) {
-            console.error('Invalid date from:', args.appointmentTime);
+          if (!isValid(appointmentDate)) {
             throw new Error('Invalid date format');
           }
 
-          console.log('Parsed appointment date:', {
-            original: args.appointmentTime,
-            parsed: appointmentDate.toLocaleString(),
-            specifiedTime: args.specifiedTime
-          });
-
-          // Validate the time matches what user specified
-          const hour = appointmentDate.getHours();
-          const minutes = appointmentDate.getMinutes();
-          const userTime = args.specifiedTime.toLowerCase().replace(/\s+/g, ' ').trim();
+          // Parse the user-specified time
+          const normalizedUserTime = normalizeTimeString(args.specifiedTime);
+          const parsedUserTime = parseTimeString(normalizedUserTime);
           
-          // Convert to 12-hour format for comparison
-          const period = hour >= 12 ? 'pm' : 'am';
-          const hour12 = hour % 12 || 12;
-          const timeStr = minutes > 0 ? 
-            `${hour12}:${minutes.toString().padStart(2, '0')} ${period}` : 
-            `${hour12} ${period}`;
-
-          console.log('Time validation:', {
-            userSpecified: userTime,
-            converted: timeStr,
-            hour24: hour,
-            minutes: minutes
-          });
-
-          if (!userTime.includes(timeStr) && !timeStr.includes(userTime)) {
-            console.error('Time mismatch:', {
-              userTime,
-              convertedTime: timeStr,
-              fullDate: appointmentDate
-            });
-            throw new Error('Time mismatch');
+          if (!parsedUserTime) {
+            throw new Error('Invalid time format');
           }
 
-          if (appointmentDate < now) {
-            aiResponse = "That time has already passed. Would you like to schedule for a future date?";
+          // Set the correct time on the appointment date
+          const correctedDate = setMinutes(
+            setHours(appointmentDate, parsedUserTime.hours),
+            parsedUserTime.minutes
+          );
+
+          console.log('Time validation:', {
+            original: args.specifiedTime,
+            normalized: normalizedUserTime,
+            parsed: format(correctedDate, 'h:mm a'),
+            final: correctedDate.toISOString()
+          });
+
+          // Ensure the appointment is in the future
+          if (!isFuture(correctedDate)) {
+            // If it's today but time has passed, suggest tomorrow
+            const tomorrow = addDays(new Date(), 1);
+            aiResponse = "That time has already passed. Would you like to schedule for tomorrow instead?";
             return { response: aiResponse, extractedName: null };
           }
 
-          const isAvailable = await checkAvailability(appointmentDate);
+          const isAvailable = await checkAvailability(correctedDate);
           
           if (isAvailable) {
-            const scheduled = await createAppointment(currentName, phoneNumber, appointmentDate);
+            const scheduled = await createAppointment(currentName, phoneNumber, correctedDate);
             
             if (scheduled && !await leadExists(phoneNumber)) {
               await addLead(phoneNumber, currentName);
             }
             
             aiResponse = scheduled 
-              ? `Perfect! I've scheduled your appointment for ${args.specifiedTime} on ${appointmentDate.toLocaleDateString()}. We look forward to seeing you!`
+              ? `Perfect! I've scheduled your appointment for ${format(correctedDate, 'EEEE, MMMM d')} at ${format(correctedDate, 'h:mm a')}. We look forward to seeing you!`
               : `I apologize, but there was an error scheduling your appointment. Please try again or call our office directly.`;
           } else {
-            const nextAvailableTime = await nextTime(appointmentDate);
+            const nextAvailableTime = await nextTime(correctedDate);
             aiResponse = nextAvailableTime 
-              ? `I apologize, but ${args.specifiedTime} isn't available. The next available time is ${new Date(nextAvailableTime).toLocaleString()}. Would that work for you?`
+              ? `I apologize, but that time isn't available. The next available time is ${format(new Date(nextAvailableTime), 'EEEE, MMMM d')} at ${format(new Date(nextAvailableTime), 'h:mm a')}. Would that work for you?`
               : `I apologize, but that time isn't available. Could you please suggest another time?`;
           }
         } catch (error) {
